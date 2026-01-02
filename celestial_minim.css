@@ -1,0 +1,53 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+#celestial-map {
+    width: 70%;
+    height: 90vh;
+    background-color: #000000;
+}
+
+.settings-panel {
+    width: 30%;
+    padding: 20px;
+    background-color: #2a2a2a;
+}
+
+.setting-group {
+    margin-bottom: 20px;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ffffff;
+}
+
+.setting-group input,
+.setting-group select {
+    width: 100%;
+    padding: 8px;
+    background-color: #3a3a3a;
+    border: 1px solid #4a4a4a;
+    color: #ffffff;
+    border-radius: 4px;
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #ffffff;
+}
