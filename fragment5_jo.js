@@ -1094,6 +1094,114 @@ window.alignCelestialMap = function(position) {
 //     }
 // }
 // --- JAVÍTOTT EXPORTÁLÁS (Fix méretű háttérrel + Választott színnel) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     try {
+//         // 1. Méretek és Szín lekérése (Biztonságosabban)
+//         // A viewBox.baseVal pontosabb értékeket ad vissza, mint a string split
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         // Háttérszín lekérése közvetlenül az SVG stílusából (amit a user beállított)
+//         // Ha nincs beállítva, alapértelmezett sötétkék
+//         const bgColor = designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // --- A: VEKTOROS EXPORT (SVG) ---
+//         if (format === 'svg') {
+//             const svgClone = designerSVG.cloneNode(true);
+            
+//             // Méretek fixálása: Pixelben adjuk meg, így a böngésző nem torzítja el
+//             svgClone.setAttribute("width", width);
+//             svgClone.setAttribute("height", height);
+//             svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+            
+//             // HÁTTÉR TÉGLALAP (JAVÍTVA)
+//             // Nem 100%-ot használunk, hanem a pontos viewBox méreteket!
+//             const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//             bgRect.setAttribute("x", x);
+//             bgRect.setAttribute("y", y);
+//             bgRect.setAttribute("width", width);   // Fix szélesség
+//             bgRect.setAttribute("height", height); // Fix magasság
+//             bgRect.setAttribute("fill", bgColor);  // Választott szín
+//             bgRect.setAttribute("id", "export-background");
+            
+//             // Beszúrjuk legelső elemnek (hogy minden más alatt legyen)
+//             svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+//             // Serializálás
+//             const serializer = new XMLSerializer();
+//             let source = serializer.serializeToString(svgClone);
+
+//             // Névtér javítás
+//             if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//             }
+//             if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//             }
+
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+            
+//         } 
+//         // --- B: RASTERES EXPORT (PNG / JPEG) ---
+//         else {
+//             const svgData = new XMLSerializer().serializeToString(designerSVG);
+            
+//             // Nagyobb felbontás (3x)
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+            
+//             const ctx = canvas.getContext("2d");
+            
+//             // Háttér kitöltése a választott színnel
+//             ctx.fillStyle = bgColor;
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+                
+//                 URL.revokeObjectURL(url);
+//             };
+            
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//     }
+// }
+
+
+// --- JAVÍTOTT EXPORTÁLÁS (SVG Gradiens Támogatással) ---
 async function exportCanvas(format) {
     if (!getDOMElements()) {
         alert("Hiba: A tervező elem nem található.");
@@ -1101,45 +1209,89 @@ async function exportCanvas(format) {
     }
 
     try {
-        // 1. Méretek és Szín lekérése (Biztonságosabban)
-        // A viewBox.baseVal pontosabb értékeket ad vissza, mint a string split
+        // 1. Méretek lekérése
         const vb = designerSVG.viewBox.baseVal;
         const width = vb.width;
         const height = vb.height;
         const x = vb.x;
         const y = vb.y;
 
-        // Háttérszín lekérése közvetlenül az SVG stílusából (amit a user beállított)
-        // Ha nincs beállítva, alapértelmezett sötétkék
-        const bgColor = designerSVG.style.backgroundColor || "#0a0e27";
+        // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
+        const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
 
         // --- A: VEKTOROS EXPORT (SVG) ---
         if (format === 'svg') {
             const svgClone = designerSVG.cloneNode(true);
             
-            // Méretek fixálása: Pixelben adjuk meg, így a böngésző nem torzítja el
             svgClone.setAttribute("width", width);
             svgClone.setAttribute("height", height);
             svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
             
-            // HÁTTÉR TÉGLALAP (JAVÍTVA)
-            // Nem 100%-ot használunk, hanem a pontos viewBox méreteket!
+            // HÁTTÉR TÉGLALAP LÉTREHOZÁSA
             const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
             bgRect.setAttribute("x", x);
             bgRect.setAttribute("y", y);
-            bgRect.setAttribute("width", width);   // Fix szélesség
-            bgRect.setAttribute("height", height); // Fix magasság
-            bgRect.setAttribute("fill", bgColor);  // Választott szín
+            bgRect.setAttribute("width", width);
+            bgRect.setAttribute("height", height);
             bgRect.setAttribute("id", "export-background");
+
+            // --- GRADIENS KEZELÉS (A JAVÍTÁS LÉNYEGE) ---
+            if (bgStyle.includes("gradient")) {
+                // 1. Megkeressük vagy létrehozzuk a <defs> szekciót
+                let defs = svgClone.querySelector('defs');
+                if (!defs) {
+                    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                    svgClone.insertBefore(defs, svgClone.firstChild);
+                }
+
+                // 2. Kinyerjük a színeket a stringből (pl. #0B1026 és #1a2542)
+                const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+                
+                if (colors && colors.length >= 2) {
+                    // 3. Létrehozunk egy SVG LinearGradient elemet
+                    const gradId = "bg-gradient-" + Date.now(); // Egyedi ID
+                    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+                    gradient.setAttribute("id", gradId);
+                    
+                    // Átlós irány (kb. 135deg-nek felel meg: bal-fent -> jobb-lent)
+                    gradient.setAttribute("x1", "0%");
+                    gradient.setAttribute("y1", "0%");
+                    gradient.setAttribute("x2", "100%");
+                    gradient.setAttribute("y2", "100%");
+
+                    // Kezdő szín (Stop 1)
+                    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                    stop1.setAttribute("offset", "0%");
+                    stop1.setAttribute("stop-color", colors[0]);
+                    
+                    // Vég szín (Stop 2)
+                    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                    stop2.setAttribute("offset", "100%");
+                    stop2.setAttribute("stop-color", colors[colors.length - 1]); // Az utolsó szín
+
+                    gradient.appendChild(stop1);
+                    gradient.appendChild(stop2);
+                    defs.appendChild(gradient);
+
+                    // 4. Hivatkozunk rá a téglalapon
+                    bgRect.setAttribute("fill", `url(#${gradId})`);
+                } else {
+                    // Fallback: Ha nem sikerült színt lopni, legyen fekete
+                    bgRect.setAttribute("fill", "#000000");
+                }
+            } else {
+                // Ha egyszínű (nem gradiens), mehet direktbe
+                bgRect.setAttribute("fill", bgStyle);
+            }
             
-            // Beszúrjuk legelső elemnek (hogy minden más alatt legyen)
+            // Beszúrjuk a hátteret legelsőnek
             svgClone.insertBefore(bgRect, svgClone.firstChild);
 
-            // Serializálás
+            // Serializálás és Letöltés
             const serializer = new XMLSerializer();
             let source = serializer.serializeToString(svgClone);
 
-            // Névtér javítás
+            // Névtér javítások
             if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
                 source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
             }
@@ -1148,7 +1300,6 @@ async function exportCanvas(format) {
             }
 
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-            
             const link = document.createElement("a");
             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
             link.href = url;
@@ -1160,8 +1311,6 @@ async function exportCanvas(format) {
         // --- B: RASTERES EXPORT (PNG / JPEG) ---
         else {
             const svgData = new XMLSerializer().serializeToString(designerSVG);
-            
-            // Nagyobb felbontás (3x)
             const scaleFactor = 3; 
             const canvas = document.createElement("canvas");
             canvas.width = width * scaleFactor;
@@ -1169,8 +1318,21 @@ async function exportCanvas(format) {
             
             const ctx = canvas.getContext("2d");
             
-            // Háttér kitöltése a választott színnel
-            ctx.fillStyle = bgColor;
+            // Háttér festése Canvas-on (itt működik a gradiens logika, amit már megcsináltunk korábban)
+            if (bgStyle.includes('gradient')) {
+                const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+                if (colors && colors.length >= 2) {
+                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, colors[0]);
+                    gradient.addColorStop(1, colors[colors.length - 1]);
+                    ctx.fillStyle = gradient;
+                } else {
+                    ctx.fillStyle = "#0a0e27";
+                }
+            } else {
+                ctx.fillStyle = bgStyle;
+            }
+            
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const img = new Image();
@@ -1187,10 +1349,8 @@ async function exportCanvas(format) {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
                 URL.revokeObjectURL(url);
             };
-            
             img.src = url;
         }
 
@@ -1199,7 +1359,6 @@ async function exportCanvas(format) {
         alert("Exportálási hiba: " + e.message);
     }
 }
-
 
 // --- Szöveg kezelés és DOM események (Ezek többnyire változatlanok, csak a DOM elemek frissítve) ---
 
@@ -4215,6 +4374,7 @@ window.applyDesignerTheme = function(key) {
         colorInput.value = hex;
     }
 
+                console.log("VEKTOROS Generálás következik a tervezőbe... typeof Celestial", typeof Celestial);
     // 4. KRITIKUS RÉSZ: Újrarajzolás és Másolás
     if (typeof Celestial !== 'undefined') {
         setTimeout(() => {
@@ -4227,12 +4387,21 @@ window.applyDesignerTheme = function(key) {
             
             // B) MÁSOLÁS (Hosszabb várakozás a pozicionálás miatt!)
             // 800ms már elég kell legyen, hogy a 'customHeart' helyreigazító logikája lefusson
-            setTimeout(() => {
-                console.log("Másolás indítása...");
+            // setTimeout(() => {
+            //     console.log("Másolás indítása...");
                 
-                // Kép másolása
-                if(typeof window.copyMapToDesigner === 'function') {
-                    window.copyMapToDesigner(); 
+            //     // Kép másolása
+            //     if(typeof window.copyMapToDesigner === 'function') {
+            //         window.copyMapToDesigner(); 
+            //     }
+            // B) MÁSOLÁS KÉSLELTETÉSE (A lényeg)
+            setTimeout(() => {
+                console.log("VEKTOROS Generálás a tervezőbe...");
+                
+                // 1. A celestial_jo.js-ből kivezetett vektoros generátor hívása!
+                // Ez újraépíti az SVG-t az aktuális színekkel és a javított pozícióval.
+                if(typeof window.generateVectorMap === 'function') {
+                    window.generateVectorMap(); 
                 }
                 
                 // Tervező nézet helyreigazítása (méret, pozíció)
@@ -4245,7 +4414,7 @@ window.applyDesignerTheme = function(key) {
                     window.renderFixedTexts();
                 }
                 
-            }, 800); // 800ms késleltetés a biztos sikerért
+            }, 1400); // 800ms késleltetés a biztos sikerért
         }, 50);
     }
 }
@@ -4945,9 +5114,16 @@ window.setMapWidth = function(cmValue) {
     
     // Validálás a vászon méretéhez
     const canvasWInput = document.getElementById('canvas-width');
-    const maxW = parseFloat(canvasWInput.value) || 21;
+    const canvasHInput = document.getElementById('canvas-height');
+    // const maxW = parseFloat(canvasWInput.value) || 21;
+    // let maxW = Math.min(parseFloat(canvasWInput.value) - 1, parseFloat(canvasHInput.value) - 1);
+    let maxW = Math.min(parseFloat(canvasWInput.value), parseFloat(canvasHInput.value) );
+
     
-    if (val > maxW) {
+    // const canvasHeightInput = document.getElementById('canvas-height');
+    // let maxWidth = Math.min(parseFloat(canvasWidthInput.value) - 1, parseFloat(canvasHeightInput.value) - 1); //parseFloat(canvasWidthInput.value) || 21;
+
+    if (val > maxW -2) {
         val = maxW;
         document.getElementById('map-width-cm-input').value = val; // Input visszaírás
     }

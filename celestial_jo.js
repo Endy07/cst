@@ -4577,7 +4577,16 @@ function exportSVG(fname) {
       rotation = getAngles(cfg.center),
       center = [-rotation[0], -rotation[1]],
       scale0 = proj.scale * m.width/1024,
-      projection = Celestial.projection(cfg.projection).rotate(rotation).translate([m.width/2, m.height/2]).scale([m.scale]),
+      // --- JAVÍTÁS: Átvesszük a látható térkép eltolását ---
+      // Ha létezik a mapProjection (a képernyőn lévő térkép), elkérjük a translate értéket.
+      // Ha nem, akkor maradunk a középnél.
+      trans = (typeof mapProjection !== 'undefined' && mapProjection) 
+              ? mapProjection.translate() 
+              : [m.width/2, m.height/2],
+
+      // Itt a 'trans' változót használjuk a fix [m.width/2, m.height/2] helyett:
+      // projection = Celestial.projection(cfg.projection).rotate(rotation).translate([m.width/2, m.height/2]).scale([m.scale]),
+      projection = Celestial.projection(cfg.projection).rotate(rotation).translate(trans).scale([m.scale]),
       adapt = cfg.adaptable ? Math.sqrt(m.scale/scale0) : 1,
       culture = (cfg.culture !== "" && cfg.culture !== "iau") ? cfg.culture : "",
       circle, id;
@@ -7678,5 +7687,8 @@ d3.queue = queue;
 Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
+// Kivezetjük a vektoros generátort a globális térbe, hogy a fragment5_jo.js is elérje:
+window.generateVectorMap = function() { console.log("generateVectorMapgenerateVectorMap"); exportSVG(null); };
+
 this.Celestial = Celestial;
 })();
