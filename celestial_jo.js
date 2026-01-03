@@ -1591,7 +1591,7 @@ var settings = {
                         "12px 'Lucida Sans Unicode', 'DejaVu Sans', Helvetica, Arial, sans-serif",  // darker constellations
                         "11px 'Lucida Sans Unicode', 'DejaVu Sans', Helvetica, Arial, sans-serif"]},
     lines: true,   // Show constellation lines 
-    lineStyle: { stroke: "#cccccc", width: 1.5, opacity: 0.6 },
+    lineStyle: { stroke: "#cccccc", width: 1.5, opacity: 0.6, dash: [] },
     bounds: false,  // Show constellation boundaries 
     boundStyle: { stroke: "#ccff00", width: 1.0, opacity: 0.8, dash: [4,4] }
   },
@@ -1600,7 +1600,7 @@ var settings = {
     style: { fill: "#ffffff", opacity: "0.15" } // style for each MW-layer (5 on top of each other)
   },
   lines: {
-    graticule: { show: true, stroke: "#cccccc", width: 0.6, opacity: 0.8,      // Show graticule lines 
+    graticule: { show: true, stroke: "#cccccc", width: 0.6, opacity: 0.8,  dash: [],     // Show graticule lines 
       // grid values: "outline", "center", or [lat,...] specific position
       lon: {pos: [], fill: "#FF0000", font: "10px 'Lucida Sans Unicode', Helvetica, Arial, sans-serif"}, 
       // grid values: "outline", "center", or [lon,...] specific position
@@ -1615,7 +1615,8 @@ var settings = {
     fill: "#000000", 
     opacity: 1, 
     stroke: "#000000", // Outline
-    width: 1.5 
+    width: 1.5,
+    dash: []
   }, 
   horizon: {  //Show horizon marker, if geo-position and date-time is set
     show: false, 

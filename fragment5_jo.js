@@ -4337,7 +4337,8 @@ window.updateCanvasBackground = function(color) {
 
 
 // --- JAVÍTOTT TÉMA ALKALMAZÁS (Hibamentesítés + Késleltetett másolás) ---
-window.applyDesignerTheme = function(key) {
+// window.applyDesignerTheme = function(key) {
+window.applyDesignerTheme = function(key, variant = 'normal') { // <--- ÚJ PARAMÉTER
     console.log("Designer Theme Apply:", key);
     
     // 1. Kényszerített méretezés (Mielőtt bármit csinálunk!)
@@ -4617,42 +4618,117 @@ function initDesignerTemplates() {
     container.innerHTML = ''; 
 
     const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : designerThemes;
-
-    for (const [key, theme] of Object.entries(themesSource)) {
-        const card = document.createElement('div');
-        card.className = 'theme-item';
-        card.style.cursor = "pointer";
-
-        const preview = document.createElement('div');
-        preview.className = 'theme-preview-img';
-        
-        if (theme.image) {
-             preview.style.background = `url('${theme.image}') center/cover no-repeat`;
-        } else {
-             preview.style.background = theme.background; 
+// 1. VISSZAÁLLÍTÁS GOMB (Teljes szélesség)
+    const resetCard = document.createElement('div');
+    resetCard.className = 'theme-item full-width'; // CSS kezeli a szélességet
+    resetCard.style.background = "#f0f0f0";
+    resetCard.onclick = function() {
+        if(typeof restoreUserState === 'function') {
+            restoreUserState();
+            // Ha kell, itt hívhatsz applyDesignerTheme-t is, de a restoreUserState elvileg kezeli
         }
-        
-        preview.style.height = "60px";
-        preview.style.width = "100%";
-        preview.style.borderRadius = "4px";
-        preview.style.marginBottom = "5px";
+    };
+    resetCard.innerHTML = `
+        <div style="font-size: 24px; margin-right: 15px; color:#333;">↺</div>
+        <div>
+            <div style="font-weight:bold; color:#333;">Visszaállítás</div>
+            <div style="font-size:11px; color:#666;">Saját szerkesztés</div>
+        </div>
+    `;
+    container.appendChild(resetCard);
 
-        const label = document.createElement('div');
-        label.innerText = theme.name;
-        label.style.textAlign = "center";
-        label.style.fontSize = "12px";
-        label.style.fontWeight = "bold";
-        label.className = "theme-btn"; 
+    // for (const [key, theme] of Object.entries(themesSource)) {
+    //     const card = document.createElement('div');
+    //     card.className = 'theme-item';
+    //     card.style.cursor = "pointer";
+
+    //     const preview = document.createElement('div');
+    //     preview.className = 'theme-preview-img';
         
-        card.onclick = function() {
-            if (typeof window.applyDesignerTheme === 'function') {
-                window.applyDesignerTheme(key);
+    //     if (theme.image) {
+    //          preview.style.background = `url('${theme.image}') center/cover no-repeat`;
+    //     } else {
+    //          preview.style.background = theme.background; 
+    //     }
+        
+    //     preview.style.height = "60px";
+    //     preview.style.width = "100%";
+    //     preview.style.borderRadius = "4px";
+    //     preview.style.marginBottom = "5px";
+
+    //     const label = document.createElement('div');
+    //     label.innerText = theme.name;
+    //     label.style.textAlign = "center";
+    //     label.style.fontSize = "12px";
+    //     label.style.fontWeight = "bold";
+    //     label.className = "theme-btn"; 
+        
+    //     card.onclick = function() {
+    //         if (typeof window.applyDesignerTheme === 'function') {
+    //             window.applyDesignerTheme(key);
+    //         }
+    //     };
+
+    //     card.appendChild(preview);
+    //     card.appendChild(label);
+    //     container.appendChild(card);
+    // }
+    // 2. SABLONOK GENERÁLÁSA (PÁROK)
+    for (const [key, theme] of Object.entries(themesSource)) {
+        
+        // Segédfüggvény a kártya gyártáshoz
+        const createDesignerCard = (variant) => {
+            const isHeart = (variant === 'heart');
+            const card = document.createElement('div');
+            card.className = 'theme-item';
+            
+            const preview = document.createElement('div');
+            preview.className = 'theme-preview-img';
+            
+            // Kép URL logikája (Ugyanaz, mint a HTML-ben)
+            let imgUrl = theme.image;
+            if (isHeart && imgUrl) {
+                imgUrl = imgUrl.replace('.png', '_heart.png');
             }
+
+            if (imgUrl) {
+                // contain: teljes kép látszik
+                preview.style.background = `url('${imgUrl}') center/contain no-repeat, ${theme.background}`;
+            } else {
+                preview.style.background = theme.background; 
+            }
+            
+            // Címke
+            const label = document.createElement('div');
+            label.className = "theme-btn";
+            label.innerText = isHeart ? `♥ ${theme.name}` : theme.name;
+            
+            // Külön stílus a szívnek
+            if(isHeart) {
+                label.style.color = "#d81b60";
+                label.style.background = "#fff0f5";
+            }
+
+            // Kattintás
+            card.onclick = function() {
+                if (typeof window.applyDesignerTheme === 'function') {
+                    // Itt átadjuk a variánst is, ha a függvény támogatja, 
+                    // de a te applyDesignerTheme-d jelenleg csak 'normal'-t tölt.
+                    // Ha azt akarod, hogy a szív gomb szivet töltsön be a tervezőbe is:
+                    
+                    // Frissítjük a loadTheme hívást az applyDesignerTheme-ben (lásd lejjebb!)
+                    window.applyDesignerTheme(key, variant); 
+                }
+            };
+
+            card.appendChild(label); // Név felül
+            card.appendChild(preview); // Kép alul
+            return card;
         };
 
-        card.appendChild(preview);
-        card.appendChild(label);
-        container.appendChild(card);
+        // Hozzáadás sorrendben: Normál, majd Szív
+        container.appendChild(createDesignerCard('normal'));
+        container.appendChild(createDesignerCard('heart'));
     }
 }
 // --- GLOBÁLIS ÁLLAPOTOK ---
