@@ -1311,51 +1311,99 @@ input[type=number]::-webkit-outer-spin-button {
     cursor: pointer;
 }*/
 /* --- TÉMA VÁLASZTÓ STÍLUSOK JAVÍTÁSA --- */
-.theme-grid {
+/*.theme-grid {
     display: grid;
-    /* Reszponzív rács: minimum 140px széles kártyák, amennyi kifér */
+    / * Reszponzív rács: minimum 140px széles kártyák, amennyi kifér * /
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
     gap: 15px;
     padding: 10px;
-    /* Fontos: engedjük a görgetést, ha nem fér ki */
+    / * Fontos: engedjük a görgetést, ha nem fér ki * /
     max-height: 80vh; 
     overflow-y: auto;
-}
-
+}*/
+/* --- TÉMA VÁLASZTÓ RÁCS (JAVÍTOTT) --- */
+    .theme-grid {
+        display: grid;
+        /* Fixen 2 oszlop, hogy a párok (Kör/Szív) egymás mellett legyenek */
+        grid-template-columns: 1fr 1fr; 
+        gap: 10px;
+        padding: 10px;
+        max-height: 80vh; 
+        overflow-y: auto;
+    }
 /* Egy kis vizuális tuning a kártyákhoz */
-.theme-item {
+/*.theme-item {
     position: relative;
     border: 2px solid transparent;
     transition: all 0.2s ease;
-}
-
+}*/
+.theme-item {
+        position: relative;
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        background: #fff; /* Alap háttér */
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
 /* A kiválasztott kártya kerete */
-.theme-item.active-theme {
+/*.theme-item.active-theme {
     border-color: #4a9eff;
     box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
     transform: scale(1.02);
-}
-.theme-item:hover {
+}*/
+.theme-item.active-theme {
+        border: 2px solid var(--accent-blue);
+        box-shadow: 0 0 15px var(--glow-blue);
+    }
+/*.theme-item:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.theme-btn {
+}*/
+.theme-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        border-color: var(--accent-blue);
+    }
+/*.theme-btn {
     width: 100%;
     padding: 10px 5px;
     border: none;
     font-weight: bold;
     cursor: pointer;
     text-align: center;
-    /* A színeket a JS állítja be */
-}
-
-.theme-preview-img {
+    / * A színeket a JS állítja be * /
+}*/
+.theme-btn {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        font-weight: bold;
+        text-align: center;
+        background: #fff;
+        color: #000;
+        font-size: 13px;
+    }
+/*.theme-preview-img {
     width: 100%;
-    height: 120px; /* Fix magasság a képeknek */
-    object-fit: cover; /* Levágja a kilógó részeket, de kitölti a keretet */
+    height: 120px; / * Fix magasság a képeknek * /
+    object-fit: cover; / * Levágja a kilógó részeket, de kitölti a keretet * /
     border-top: 1px solid #ddd;
-}
+}*/
+/* KÉP MEGJELENÍTÉS JAVÍTÁSA */
+    .theme-preview-img {
+        width: 100%;
+        height: 180px; /* Fix magasság */
+        
+        /* A LÉNYEG: contain, hogy a teljes kép látszódjon levágás nélkül */
+        background-size: contain !important; 
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        
+        border-bottom: 1px solid #ddd;
+    }
 /* Modal stílusok a képvágóhoz */
     .modal-overlay {
         position: fixed;
@@ -2394,6 +2442,16 @@ input[type=number]::-webkit-outer-spin-button {
                             <input id="background_stroke" type="color" value="#FFFFFF">
                             <label for="background_stroke_width">Körvonal vastagsága</label>
                             <input id="background_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
+                            <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="background_stroke_dash_check" style="width: auto; margin-right: 8px;"> 
+                                Szaggatott körvonal
+                            </label>
+                            <div id="background_stroke_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                <div class="grid-2-cols" style="gap: 5px;">
+                                    <label style="font-size: 11px;">Vonal (px): <input type="number" id="background_stroke_dash_1" value="4" min="1" style="width: 100%;"></label>
+                                    <label style="font-size: 11px;">Szünet (px): <input type="number" id="background_stroke_dash_2" value="4" min="1" style="width: 100%;"></label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2414,6 +2472,16 @@ input[type=number]::-webkit-outer-spin-button {
                               <input id="constellation_lineStyle_stroke" type="color" value="#cccccc">
                               <label for="constellation_lineStyle_stroke_width">Vonalak vastagsága</label>
                               <input id="constellation_lineStyle_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
+                              <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                  <input type="checkbox" id="constellation_lineStyle_dash_check" style="width: auto; margin-right: 8px;"> 
+                                  Szaggatott vonalak
+                              </label>
+                              <div id="constellation_lineStyle_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                  <div class="grid-2-cols" style="gap: 5px;">
+                                      <label style="font-size: 11px;">Vonal (px): <input type="number" id="constellation_lineStyle_dash_1" value="4" min="1" style="width: 100%;"></label>
+                                      <label style="font-size: 11px;">Szünet (px): <input type="number" id="constellation_lineStyle_dash_2" value="4" min="1" style="width: 100%;"></label>
+                                  </div>
+                              </div>
                                 <!-- <label>Fényesség limit</label>
                                 <input id="stars_limit" type="number" min="0" max="6" step="0.1" value="6">
                                 <label>Méret</label>
@@ -2585,6 +2653,16 @@ input[type=number]::-webkit-outer-spin-button {
                                     <input id="lines_graticule_size" type="number" min="0.1" max="6" step="0.1" value="0.6">
                                     <label for="lines_graticule_opacity">Áttetszőség</label>
                                     <input id="lines_graticule_opacity" type="number" min="0.01" max="1" step="0.01" value="0.8">
+                                    <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" id="lines_graticule_dash_check" style="width: auto; margin-right: 8px;"> 
+                                        Szaggatott háló
+                                    </label>
+                                    <div id="lines_graticule_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                        <div class="grid-2-cols" style="gap: 5px;">
+                                            <label style="font-size: 11px;">Vonal (px): <input type="number" id="lines_graticule_dash_1" value="2" min="1" style="width: 100%;"></label>
+                                            <label style="font-size: 11px;">Szünet (px): <input type="number" id="lines_graticule_dash_2" value="2" min="1" style="width: 100%;"></label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2801,131 +2879,6 @@ input[type=number]::-webkit-outer-spin-button {
         function leftfrag(nr) {
           $( "#tabs_left" ).tabs( "option", "active", nr );
         }
-// Master checkboxok a wrapper megjelenítésére
-$(document).on('change', '#lines_graticule_master', function(e) {
-    if ($(this).is(':checked')) {
-        $("#graticule-wrapper").slideDown(300);
-        $("#lines_graticule").prop('checked', true).trigger('change');
-    } else {
-        $("#graticule-wrapper").slideUp(300);
-        $("#lines_graticule").prop('checked', false).trigger('change');
-    }
-});
-
-$(document).on('change', '#lines_equatorial_master', function(e) {
-    if ($(this).is(':checked')) {
-        $("#equatorial-wrapper").slideDown(300);
-        $("#lines_equatorial").prop('checked', true).trigger('change');
-    } else {
-        $("#equatorial-wrapper").slideUp(300);
-        $("#lines_equatorial").prop('checked', false).trigger('change');
-    }
-});
-
-$(document).on('change', '#lines_ecliptic_master', function(e) {
-    if ($(this).is(':checked')) {
-        $("#ecliptic-wrapper").slideDown(300);
-        $("#lines_ecliptic").prop('checked', true).trigger('change');
-    } else {
-        $("#ecliptic-wrapper").slideUp(300);
-        $("#lines_ecliptic").prop('checked', false).trigger('change');
-    }
-});
-
-$(document).on('change', '#lines_galactic_master', function(e) {
-    if ($(this).is(':checked')) {
-        $("#galactic-wrapper").slideDown(300);
-        $("#lines_galactic").prop('checked', true).trigger('change');
-    } else {
-        $("#galactic-wrapper").slideUp(300);
-        $("#lines_galactic").prop('checked', false).trigger('change');
-    }
-});
-
-$(document).on('change', '#lines_supergalactic_master', function(e) {
-    if ($(this).is(':checked')) {
-        $("#supergalactic-wrapper").slideDown(300);
-        $("#lines_supergalactic").prop('checked', true).trigger('change');
-    } else {
-        $("#supergalactic-wrapper").slideUp(300);
-        $("#lines_supergalactic").prop('checked', false).trigger('change');
-    }
-});
-
-
-
-// A belső checkboxok változásai
-$(document).on('change', '#lines_graticule', function(e) {
-    e.stopPropagation();
-    change({ lines: { graticule: {
-        show: $(this).is(':checked'),
-        stroke: $("#lines_graticule_color").val(),
-        width: parseFloat($("#lines_graticule_size").val()),
-        opacity: parseFloat($("#lines_graticule_opacity").val()) } }
-    });
-});
-
-$(document).on('change', '#lines_equatorial', function(e) {
-    e.stopPropagation();
-    change({ lines: { equatorial: {
-        show: $(this).is(':checked'),
-        stroke: $("#lines_equatorial_color").val(),
-        width: parseFloat($("#lines_equatorial_size").val()),
-        opacity: parseFloat($("#lines_equatorial_opacity").val()) } }
-    });
-});
-
-$(document).on('change', '#lines_ecliptic', function(e) {
-    e.stopPropagation();
-    change({ lines: { ecliptic: {
-        show: $(this).is(':checked'),
-        stroke: $("#lines_ecliptic_color").val(),
-        width: parseFloat($("#lines_ecliptic_size").val()),
-        opacity: parseFloat($("#lines_ecliptic_opacity").val()) } }
-    });
-});
-
-$(document).on('change', '#lines_galactic', function(e) {
-    e.stopPropagation();
-    change({ lines: { galactic: {
-        show: $(this).is(':checked'),
-        stroke: $("#lines_galactic_color").val(),
-        width: parseFloat($("#lines_galactic_size").val()),
-        opacity: parseFloat($("#lines_galactic_opacity").val()) } }
-    });
-});
-
-$(document).on('change', '#lines_supergalactic', function(e) {
-    e.stopPropagation();
-    change({ lines: { supergalactic: {
-        show: $(this).is(':checked'),
-        stroke: $("#lines_supergalactic_color").val(),
-        width: parseFloat($("#lines_supergalactic_size").val()),
-        opacity: parseFloat($("#lines_supergalactic_opacity").val()) } }
-    });
-});
-
-// Collapsible header kattintás - ne triggerelje a checkboxot
-$(document).on('click', '.checkbox-header', function(e) {
-    // Ha a checkbox-ra kattintottak, ne csukjuk be/ki
-    if ($(e.target).is('input[type="checkbox"]')) {
-        return;
-    }
-    
-    const header = $(this);
-    const targetId = header.data('target');
-    const content = $('#' + targetId);
-    const icon = header.find('.collapsible-icon-icon');
-    
-    header.toggleClass('collapsed');
-    content.toggleClass('collapsed');
-    
-    if (header.hasClass('collapsed')) {
-        icon.css('transform', 'rotate(-90deg)');
-    } else {
-        icon.css('transform', 'rotate(0deg)');
-    }
-});
         // // Collapsible sections functionality
         // $(document).on('click', '.collapsible-header', function() {
         //   console.log("collapsible-header")
@@ -4979,7 +4932,53 @@ $(document).on('click', '.checkbox-header', function(e) {
             $("#mw_style_fill").val(myCelestialConf.mw.style.fill);
             $("#mw_style_opacity").val(myCelestialConf.mw.style.opacity);
             $("#mw_show").prop('checked', myCelestialConf.mw.show);
+
+
+            // --- DASH checkboxok frissítése a téma alapján ---
+            // 1. Háttér (Körvonal)
+            var bgDash = myCelestialConf.background.dash; // Ez egy tömb, pl. [4, 4] vagy []
+            var hasBgDash = bgDash && bgDash.length > 0;
+            
+            // Checkbox beállítása
+            $("#background_stroke_dash_check").prop('checked', hasBgDash);
+            
+            // Panel nyitása/csukása és értékek beírása
+            if(hasBgDash) {
+                $("#background_stroke_dash_settings").slideDown();
+                $("#background_stroke_dash_1").val(bgDash[0]); // Vonal hossza
+                $("#background_stroke_dash_2").val(bgDash[1]); // Szünet hossza
+            } else {
+                $("#background_stroke_dash_settings").slideUp();
+            }
+            // 2. Csillagképek
+            var constDash = myCelestialConf.constellations.lineStyle.dash;
+            var hasConstDash = constDash && constDash.length > 0;
+            
+            $("#constellation_lineStyle_dash_check").prop('checked', hasConstDash);
+            if(hasConstDash) {
+                $("#constellation_lineStyle_dash_settings").slideDown();
+                $("#constellation_lineStyle_dash_1").val(constDash[0]);
+                $("#constellation_lineStyle_dash_2").val(constDash[1]);
+            } else {
+                $("#constellation_lineStyle_dash_settings").slideUp();
+            }
+            // 3. Fokhálózat (Graticule)
+            var gratDash = myCelestialConf.lines.graticule.dash;
+            var hasGratDash = gratDash && gratDash.length > 0;
+            
+            $("#lines_graticule_dash_check").prop('checked', hasGratDash);
+            if(hasGratDash) {
+                $("#lines_graticule_dash_settings").slideDown();
+                $("#lines_graticule_dash_1").val(gratDash[0]);
+                $("#lines_graticule_dash_2").val(gratDash[1]);
+            } else {
+                $("#lines_graticule_dash_settings").slideUp();
+            }
+
+
+            // Tejút
             if(myCelestialConf.mw.show) $("#mw_show_settings").slideDown(); else $("#mw_show_settings").slideUp();
+
 
             // Háttér INPUTOK
             $("#background_fill").val(myCelestialConf.background.fill);
@@ -4992,6 +4991,8 @@ $(document).on('click', '.checkbox-header', function(e) {
             $("#constellation_lineStyle_opacity").val(myCelestialConf.constellations.lineStyle.opacity);
             $("#constellation_lineStyle_stroke_width").val(myCelestialConf.constellations.lineStyle.width);
             $("#const_show").prop('checked', myCelestialConf.constellations.lines);
+            // var constDash = currentConfig.constellations.lineStyle.dash && currentConfig.constellations.lineStyle.dash.length > 0;
+            // $("#constellation_lineStyle_dash").prop('checked', constDash);
             if(myCelestialConf.constellations.lines) $("#const_show_settings").slideDown(); else $("#const_show_settings").slideUp();
 
             // Csillagok
@@ -5219,7 +5220,20 @@ $(document).on('click', '.checkbox-header', function(e) {
             $("#lines_graticule_color").val(currentConfig.lines.graticule.stroke);
             $("#lines_graticule_size").val(currentConfig.lines.graticule.width);
             $("#lines_graticule_opacity").val(currentConfig.lines.graticule.opacity);
+            // --- DASH checkboxok frissítése a téma alapján ---
+            
+            // Háttér
+            // Ha a dash tömb létezik és van benne elem, akkor true
+            var bgDash = currentConfig.background.dash && currentConfig.background.dash.length > 0;
+            $("#background_stroke_dash").prop('checked', bgDash);
 
+            // Csillagképek
+            var constDash = currentConfig.constellations.lineStyle.dash && currentConfig.constellations.lineStyle.dash.length > 0;
+            $("#constellation_lineStyle_dash").prop('checked', constDash);
+
+            // Graticule
+            var gratDash = currentConfig.lines.graticule.dash && currentConfig.lines.graticule.dash.length > 0;
+            $("#lines_graticule_dash").prop('checked', gratDash);
             // C) Checkboxok kezelése
             const toggleSection = (id, show) => { if(show) $(id).slideDown(); else $(id).slideUp(); };
 
@@ -5273,18 +5287,26 @@ function initThemeSelectors() {
 
         // 1. "SAJÁT BEÁLLÍTÁSOK" KÁRTYA (Legelső)
         const customCard = document.createElement('div');
-        customCard.className = 'theme-item active-theme'; // Alapból aktív
+        // customCard.className = 'theme-item active-theme'; // Alapból aktív
+        customCard.className = 'theme-item active-theme full-width'; // full-width class a CSS-hez
         customCard.id = 'custom-theme-card';
         customCard.onclick = function(e) { e.preventDefault(); restoreUserState(); };
 
+        // customCard.innerHTML = `
+        //     <div style="background:#eee; color:#333; padding:10px; text-align:center; font-weight:bold; border-bottom:1px solid #ddd;">
+        //         Saját / Vissza
+        //     </div>
+        //     <div style="height:120px; display:flex; align-items:center; justify-content:center; background:#f9f9f9; font-size:40px; color:#666;">
+        //         ↺
+        //     </div>
+        // `;
         customCard.innerHTML = `
-            <div style="background:#eee; color:#333; padding:10px; text-align:center; font-weight:bold; border-bottom:1px solid #ddd;">
-                Saját / Vissza
-            </div>
-            <div style="height:120px; display:flex; align-items:center; justify-content:center; background:#f9f9f9; font-size:40px; color:#666;">
-                ↺
-            </div>
-        `;
+                    <div style="font-size: 24px; margin-right: 15px;">↺</div>
+                    <div>
+                        <div style="font-weight:bold; color:#333;">Saját Beállítások / Vissza</div>
+                        <div style="font-size:11px; color:#666;">Visszaállás a szerkesztett állapotra</div>
+                    </div>
+                `;
         container.appendChild(customCard);
 
         // 2. TÉMÁK LISTÁZÁSA
@@ -5503,7 +5525,10 @@ function createThemeCard(container, key, theme, variant) {
             console.log("myCelestialConf", myCelestialConf);
             console.log("opts", opts);
             console.log("ujCelesConf", ujCelesConf);
-            Celestial.apply(opts); 
+            // Celestial.apply(opts); // <--- EZ A BAJ, csak a változást küldi
+            // 2. A TELJES konfigot küldjük be, nem csak az 'opts'-ot!
+            // Így nem vesznek el a nested objectek (pl. lineStyle) többi tulajdonsága.
+            Celestial.apply(myCelestialConf);
         }
 
         // $(document).on('change', '#const_show', function(e) {
@@ -5546,41 +5571,77 @@ function createThemeCard(container, key, theme, variant) {
 
         $(document).on('change', '#background_fill', function(e) {
             change({ background: { 
-                fill: $("#background_fill").val() }
+                fill: $("#background_fill").val(),
+                dash: $("#background_stroke_dash_check").prop("checked") == true ?
+                 [$("#background_stroke_dash_1").val(), $("#background_stroke_dash_2").val()] :
+                 [null,  null] }
             });
         });
         
         $(document).on('change', '#background_opacity', function(e) {
             change({ background: {
-                opacity: $("#background_opacity").val() }
+                opacity: $("#background_opacity").val(),
+                dash: $("#background_stroke_dash_check").prop("checked") == true ?
+                 [$("#background_stroke_dash_1").val(), $("#background_stroke_dash_2").val()] :
+                 [null,  null] }
             });
         });
         
         $(document).on('change', '#background_stroke', function(e) {
             change({ background: { 
-                stroke: $("#background_stroke").val() }
+                    stroke: $("#background_stroke").val(),
+                    dash: $("#background_stroke_dash_check").prop("checked") == true ?
+                     [$("#background_stroke_dash_1").val(), $("#background_stroke_dash_2").val()] :
+                     [null,  null]
+                 }
             });
         });
         
         $(document).on('change', '#background_stroke_width', function(e) {
             change({ background: {
-                width: $("#background_stroke_width").val() }
+                width: $("#background_stroke_width").val(),
+                dash: $("#background_stroke_dash_check").prop("checked") == true ?
+                 [$("#background_stroke_dash_1").val(), $("#background_stroke_dash_2").val()] :
+                 [null,  null]
+              }
             });
         });
 
         $(document).on('change', '#constellation_lineStyle_opacity', function(e) {
+            // alert("constellation_lineStyle_opacity")
+          // if ($("#constellation_lineStyle_dash_check").prop("checked") == true) {
+            // alert("dash")
             change({ constellations: { lineStyle: {
                 opacity: $("#constellation_lineStyle_opacity").val(),
                 stroke: $("#constellation_lineStyle_stroke").val(),
-                width: $("#constellation_lineStyle_stroke_width").val() } },
+                width: $("#constellation_lineStyle_stroke_width").val() ,
+                dash: $("#constellation_lineStyle_dash_check").prop("checked") == true ?
+                 [$("#constellation_lineStyle_dash_1").val(), $("#constellation_lineStyle_dash_2").val()] :
+                 [null,  null]
+                }}
             });
+          // } else {
+          //   alert("nemdash")
+          //   change({ constellations: { lineStyle: {
+          //       opacity: $("#constellation_lineStyle_opacity").val(),
+          //       stroke: $("#constellation_lineStyle_stroke").val(),
+          //       width: $("#constellation_lineStyle_stroke_width").val() ,
+          //       dash: [null,  null]
+          //       }}
+          //   });
+          // }
+            
         });
         
         $(document).on('change', '#constellation_lineStyle_stroke', function(e) {
             change({ constellations: { lineStyle: {
                 opacity: $("#constellation_lineStyle_opacity").val(),
                 stroke: $("#constellation_lineStyle_stroke").val(),
-                width: $("#constellation_lineStyle_stroke_width").val() } },
+                width: $("#constellation_lineStyle_stroke_width").val() ,
+                dash: $("#constellation_lineStyle_dash_check").prop("checked") == true ?
+                 [$("#constellation_lineStyle_dash_1").val(), $("#constellation_lineStyle_dash_2").val()] :
+                 [null,  null]
+                }}
             });
         });
         
@@ -5588,7 +5649,11 @@ function createThemeCard(container, key, theme, variant) {
             change({ constellations: { lineStyle: {
                 opacity: $("#constellation_lineStyle_opacity").val(),
                 stroke: $("#constellation_lineStyle_stroke").val(),
-                width: $("#constellation_lineStyle_stroke_width").val() } },
+                width: $("#constellation_lineStyle_stroke_width").val() ,
+                dash: $("#constellation_lineStyle_dash_check").prop("checked") == true ?
+                 [$("#constellation_lineStyle_dash_1").val(), $("#constellation_lineStyle_dash_2").val()] :
+                 [null,  null]
+                }}
             });
         });
         
@@ -5645,30 +5710,74 @@ function createThemeCard(container, key, theme, variant) {
         
         $(document).on('change', '#lines_graticule_color', function(e) {
           console.log("lines_graticule_color")
+          if ($("#lines_graticule_dash_check").prop("checked") == true) {
+
             change({ lines: { graticule: {
                 show: $("#lines_graticule").is(':checked'),
                 stroke: $("#lines_graticule_color").val(),
                 width: parseFloat($("#lines_graticule_size").val()),
-                opacity: parseFloat($("#lines_graticule_opacity").val()) } }
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: [$("#lines_graticule_dash_1").val(), $("#lines_graticule_dash_2").val()]
+                 } }
             });
+          } else {
+            change({ lines: { graticule: {
+                show: $("#lines_graticule").is(':checked'),
+                stroke: $("#lines_graticule_color").val(),
+                width: parseFloat($("#lines_graticule_size").val()),
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: []
+                 } }
+            });
+
+          }
         });
         
         $(document).on('change', '#lines_graticule_size', function(e) {
+          if ($("#lines_graticule_dash_check").prop("checked") == true) {
+
             change({ lines: { graticule: {
                 show: $("#lines_graticule").is(':checked'),
                 stroke: $("#lines_graticule_color").val(),
                 width: parseFloat($("#lines_graticule_size").val()),
-                opacity: parseFloat($("#lines_graticule_opacity").val()) } }
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: [$("#lines_graticule_dash_1").val(), $("#lines_graticule_dash_2").val()]
+                 } }
             });
+          } else {
+            change({ lines: { graticule: {
+                show: $("#lines_graticule").is(':checked'),
+                stroke: $("#lines_graticule_color").val(),
+                width: parseFloat($("#lines_graticule_size").val()),
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: []
+                 } }
+            });
+          }
         });
         
         $(document).on('change', '#lines_graticule_opacity', function(e) {
+          if ($("#lines_graticule_dash_check").prop("checked") == true) {
+
             change({ lines: { graticule: {
                 show: $("#lines_graticule").is(':checked'),
                 stroke: $("#lines_graticule_color").val(),
                 width: parseFloat($("#lines_graticule_size").val()),
-                opacity: parseFloat($("#lines_graticule_opacity").val()) } }
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: [$("#lines_graticule_dash_1").val(), $("#lines_graticule_dash_2").val()]
+                 } }
             });
+          } else {
+            change({ lines: { graticule: {
+                show: $("#lines_graticule").is(':checked'),
+                stroke: $("#lines_graticule_color").val(),
+                width: parseFloat($("#lines_graticule_size").val()),
+                opacity: parseFloat($("#lines_graticule_opacity").val()),
+                dash: []
+                 } }
+            });
+
+          }
         });
         
         
@@ -5783,6 +5892,254 @@ function createThemeCard(container, key, theme, variant) {
             });
         });
 
+        // Master checkboxok a wrapper megjelenítésére
+        $(document).on('change', '#lines_graticule_master', function(e) {
+            if ($(this).is(':checked')) {
+                $("#graticule-wrapper").slideDown(300);
+                $("#lines_graticule").prop('checked', true).trigger('change');
+            } else {
+                $("#graticule-wrapper").slideUp(300);
+                $("#lines_graticule").prop('checked', false).trigger('change');
+            }
+        });
+
+        $(document).on('change', '#lines_equatorial_master', function(e) {
+            if ($(this).is(':checked')) {
+                $("#equatorial-wrapper").slideDown(300);
+                $("#lines_equatorial").prop('checked', true).trigger('change');
+            } else {
+                $("#equatorial-wrapper").slideUp(300);
+                $("#lines_equatorial").prop('checked', false).trigger('change');
+            }
+        });
+
+        $(document).on('change', '#lines_ecliptic_master', function(e) {
+            if ($(this).is(':checked')) {
+                $("#ecliptic-wrapper").slideDown(300);
+                $("#lines_ecliptic").prop('checked', true).trigger('change');
+            } else {
+                $("#ecliptic-wrapper").slideUp(300);
+                $("#lines_ecliptic").prop('checked', false).trigger('change');
+            }
+        });
+
+        $(document).on('change', '#lines_galactic_master', function(e) {
+            if ($(this).is(':checked')) {
+                $("#galactic-wrapper").slideDown(300);
+                $("#lines_galactic").prop('checked', true).trigger('change');
+            } else {
+                $("#galactic-wrapper").slideUp(300);
+                $("#lines_galactic").prop('checked', false).trigger('change');
+            }
+        });
+
+        $(document).on('change', '#lines_supergalactic_master', function(e) {
+            if ($(this).is(':checked')) {
+                $("#supergalactic-wrapper").slideDown(300);
+                $("#lines_supergalactic").prop('checked', true).trigger('change');
+            } else {
+                $("#supergalactic-wrapper").slideUp(300);
+                $("#lines_supergalactic").prop('checked', false).trigger('change');
+            }
+        });
+
+
+
+        // A belső checkboxok változásai
+        $(document).on('change', '#lines_graticule', function(e) {
+            e.stopPropagation();
+            change({ lines: { graticule: {
+                show: $(this).is(':checked'),
+                stroke: $("#lines_graticule_color").val(),
+                width: parseFloat($("#lines_graticule_size").val()),
+                opacity: parseFloat($("#lines_graticule_opacity").val()) } }
+            });
+        });
+
+        $(document).on('change', '#lines_equatorial', function(e) {
+            e.stopPropagation();
+            change({ lines: { equatorial: {
+                show: $(this).is(':checked'),
+                stroke: $("#lines_equatorial_color").val(),
+                width: parseFloat($("#lines_equatorial_size").val()),
+                opacity: parseFloat($("#lines_equatorial_opacity").val()) } }
+            });
+        });
+
+        $(document).on('change', '#lines_ecliptic', function(e) {
+            e.stopPropagation();
+            change({ lines: { ecliptic: {
+                show: $(this).is(':checked'),
+                stroke: $("#lines_ecliptic_color").val(),
+                width: parseFloat($("#lines_ecliptic_size").val()),
+                opacity: parseFloat($("#lines_ecliptic_opacity").val()) } }
+            });
+        });
+
+        $(document).on('change', '#lines_galactic', function(e) {
+            e.stopPropagation();
+            change({ lines: { galactic: {
+                show: $(this).is(':checked'),
+                stroke: $("#lines_galactic_color").val(),
+                width: parseFloat($("#lines_galactic_size").val()),
+                opacity: parseFloat($("#lines_galactic_opacity").val()) } }
+            });
+        });
+
+        $(document).on('change', '#lines_supergalactic', function(e) {
+            e.stopPropagation();
+            change({ lines: { supergalactic: {
+                show: $(this).is(':checked'),
+                stroke: $("#lines_supergalactic_color").val(),
+                width: parseFloat($("#lines_supergalactic_size").val()),
+                opacity: parseFloat($("#lines_supergalactic_opacity").val()) } }
+            });
+        });
+        // // 1. Háttér (Körvonal) Dash
+        // $(document).on('change', '#background_stroke_dash', function(e) {
+        //     var isDashed = $(this).is(':checked');
+        //     // [4, 4] = 4px vonal, 4px szünet. 
+        //     // Ha nem szaggatott, üres tömböt [] kell küldeni.
+        //     change({ background: { dash: isDashed ? [4, 4] : [] } });
+        // });
+        // 1. HÁTTÉR (KÖRVONAL)
+        $(document).on('change', '#background_stroke_dash_check', function() {
+            var isChecked = $(this).is(':checked');
+            if (isChecked) {
+                $('#background_stroke_dash_settings').slideDown();
+                var v1 = parseFloat($('#background_stroke_dash_1').val()) || 4;
+                var v2 = parseFloat($('#background_stroke_dash_2').val()) || 4;
+                change({ background: { dash: [v1, v2] } });
+            } else {
+                $('#background_stroke_dash_settings').slideUp();
+                change({ background: { dash: [null,  null] } });
+            }
+        });
+        // Input változás figyelése
+        $(document).on('input', '#background_stroke_dash_1, #background_stroke_dash_2', function() {
+            if ($('#background_stroke_dash_check').is(':checked')) {
+                var v1 = parseFloat($('#background_stroke_dash_1').val()) || 4;
+                var v2 = parseFloat($('#background_stroke_dash_2').val()) || 4;
+                change({ background: { dash: [v1, v2] } });
+            }
+        });
+
+        // // 2. Csillagképek Dash
+        // $(document).on('change', '#constellation_lineStyle_dash', function(e) {
+        //     var isDashed = $(this).is(':checked');
+        //     change({ constellations: { lineStyle: { dash: isDashed ? [4, 4] : [] } } });
+        // });
+
+        // // 3. Fokhálózat (Graticule) Dash
+        // $(document).on('change', '#lines_graticule_dash', function(e) {
+        //     var isDashed = $(this).is(':checked');
+        //     // A rácsnál finomabb szaggatást használunk [2, 2]
+        //     change({ lines: { graticule: { dash: isDashed ? [2, 2] : [] } } });
+        // });
+        // 2. CSILLAGKÉPEK
+        $(document).on('change', '#constellation_lineStyle_dash_check', function() {
+            var isChecked = $(this).is(':checked');
+            if (isChecked) {
+                $('#constellation_lineStyle_dash_settings').slideDown();
+                var v1 = parseFloat($('#constellation_lineStyle_dash_1').val()) || 4;
+                var v2 = parseFloat($('#constellation_lineStyle_dash_2').val()) || 4;
+                change({ constellations: { lineStyle:
+                  { 
+                    opacity: $("#constellation_lineStyle_opacity").val(),
+                    stroke: $("#constellation_lineStyle_stroke").val(),
+                    width: $("#constellation_lineStyle_stroke_width").val(),
+                    dash: [v1, v2]
+                  } 
+                } });
+            } else {
+                $('#constellation_lineStyle_dash_settings').slideUp();
+
+                change({ constellations: { lineStyle:
+                { 
+                    opacity: $("#constellation_lineStyle_opacity").val(),
+                    stroke: $("#constellation_lineStyle_stroke").val(),
+                    width: $("#constellation_lineStyle_stroke_width").val(),
+                    dash: [null, null]
+                     } } });
+            }
+        });
+        $(document).on('input', '#constellation_lineStyle_dash_1, #constellation_lineStyle_dash_2', function() {
+            if ($('#constellation_lineStyle_dash_check').is(':checked')) {
+                var v1 = parseFloat($('#constellation_lineStyle_dash_1').val()) || 4;
+                var v2 = parseFloat($('#constellation_lineStyle_dash_2').val()) || 4;
+                change({ constellations: { lineStyle:
+                  {
+                    opacity: $("#constellation_lineStyle_opacity").val(),
+                    stroke: $("#constellation_lineStyle_stroke").val(),
+                    width: $("#constellation_lineStyle_stroke_width").val(),
+                    dash: [v1, v2]
+                  } 
+                } });
+            }
+        });
+
+        // 3. FOKHÁLÓZAT (GRATICULE)
+        $(document).on('change', '#lines_graticule_dash_check', function() {
+            var isChecked = $(this).is(':checked');
+            if (isChecked) {
+                $('#lines_graticule_dash_settings').slideDown();
+                var v1 = parseFloat($('#lines_graticule_dash_1').val()) || 2;
+                var v2 = parseFloat($('#lines_graticule_dash_2').val()) || 2;
+                change({ lines: { graticule: { 
+
+                  show: $("#lines_graticule").is(':checked'),
+                  stroke: $("#lines_graticule_color").val(),
+                  width: parseFloat($("#lines_graticule_size").val()),
+                  opacity: parseFloat($("#lines_graticule_opacity").val()),
+                  dash: [v1, v2]
+                   } } });
+            } else {
+                $('#lines_graticule_dash_settings').slideUp();
+                change({ lines: { graticule: { 
+
+                  show: $("#lines_graticule").is(':checked'),
+                  stroke: $("#lines_graticule_color").val(),
+                  width: parseFloat($("#lines_graticule_size").val()),
+                  opacity: parseFloat($("#lines_graticule_opacity").val()),
+                  dash: [null, null] 
+                } } });
+            }
+        });
+        $(document).on('input', '#lines_graticule_dash_1, #lines_graticule_dash_2', function() {
+            if ($('#lines_graticule_dash_check').is(':checked')) {
+                var v1 = parseFloat($('#lines_graticule_dash_1').val()) || 2;
+                var v2 = parseFloat($('#lines_graticule_dash_2').val()) || 2;
+                change({ lines: { graticule: {
+
+                  show: $("#lines_graticule").is(':checked'),
+                  stroke: $("#lines_graticule_color").val(),
+                  width: parseFloat($("#lines_graticule_size").val()),
+                  opacity: parseFloat($("#lines_graticule_opacity").val()),
+                  dash: [v1, v2]
+                } } });
+            }
+        });
+        // Collapsible header kattintás - ne triggerelje a checkboxot
+        $(document).on('click', '.checkbox-header', function(e) {
+            // Ha a checkbox-ra kattintottak, ne csukjuk be/ki
+            if ($(e.target).is('input[type="checkbox"]')) {
+                return;
+            }
+            
+            const header = $(this);
+            const targetId = header.data('target');
+            const content = $('#' + targetId);
+            const icon = header.find('.collapsible-icon-icon');
+            
+            header.toggleClass('collapsed');
+            content.toggleClass('collapsed');
+            
+            if (header.hasClass('collapsed')) {
+                icon.css('transform', 'rotate(-90deg)');
+            } else {
+                icon.css('transform', 'rotate(0deg)');
+            }
+        });
         
     $(document).ready(function() {
       // initThemeSelectors();
