@@ -456,11 +456,77 @@ Celestial.display = function(config) {
     context.setTransform(pixelRatio,0,0,pixelRatio,0,0);
     if (cfg.adaptable) adapt = Math.sqrt(mapProjection.scale()/scale);
     if (!adapt) adapt = 1;
-    starbase = cfg.stars.size;
-    starexp = cfg.stars.exponent;
-    dsobase = cfg.dsos.size || starbase;
-    dsoexp = cfg.dsos.exponent;
+    // starbase = cfg.stars.size;
+    // starexp = cfg.stars.exponent;
+    // dsobase = cfg.dsos.size || starbase;
+    // dsoexp = cfg.dsos.exponent;
+
+    // // --- MÓDOSÍTÁS KEZD ---
+    // // Reszponzív méretezés: A csillagok mérete kövesse a vászon szélességét.
+    // // 1024px a referencia szélesség (ahol a méret 100%).
+    // var responsiveRatio = width / 1024;
     
+    // // Opcionális: Minimum limit (pl. 0.4), hogy mobilon se legyenek láthatatlanul aprók a halványabbak.
+    // // Ha azt szeretnéd, hogy teljesen lineáris legyen, vedd ki ezt az if-et.
+    // if (responsiveRatio < 0.4) responsiveRatio = 0.4;
+
+    // starbase = cfg.stars.size * responsiveRatio;
+    // starexp = cfg.stars.exponent;
+    
+    // // A DSO-k méretét is igazítjuk
+    // var baseDsoSize = cfg.dsos.size || cfg.stars.size;
+    // dsobase = baseDsoSize * responsiveRatio; 
+    
+    // dsoexp = cfg.dsos.exponent;
+    // // --- MÓDOSÍTÁS VÉGE ---
+    // // --- MÓDOSÍTÁS KEZD ---
+    // // Alapértelmezett arány (PC-n ez marad 1.0, tehát az eredeti méret)
+    // var responsiveRatio = 1.0;
+
+    // // Csak mobilon (768px alatt) aktiváljuk az arányosítást
+    // if (window.innerWidth < 768) {
+    //     // Kiszámoljuk az arányt a jelenlegi ablak és a FullHD (1920x1080) között.
+    //     // A Math.min biztosítja, hogy a szélesség és magasság közül a szűkebb keresztmetszet döntsön.
+    //     responsiveRatio = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        
+    //     // Opcionális: Egy icipici minimumot hagyhatunk (pl. 0.2), hogy ne tűnjenek el teljesen
+    //     // Ha nem szeretnéd, ezt a sort töröld ki:
+    //     if (responsiveRatio < 0.2) responsiveRatio = 0.2;
+    //     if (responsiveRatio > 1.2) responsiveRatio = 1.2;
+    // }
+
+    // // Alkalmazzuk az arányt a bázisméretekre
+    // starbase = cfg.stars.size * responsiveRatio;
+    // starexp = cfg.stars.exponent;
+    
+    // var baseDsoSize = cfg.dsos.size || cfg.stars.size;
+    // dsobase = baseDsoSize * responsiveRatio; 
+    
+    // dsoexp = cfg.dsos.exponent;
+    // // --- MÓDOSÍTÁS VÉGE ---
+
+    // --- JAVÍTOTT MÉRETEZÉSI LOGIKA ---
+    // A csillagok méretét a TÉRKÉP szélességéhez (width) igazítjuk.
+    // 1024px a bázis szélesség (itt 1.0 a szorzó).
+    var responsiveRatio = width / 1024;
+
+    // Minimum limit (0.5): 
+    // Mobilon (pl. 350-400px szélességnél) a matek 0.35-öt adna ki, ami túl pici.
+    // A 0.5-ös limittel a csillagok nem lesznek "porszemek", de nem is lesznek "gombócok" (mint az eredeti 1.0-nál).
+    if (responsiveRatio < 0.5) responsiveRatio = 0.5;
+
+    // Maximum limit nem feltétlenül kell, mert a Tervezőben (nagy felbontásnál)
+    // pont az a jó, ha a csillagok is "nőnek" pixelben, hogy az arány megmaradjon.
+    
+    starbase = cfg.stars.size * responsiveRatio;
+    starexp = cfg.stars.exponent;
+    
+    var baseDsoSize = cfg.dsos.size || cfg.stars.size;
+    dsobase = baseDsoSize * responsiveRatio; 
+    
+    dsoexp = cfg.dsos.exponent;
+    // --- MÓDOSÍTÁS VÉGE ---
+
     if (cfg.orientationfixed && cfg.center.length > 2) {
       rot[2] = cfg.center[2]; 
       mapProjection.rotate(rot);
@@ -851,13 +917,66 @@ Celestial.display = function(config) {
     return d.properties[cfg.constellations.namesType]; 
   }
 
-  function planetSize(d) {
+  // function planetSize(d) {
+  //   var mag = d.mag;
+  //   if (mag === null) return 2; 
+  //   var r = 4 * adapt * Math.exp(-0.05 * (mag+2));
+  //   return Math.max(r, 2);
+  // }
+
+  // function planetSize(d) {
+  //   var mag = d.mag;
+  //   if (mag === null) return 2; 
+    
+  //   // --- MÓDOSÍTÁS KEZD ---
+  //   // Itt is használjuk a szélesség arányt
+  //   var responsiveRatio = Math.max(width / 1024, 0.4); 
+    
+  //   // Az eredeti "4" helyett "4 * responsiveRatio"
+  //   var r = 4 * responsiveRatio * adapt * Math.exp(-0.05 * (mag+2));
+    
+  //   // A minimum méretet is skálázzuk (eredetileg fix 2 volt)
+  //   return Math.max(r, 2 * responsiveRatio);
+  //   // --- MÓDOSÍTÁS VÉGE ---
+  // }
+  // function planetSize(d) {
+  //   var mag = d.mag;
+  //   if (mag === null) return 2; 
+    
+  //   // --- MÓDOSÍTÁS KEZD ---
+  //   var responsiveRatio = 1.0;
+
+  //   // Ugyanaz a logika: csak mobilon számolunk arányt
+  //   if (window.innerWidth < 768) {
+  //       responsiveRatio = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  //       if (responsiveRatio < 0.2) responsiveRatio = 0.2;
+  //       if (responsiveRatio > 1.2) responsiveRatio = 1.2;
+  //   }
+
+  //   // Az eredeti képlet, de megszorozva a responsiveRatio-val
+  //   var r = 4 * responsiveRatio * adapt * Math.exp(-0.05 * (mag+2));
+    
+  //   // A minimum méretet (2) is skálázzuk
+  //   return Math.max(r, 2 * responsiveRatio);
+  //   // --- MÓDOSÍTÁS VÉGE ---
+  // }
+ function planetSize(d) {
     var mag = d.mag;
     if (mag === null) return 2; 
-    var r = 4 * adapt * Math.exp(-0.05 * (mag+2));
-    return Math.max(r, 2);
+    
+    // --- JAVÍTOTT MÉRETEZÉSI LOGIKA ---
+    var responsiveRatio = width / 1024;
+    
+    // Ugyanaz a biztonsági minimum limit
+    if (responsiveRatio < 0.5) responsiveRatio = 0.5;
+
+    // Az alapméretet (4) szorozzuk a ratióval
+    var r = 4 * responsiveRatio * adapt * Math.exp(-0.05 * (mag+2));
+    
+    // A minimum méretet (2) is skálázzuk
+    return Math.max(r, 2 * responsiveRatio);
+    // --- MÓDOSÍTÁS VÉGE ---
   }
- 
   function planetSymbol(s) {
     var size = s.replace(/(^\D*)(\d+)(\D.+$)/i,'$2');
     size = Math.round(adapt * size);
@@ -1801,6 +1920,7 @@ var projections = {
   // "bonne": {n:"Bonne", arg:Math.PI/2.5, scale:225, ratio:0.88},
   "bromley": {n:"Bromley", arg:null, scale:162},
 //  "butterfly": {n:"Butterfly", arg:null, scale:31, ratio:1.1, clip:true},
+  "customHeart": { arg:Math.PI/2.5, scale:210, ratio:0.88 },
   "cassini": {n:"Cassini", arg:null, scale:325, ratio:1.0, clip:true},
   "collignon": {n:"Collignon", arg:null, scale:100, ratio:2.6},
   "craig": {n:"Craig Retroazimuthal", arg:0, scale:310, ratio:1.5, clip:true},

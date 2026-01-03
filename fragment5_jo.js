@@ -4338,28 +4338,140 @@ window.updateCanvasBackground = function(color) {
 
 // --- JAVÍTOTT TÉMA ALKALMAZÁS (Hibamentesítés + Késleltetett másolás) ---
 // window.applyDesignerTheme = function(key) {
-window.applyDesignerTheme = function(key, variant = 'normal') { // <--- ÚJ PARAMÉTER
+// --- JAVÍTOTT TÉMA ALKALMAZÁS (Variáns támogatással) ---
+// window.applyDesignerTheme = function(key, variant = 'normal') { // <--- ÚJ PARAMÉTER
+//     console.log("Designer Theme Apply:", key);
+    
+//     // 1. Kényszerített méretezés (Mielőtt bármit csinálunk!)
+//     if (typeof getOptimalMapSize === 'function' && typeof Celestial !== 'undefined') {
+//         // Megpróbáljuk beállítani a méretet, hogy ne legyen 0
+//         const safeSize = getOptimalMapSize() || 500; 
+//         Celestial.resize({width: safeSize});
+//     }
+
+//     // // 2. Téma betöltése (Ez állítja be a színeket a configban)
+//     // if (typeof window.loadTheme === 'function') {
+//     //     // Alapból 'normal'-t tölt, ha szívet akarsz, itt írd át 'heart'-ra!
+//     //     window.loadTheme(key, 'normal'); 
+//     // }
+//     // 2. Téma betöltése
+//     if (typeof window.loadTheme === 'function') {
+//         // ITT ADJUK ÁT A VARIÁNST!
+//         window.loadTheme(key, variant); 
+//     }
+
+//     // 3. Háttérszín beállítása a Tervezőben (Azonnal)
+//     let themeBg = "#000000";
+//     if (typeof mapThemes !== 'undefined' && mapThemes[key]) {
+//         themeBg = mapThemes[key].background;
+//     }
+//     // window.updateCanvasBackground(themeBg);
+//     if (window.updateCanvasBackground) {
+//         window.updateCanvasBackground(themeBg);
+//     }
+    
+//     // Input szinkronizáció
+//     const colorInput = document.getElementById('canvas-bg-color');
+//     if (colorInput) {
+//         let hex = themeBg.startsWith('#') ? themeBg : "#000000";
+//         if(themeBg.includes("gradient")) {
+//              const match = themeBg.match(/#[a-fA-F0-9]{6}/);
+//              if(match) hex = match[0];
+//         }
+//         colorInput.value = hex;
+//     }
+
+//                 console.log("VEKTOROS Generálás következik a tervezőbe... typeof Celestial", typeof Celestial);
+//     // 4. KRITIKUS RÉSZ: Újrarajzolás és Másolás
+//     if (typeof Celestial !== 'undefined') {
+//         setTimeout(() => {
+//             // A) Újrarajzolás (Hibakezeléssel!)
+//             try {
+//                 Celestial.redraw(); 
+//             } catch (e) {
+//                 console.warn("Celestial.redraw hiba (nem kritikus, folytatjuk):", e);
+//             }
+            
+//             // B) MÁSOLÁS (Hosszabb várakozás a pozicionálás miatt!)
+//             // 800ms már elég kell legyen, hogy a 'customHeart' helyreigazító logikája lefusson
+//             // setTimeout(() => {
+//             //     console.log("Másolás indítása...");
+                
+//             //     // Kép másolása
+//             //     if(typeof window.copyMapToDesigner === 'function') {
+//             //         window.copyMapToDesigner(); 
+//             //     }
+//             // B) MÁSOLÁS KÉSLELTETÉSE (A lényeg)
+//             setTimeout(() => {
+//                 console.log("VEKTOROS Generálás a tervezőbe...");
+                
+//                 // // 1. A celestial_jo.js-ből kivezetett vektoros generátor hívása!
+//                 // // Ez újraépíti az SVG-t az aktuális színekkel és a javított pozícióval.
+//                 // if(typeof window.generateVectorMap === 'function') {
+//                 //     window.generateVectorMap(); 
+//                 // }
+                
+//                 // // Tervező nézet helyreigazítása (méret, pozíció)
+//                 // if (typeof window.refreshMapTransform === 'function') {
+//                 //     window.refreshMapTransform(); 
+//                 // }
+                
+//                 // // Szövegek igazítása
+//                 // if (typeof window.renderFixedTexts === 'function') {
+//                 //     window.renderFixedTexts();
+//                 // }
+
+//                 // 1. A celestial_jo.js-ben javított exportSVG-t hívjuk.
+//                 // Mivel most már 800ms telt el, a térkép a jó helyen van (lejjebb tolva),
+//                 // és az exportSVG átveszi ezt a jó pozíciót.
+//                 if(typeof window.generateVectorMap === 'function') {
+//                     window.generateVectorMap(); 
+//                 } else if (typeof window.copyMapToDesigner === 'function') {
+//                     // Fallback, ha nincs vektoros generátor
+//                     window.copyMapToDesigner();
+//                 }
+                
+//                 // Tervező nézet helyreigazítása
+//                 if (typeof window.refreshMapTransform === 'function') {
+//                     window.refreshMapTransform(); 
+//                 }
+                
+//                 // Szövegek igazítása
+//                 if (typeof window.renderFixedTexts === 'function') {
+//                     window.renderFixedTexts();
+//                 }
+                
+//             }, 800); // 800ms késleltetés a biztos sikerért
+//         }, 50);
+//     }
+// }
+
+// --- JAVÍTOTT TÉMA ALKALMAZÁS ---
+window.applyDesignerTheme = function(key, variant = 'normal') {
     console.log("Designer Theme Apply:", key);
     
-    // 1. Kényszerített méretezés (Mielőtt bármit csinálunk!)
+    // 1. MÉRET KÉNYSZERÍTÉS (A memóriából)
+    // Most már a getOptimalMapSize() visszaadja a Szerkesztőben használt méretet,
+    // akkor is, ha épp a Tervezőben vagyunk. Így a csillagok mérete és a térkép aránya
+    // pont ugyanolyan lesz!
     if (typeof getOptimalMapSize === 'function' && typeof Celestial !== 'undefined') {
-        // Megpróbáljuk beállítani a méretet, hogy ne legyen 0
-        const safeSize = getOptimalMapSize() || 500; 
-        Celestial.resize({width: safeSize});
+        var correctSize = getOptimalMapSize();
+        Celestial.resize({width: correctSize});
     }
 
-    // 2. Téma betöltése (Ez állítja be a színeket a configban)
+    // 2. Téma betöltése
     if (typeof window.loadTheme === 'function') {
-        // Alapból 'normal'-t tölt, ha szívet akarsz, itt írd át 'heart'-ra!
-        window.loadTheme(key, 'normal'); 
+        window.loadTheme(key, variant); 
     }
 
-    // 3. Háttérszín beállítása a Tervezőben (Azonnal)
+    // ... (A függvény többi része, a háttér beállítás és a try-catch marad változatlan) ...
+    // Csak a fenti 1-es pont változott a fix 1000-ről a függvényhívásra.
+    
+    // 3. Háttérszín beállítása
     let themeBg = "#000000";
     if (typeof mapThemes !== 'undefined' && mapThemes[key]) {
         themeBg = mapThemes[key].background;
     }
-    window.updateCanvasBackground(themeBg);
     if (window.updateCanvasBackground) {
         window.updateCanvasBackground(themeBg);
     }
@@ -4375,51 +4487,35 @@ window.applyDesignerTheme = function(key, variant = 'normal') { // <--- ÚJ PARA
         colorInput.value = hex;
     }
 
-                console.log("VEKTOROS Generálás következik a tervezőbe... typeof Celestial", typeof Celestial);
-    // 4. KRITIKUS RÉSZ: Újrarajzolás és Másolás
+    // 4. KRITIKUS RÉSZ
     if (typeof Celestial !== 'undefined') {
         setTimeout(() => {
-            // A) Újrarajzolás (Hibakezeléssel!)
-            try {
+            // A) Újrarajzolás (try-catch biztonsággal, ahogy kérted)
+            try { 
                 Celestial.redraw(); 
-            } catch (e) {
-                console.warn("Celestial.redraw hiba (nem kritikus, folytatjuk):", e);
+            } catch (e) { 
+                console.warn("Celestial.redraw hiba (nem kritikus, folytatjuk):", e); 
             }
             
-            // B) MÁSOLÁS (Hosszabb várakozás a pozicionálás miatt!)
-            // 800ms már elég kell legyen, hogy a 'customHeart' helyreigazító logikája lefusson
-            // setTimeout(() => {
-            //     console.log("Másolás indítása...");
-                
-            //     // Kép másolása
-            //     if(typeof window.copyMapToDesigner === 'function') {
-            //         window.copyMapToDesigner(); 
-            //     }
-            // B) MÁSOLÁS KÉSLELTETÉSE (A lényeg)
+            // B) Várakozás és Másolás
             setTimeout(() => {
-                console.log("VEKTOROS Generálás a tervezőbe...");
-                
-                // 1. A celestial_jo.js-ből kivezetett vektoros generátor hívása!
-                // Ez újraépíti az SVG-t az aktuális színekkel és a javított pozícióval.
+                console.log("VEKTOROS Generálás...");
                 if(typeof window.generateVectorMap === 'function') {
                     window.generateVectorMap(); 
+                } else if (typeof window.copyMapToDesigner === 'function') {
+                    window.copyMapToDesigner();
                 }
                 
-                // Tervező nézet helyreigazítása (méret, pozíció)
                 if (typeof window.refreshMapTransform === 'function') {
                     window.refreshMapTransform(); 
                 }
-                
-                // Szövegek igazítása
                 if (typeof window.renderFixedTexts === 'function') {
                     window.renderFixedTexts();
                 }
-                
-            }, 1400); // 800ms késleltetés a biztos sikerért
+            }, 800); 
         }, 50);
     }
 }
-
 
 // --- MÁSOLÁS (Canvas -> SVG Image) ---
 window.copyMapToDesigner = function() {
@@ -4611,68 +4707,79 @@ window.removePhoto = function() {
     document.getElementById('photo-controls').style.display = 'none';
     window.changeLayout('single'); // Vissza teljes nézetre
 }
-// --- GOMBOK GENERÁLÁSA ---
+// // --- GOMBOK GENERÁLÁSA ---
+// function initDesignerTemplates() {
+//     const container = document.getElementById('designer-templates-grid'); 
+//     if (!container) return;
+//     container.innerHTML = ''; 
+
+//     const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : designerThemes;
+
+//     for (const [key, theme] of Object.entries(themesSource)) {
+//         const card = document.createElement('div');
+//         card.className = 'theme-item';
+//         card.style.cursor = "pointer";
+
+//         const preview = document.createElement('div');
+//         preview.className = 'theme-preview-img';
+        
+//         if (theme.image) {
+//              preview.style.background = `url('${theme.image}') center/cover no-repeat`;
+//         } else {
+//              preview.style.background = theme.background; 
+//         }
+        
+//         preview.style.height = "60px";
+//         preview.style.width = "100%";
+//         preview.style.borderRadius = "4px";
+//         preview.style.marginBottom = "5px";
+
+//         const label = document.createElement('div');
+//         label.innerText = theme.name;
+//         label.style.textAlign = "center";
+//         label.style.fontSize = "12px";
+//         label.style.fontWeight = "bold";
+//         label.className = "theme-btn"; 
+        
+//         card.onclick = function() {
+//             if (typeof window.applyDesignerTheme === 'function') {
+//                 window.applyDesignerTheme(key);
+//             }
+//         };
+
+//         card.appendChild(preview);
+//         card.appendChild(label);
+//         container.appendChild(card);
+//     }
+// }
+// --- GOMBOK GENERÁLÁSA A TERVEZŐBE (Párosával) ---
 function initDesignerTemplates() {
     const container = document.getElementById('designer-templates-grid'); 
     if (!container) return;
     container.innerHTML = ''; 
 
+    // Adatforrás
     const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : designerThemes;
-// 1. VISSZAÁLLÍTÁS GOMB (Teljes szélesség)
-    const resetCard = document.createElement('div');
-    resetCard.className = 'theme-item full-width'; // CSS kezeli a szélességet
-    resetCard.style.background = "#f0f0f0";
-    resetCard.onclick = function() {
-        if(typeof restoreUserState === 'function') {
-            restoreUserState();
-            // Ha kell, itt hívhatsz applyDesignerTheme-t is, de a restoreUserState elvileg kezeli
-        }
-    };
-    resetCard.innerHTML = `
-        <div style="font-size: 24px; margin-right: 15px; color:#333;">↺</div>
-        <div>
-            <div style="font-weight:bold; color:#333;">Visszaállítás</div>
-            <div style="font-size:11px; color:#666;">Saját szerkesztés</div>
-        </div>
-    `;
-    container.appendChild(resetCard);
 
-    // for (const [key, theme] of Object.entries(themesSource)) {
-    //     const card = document.createElement('div');
-    //     card.className = 'theme-item';
-    //     card.style.cursor = "pointer";
-
-    //     const preview = document.createElement('div');
-    //     preview.className = 'theme-preview-img';
-        
-    //     if (theme.image) {
-    //          preview.style.background = `url('${theme.image}') center/cover no-repeat`;
-    //     } else {
-    //          preview.style.background = theme.background; 
+    // // 1. VISSZAÁLLÍTÁS GOMB (Teljes szélesség)
+    // const resetCard = document.createElement('div');
+    // resetCard.className = 'theme-item full-width'; // CSS kezeli a szélességet
+    // resetCard.style.background = "#f0f0f0";
+    // resetCard.onclick = function() {
+    //     if(typeof restoreUserState === 'function') {
+    //         restoreUserState();
+    //         // Ha kell, itt hívhatsz applyDesignerTheme-t is, de a restoreUserState elvileg kezeli
     //     }
-        
-    //     preview.style.height = "60px";
-    //     preview.style.width = "100%";
-    //     preview.style.borderRadius = "4px";
-    //     preview.style.marginBottom = "5px";
+    // };
+    // resetCard.innerHTML = `
+    //     <div style="font-size: 24px; margin-right: 15px; color:#333;">↺</div>
+    //     <div>
+    //         <div style="font-weight:bold; color:#333;">Visszaállítás</div>
+    //         <div style="font-size:11px; color:#666;">Saját szerkesztés</div>
+    //     </div>
+    // `;
+    // container.appendChild(resetCard);
 
-    //     const label = document.createElement('div');
-    //     label.innerText = theme.name;
-    //     label.style.textAlign = "center";
-    //     label.style.fontSize = "12px";
-    //     label.style.fontWeight = "bold";
-    //     label.className = "theme-btn"; 
-        
-    //     card.onclick = function() {
-    //         if (typeof window.applyDesignerTheme === 'function') {
-    //             window.applyDesignerTheme(key);
-    //         }
-    //     };
-
-    //     card.appendChild(preview);
-    //     card.appendChild(label);
-    //     container.appendChild(card);
-    // }
     // 2. SABLONOK GENERÁLÁSA (PÁROK)
     for (const [key, theme] of Object.entries(themesSource)) {
         
@@ -7236,29 +7343,104 @@ $(document).ready(function() {
 
             Celestial.resize({width: getOptimalMapSize()});
             // 3. UTÓLAGOS KORREKCIÓ (Ez fogja helyretenni!)
+            // setTimeout(function(){
+            //     // Először méretezzük át a konténerhez
+            //     Celestial.resize({width: getOptimalMapSize()});
+                
+            //     // HA A SZÍV ALAK VAN KIVÁLASZTVA:
+            //     if (myCelestialConf.projection === 'customHeart') {
+            //         console.log(">>> Szív alak igazítása...");
+                    
+            //         var mapProj = Celestial.mapProjection; // Hozzáférés a D3 vetülethez
+            //         var t = mapProj.translate(); // Lekérjük a jelenlegi [x, y] pozíciót
+                    
+            //         // --- ITT ÁLLÍTSD AZ ELTOLÁST! ---
+            //         // t[1] az Y tengely (függőleges).
+            //         // Ha a térkép FENT van, növeld ezt a számot (pl. +150), hogy LEFELÉ menjen.
+            //         // Ha túl lent van, csökkentsd vagy használj mínuszt.
+                    
+            //         t[1] += 100; // 150 pixel lefelé tolás. Próbáld ki: 100, 150, 200...
+                    
+            //         mapProj.translate(t); // Visszaírjuk az új pozíciót
+            //         Celestial.redraw();   // Újrarajzoljuk a térképet az új helyen
+            //     }
+                
+            // }, 150); // Pici késleltetés kell, hogy a Celestial végezzen az alapbeállítással
+
+            // 3. UTÓLAGOS KORREKCIÓ (Precíziós igazítás)
             setTimeout(function(){
-                // Először méretezzük át a konténerhez
+                // 1. Lépés: Méretezés a konténerhez (Ez reseteli a pozíciót alapállapotra)
                 Celestial.resize({width: getOptimalMapSize()});
                 
                 // HA A SZÍV ALAK VAN KIVÁLASZTVA:
                 if (myCelestialConf.projection === 'customHeart') {
-                    console.log(">>> Szív alak igazítása...");
+                    console.log(">>> Szív alak PRECIZÍOS igazítása...");
                     
-                    var mapProj = Celestial.mapProjection; // Hozzáférés a D3 vetülethez
-                    var t = mapProj.translate(); // Lekérjük a jelenlegi [x, y] pozíciót
+                    var mapProj = Celestial.mapProjection;
+                    if (!mapProj) return; // Biztonsági ellenőrzés
+
+                    // --- A MATEMATIKA ---
                     
-                    // --- ITT ÁLLÍTSD AZ ELTOLÁST! ---
-                    // t[1] az Y tengely (függőleges).
-                    // Ha a térkép FENT van, növeld ezt a számot (pl. +150), hogy LEFELÉ menjen.
-                    // Ha túl lent van, csökkentsd vagy használj mínuszt.
+                    // 2. Megmérjük a VETÜLET (a szív alak) pontos helyét és méretét
+                    // Létrehozunk egy D3 útvonal generátort az aktuális vetülettel
+                    var path = d3.geo.path().projection(mapProj);
                     
-                    t[1] += 100; // 150 pixel lefelé tolás. Próbáld ki: 100, 150, 200...
+                    // Létrehozunk egy "graticule" (fokhálózat) objektumot.
+                    // Ennek az "outline" (körvonal) tulajdonsága adja ki a teljes szív formát.
+                    var graticule = d3.geo.graticule();
+                    var outline = graticule.outline();
                     
-                    mapProj.translate(t); // Visszaírjuk az új pozíciót
-                    Celestial.redraw();   // Újrarajzoljuk a térképet az új helyen
+                    // A .bounds() visszaadja a befoglaló dobozt: [[x_bal, y_fent], [x_jobb, y_lent]]
+                    var bounds = path.bounds(outline);
+                    
+                    // Kiszámoljuk, hol van MOST a szív közepe függőlegesen
+                    var mapTop = bounds[0][1];
+                    var mapBottom = bounds[1][1];
+                    var mapHeight = mapBottom - mapTop;
+                    var mapCenterY = mapTop + (mapHeight / 2);
+                    
+                    console.log("mapTop", mapTop);
+                    console.log("mapBottom", mapBottom);
+                    console.log("mapHeight", mapHeight);
+                    console.log("mapCenterY", mapCenterY);
+                    // 3. Megnézzük, hol van a VÁSZON közepe
+                    var canvas = document.querySelector('#celestial-map canvas');
+                    var canvasHeight = canvas.height;
+                    var canvasCenterY = canvasHeight / 2;
+                    
+                    // 4. Kiszámoljuk a szükséges ELTOLÁST (Delta)
+                    // Ha a térkép közepe (mapCenterY) pl. 300, de a vászoné (canvasCenterY) 500,
+                    // akkor +200 pixellel kell lejjebb tolni.
+                    var deltaY = canvasCenterY - mapCenterY;
+
+                    var deltaY_ = canvasHeight - mapHeight;
+                    console.log("canvasHeight", canvasHeight);
+                    console.log("mapHeight", mapHeight);
+                    console.log("deltaY", deltaY);
+                    console.log("deltaY_", deltaY_);
+                    // console.log("mapCenterY", mapCenterY);
+                    
+                    console.log(`Mérés: TérképKözép=${mapCenterY.toFixed(1)}, VászonKözép=${canvasCenterY.toFixed(1)} -> Eltolás=${deltaY.toFixed(1)}px`);
+
+
+                    // 5. Alkalmazzuk az eltolást
+                    var currentTranslate = mapProj.translate();
+                    console.log("currentTranslate[0]", currentTranslate[0]);
+                    console.log("currentTranslate[1]", currentTranslate[1]);
+                    console.log("currentTranslate[1] + deltaY", currentTranslate[1] + deltaY);
+                    // [X marad (az már jó), Y-hoz hozzáadjuk a számított deltát]
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1] + deltaY]);
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1] + ( mapHeight / 2 )]);
+                    // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 2]);
+                    console.log("(mapHeight / 3) * 6", (mapHeight / 3) * 6);
+                    // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 8.5]);
+                    mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    
+                    // 6. Újrarajzolás a tökéletes pozícióban
+                    Celestial.redraw();
                 }
                 
-            }, 150); // Pici késleltetés kell, hogy a Celestial végezzen az alapbeállítással
+            }, 150); // Pici várakozás a resize után
         }
     });
     
