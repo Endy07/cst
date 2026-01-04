@@ -15,6 +15,10 @@ var ANIMDISTANCE = 0.035,  // Rotation animation threshold, ~2deg in radians
     zoomlevel = 1;         // Default zoom level, 1 = 100%
 
 var cfg, mapProjection, parentElement, zoom, map, circle, daylight, starnames = {}, dsonames = {};
+// --- GLOBAL SCALING FACTOR ---
+// Ez a változó tárolja az arányt a jelenlegi vászon és a referencia (PC) méret között.
+var globalScaleRatio = 1.0; 
+const REFERENCE_WIDTH = 1440; // Ehhez a szélességhez igazítjuk az arányokat (PC méret)
 
 // Show it all, with the given config, otherwise with default settings
 Celestial.display = function(config) {
@@ -48,16 +52,37 @@ Celestial.display = function(config) {
 
   if (!projectionSetting) return;
 
+  // --- SKÁLA SZÁMÍTÁSA ---
+  // Itt dől el minden: Mennyivel kisebb a mostani vászon a referencia PC-hez képest?
+  globalScaleRatio = width / REFERENCE_WIDTH;
+  // Ne engedjük, hogy túl pici legyen (hogy olvasható maradjon), de a csillagoknál ez nem baj
+  // A minimum limitet kivettem, hogy mobilon tényleg kicsik legyenek a csillagok!
+
   if (cfg.lines.graticule.lat && cfg.lines.graticule.lat.pos[0] === "outline") projectionSetting.scale -= 2;
         
+  // var ratio = projectionSetting.ratio,
+  //     height = Math.round(width / ratio),
+  //     canvasheight = Math.round(canvaswidth / ratio),
+  //     scale = projectionSetting.scale * width/1024,
+  //     starbase = cfg.stars.size, 
+  //     dsobase = cfg.dsos.size || starbase,
+  //     starexp = cfg.stars.exponent,
+  //     dsoexp = cfg.dsos.exponent || starexp, //Object size base & exponent
+  //     adapt = 1,
+  //     rotation = getAngles(cfg.center),
+  //     path = cfg.datapath;
   var ratio = projectionSetting.ratio,
       height = Math.round(width / ratio),
       canvasheight = Math.round(canvaswidth / ratio),
       scale = projectionSetting.scale * width/1024,
-      starbase = cfg.stars.size, 
-      dsobase = cfg.dsos.size || starbase,
+      
+      // ALAPMÉRETEK SKÁLÁZÁSA
+      // Itt már alkalmazzuk a szorzót az alapméretekre
+      starbase = cfg.stars.size * globalScaleRatio, 
+      dsobase = (cfg.dsos.size || cfg.stars.size) * globalScaleRatio,
+      
       starexp = cfg.stars.exponent,
-      dsoexp = cfg.dsos.exponent || starexp, //Object size base & exponent
+      dsoexp = cfg.dsos.exponent || starexp,
       adapt = 1,
       rotation = getAngles(cfg.center),
       path = cfg.datapath;
@@ -367,6 +392,10 @@ Celestial.display = function(config) {
   function resize(set) {
     width = getWidth();
     if (cfg.width === width && !set) return;
+
+    // --- SKÁLA ÚJRASZÁMOLÁSA ÁTMÉRETEZÉSKOR ---
+    globalScaleRatio = width / REFERENCE_WIDTH;
+
     height = width/ratio;
     canvaswidth = isNumber(cfg.background.width) ? width + cfg.background.width : width;
     canvasheight = Math.round(canvaswidth / ratio);
@@ -378,6 +407,11 @@ Celestial.display = function(config) {
     mapProjection.translate([canvaswidth/2, canvasheight/2]).scale(scale * zoomlevel);
     if (parent) parent.style.height = px(height);
     scale *= zoomlevel;
+
+    // Alapméretek frissítése az új szélességhez
+    starbase = cfg.stars.size * globalScaleRatio; 
+    dsobase = (cfg.dsos.size || cfg.stars.size) * globalScaleRatio;
+
     redraw();
   }
 
@@ -508,24 +542,29 @@ Celestial.display = function(config) {
     // --- JAVÍTOTT MÉRETEZÉSI LOGIKA ---
     // A csillagok méretét a TÉRKÉP szélességéhez (width) igazítjuk.
     // 1024px a bázis szélesség (itt 1.0 a szorzó).
-    var responsiveRatio = width / 1024;
+    // var responsiveRatio = width / 1024;
 
-    // Minimum limit (0.5): 
-    // Mobilon (pl. 350-400px szélességnél) a matek 0.35-öt adna ki, ami túl pici.
-    // A 0.5-ös limittel a csillagok nem lesznek "porszemek", de nem is lesznek "gombócok" (mint az eredeti 1.0-nál).
-    if (responsiveRatio < 0.5) responsiveRatio = 0.5;
+    // // Minimum limit (0.5): 
+    // // Mobilon (pl. 350-400px szélességnél) a matek 0.35-öt adna ki, ami túl pici.
+    // // A 0.5-ös limittel a csillagok nem lesznek "porszemek", de nem is lesznek "gombócok" (mint az eredeti 1.0-nál).
+    // if (responsiveRatio < 0.5) responsiveRatio = 0.5;
 
-    // Maximum limit nem feltétlenül kell, mert a Tervezőben (nagy felbontásnál)
-    // pont az a jó, ha a csillagok is "nőnek" pixelben, hogy az arány megmaradjon.
+    // // Maximum limit nem feltétlenül kell, mert a Tervezőben (nagy felbontásnál)
+    // // pont az a jó, ha a csillagok is "nőnek" pixelben, hogy az arány megmaradjon.
     
-    starbase = cfg.stars.size * responsiveRatio;
-    starexp = cfg.stars.exponent;
+    // starbase = cfg.stars.size * responsiveRatio;
+    // starexp = cfg.stars.exponent;
     
-    var baseDsoSize = cfg.dsos.size || cfg.stars.size;
-    dsobase = baseDsoSize * responsiveRatio; 
+    // var baseDsoSize = cfg.dsos.size || cfg.stars.size;
+    // dsobase = baseDsoSize * responsiveRatio; 
     
-    dsoexp = cfg.dsos.exponent;
-    // --- MÓDOSÍTÁS VÉGE ---
+    // dsoexp = cfg.dsos.exponent;
+    // // --- MÓDOSÍTÁS VÉGE ---
+
+    // --- FIX MÉRETEZÉS ---
+    // A redraw-ban mindig a globális arányt használjuk
+    starbase = cfg.stars.size * globalScaleRatio; 
+    dsobase = (cfg.dsos.size || cfg.stars.size) * globalScaleRatio;
 
     if (cfg.orientationfixed && cfg.center.length > 2) {
       rot[2] = cfg.center[2]; 
@@ -662,7 +701,8 @@ Celestial.display = function(config) {
       var dt = Celestial.date(),
           o = Celestial.origin(dt).spherical();
       container.selectAll(parentElement + " .planet").each(function(d) {
-        var id = d.id(), r = 12 * adapt,
+        // var id = d.id(), r = 12 * adapt,
+        var id = d.id(), r = 12 * adapt * globalScaleRatio, // Itt is skálázunk!
             p = d(dt).equatorial(o),
             pos = transformDeg(p.ephemeris.pos, euler[cfg.transform]);  //transform; 
         if (clip(pos)) {
@@ -673,11 +713,13 @@ Celestial.display = function(config) {
             context.fillStyle = sym.fill;
             context.fillText(sym.letter, pt[0], pt[1]);
           } else if (id === "lun") {
-            if (has(sym, "size") && isNumber(sym.size)) r = sym.size * adapt;
+            // if (has(sym, "size") && isNumber(sym.size)) r = sym.size * adapt;
+            if (has(sym, "size") && isNumber(sym.size)) r = sym.size * adapt * globalScaleRatio;
             context.fillStyle = sym.fill;
             Canvas.symbol().type("crescent").size(r*r).age(p.ephemeris.age).position(pt)(context);
           } else if (cfg.planets.symbolType === "disk") {
-            r = has(sym, "size") && isNumber(sym.size) ? sym.size * adapt : planetSize(p.ephemeris);
+            // r = has(sym, "size") && isNumber(sym.size) ? sym.size * adapt : planetSize(p.ephemeris);
+            r = has(sym, "size") && isNumber(sym.size) ? sym.size * adapt * globalScaleRatio : planetSize(p.ephemeris);
             context.fillStyle = sym.fill;
             Canvas.symbol().type("circle").size(r*r).position(pt)(context);
             context.fill();
@@ -770,13 +812,101 @@ Celestial.display = function(config) {
     return projectionSetting.clip && d3.geo.distance(cfg.center, coords) > halfπ ? 0 : 1;
   }
 
+  // function setStyle(s) {
+  //   context.fillStyle = s.fill || null;
+  //   context.strokeStyle = s.stroke || null;
+  //   context.lineWidth = s.width || null;
+  //   context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
+  //   context.font = s.font || null;
+  //   if (has(s, "dash")) context.setLineDash(s.dash); else context.setLineDash([]);
+  //   context.beginPath();
+  // }
+
+  // function setTextStyle(s) {
+  //   context.fillStyle = s.fill;
+  //   context.textAlign = s.align || "left";
+  //   context.textBaseline = s.baseline || "bottom";
+  //   context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
+  //   context.font = s.font;
+  // }
+
+  // function setStyleA(rank, s) {
+  //   rank = rank || 1;
+  //   context.fillStyle = isArray(s.fill) ? s.fill[rank-1] : null;
+  //   context.strokeStyle = isArray(s.stroke) ? s.stroke[rank-1] : null;
+  //   context.lineWidth = isArray(s.width) ? s.width[rank-1] : null;
+  //   context.globalAlpha = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+  //   context.font = isArray(s.font) ? s.font[rank-1] : null;
+  //   if (has(s, "dash")) context.setLineDash(s.dash); else context.setLineDash([]);
+  //   context.textAlign = s.align || "left";
+  //   context.textBaseline = s.baseline || "bottom";
+  //   context.beginPath();
+  // }
+  // // --- JAVÍTOTT HELPER FÜGGVÉNYEK A SKÁLÁZÁSHOZ ---
+
+  // function setStyle(s) {
+  //   context.fillStyle = s.fill || null;
+  //   context.strokeStyle = s.stroke || null;
+    
+  //   // Vonalvastagság skálázása
+  //   var baseWidth = s.width || 0;
+  //   context.lineWidth = (baseWidth * globalScaleRatio) || null;
+    
+  //   context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
+  //   context.font = scaleFont(s.font) || null; // Font skálázása
+  //   if (has(s, "dash")) context.setLineDash(s.dash.map(v => v * globalScaleRatio)); // Szaggatás skálázása
+  //   else context.setLineDash([]);
+  //   context.beginPath();
+  // }
+
+  // function setTextStyle(s) {
+  //   context.fillStyle = s.fill;
+  //   context.textAlign = s.align || "left";
+  //   context.textBaseline = s.baseline || "bottom";
+  //   context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
+  //   context.font = scaleFont(s.font); // Font skálázása
+  // }
+  
+  // function setStyleA(rank, s) {
+  //   rank = rank || 1;
+  //   context.fillStyle = isArray(s.fill) ? s.fill[rank-1] : null;
+  //   context.strokeStyle = isArray(s.stroke) ? s.stroke[rank-1] : null;
+    
+  //   // Vonalvastagság tömb skálázása
+  //   var w = isArray(s.width) ? s.width[rank-1] : null;
+  //   context.lineWidth = w ? w * globalScaleRatio : null;
+    
+  //   context.globalAlpha = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+  //   context.font = scaleFont(isArray(s.font) ? s.font[rank-1] : null);
+    
+  //   if (has(s, "dash")) context.setLineDash(s.dash.map(v => v * globalScaleRatio)); 
+  //   else context.setLineDash([]);
+  //   context.textAlign = s.align || "left";
+  //   context.textBaseline = s.baseline || "bottom";
+  //   context.beginPath();
+  // }
+  // // Betűméret skálázó segédfüggvény
+  // function scaleFont(fontStr) {
+  //     if (!fontStr) return null;
+  //     // Keresünk benne számot (px méret) és megszorozzuk az aránnyal
+  //     return fontStr.replace(/(\d+(\.\d+)?)px/, function(match, num) {
+  //         var newSize = parseFloat(num) * globalScaleRatio;
+  //         // Minimum 8px (vagy kisebb), hogy ne legyen olvashatatlan, de arányos maradjon
+  //         return Math.max(newSize, 4) + "px"; 
+  //     });
+  // }
+// --- SEGÉDFÜGGVÉNYEK FRISSÍTÉSE (Helper functions) ---
+  // Ezeket a függvényeket cseréld le a fájlban (kb. a redraw után):
+
   function setStyle(s) {
     context.fillStyle = s.fill || null;
     context.strokeStyle = s.stroke || null;
-    context.lineWidth = s.width || null;
+    // Vonalvastagság skálázása!
+    context.lineWidth = (s.width !== null ? s.width * globalScaleRatio : null);
     context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
-    context.font = s.font || null;
-    if (has(s, "dash")) context.setLineDash(s.dash); else context.setLineDash([]);
+    // Font skálázása!
+    context.font = scaleFont(s.font);
+    if (has(s, "dash")) context.setLineDash(s.dash.map(d => d * globalScaleRatio)); else context.setLineDash([]);
     context.beginPath();
   }
 
@@ -785,22 +915,36 @@ Celestial.display = function(config) {
     context.textAlign = s.align || "left";
     context.textBaseline = s.baseline || "bottom";
     context.globalAlpha = s.opacity !== null ? s.opacity : 1;  
-    context.font = s.font;
+    // Font skálázása!
+    context.font = scaleFont(s.font);
   }
-
+  
   function setStyleA(rank, s) {
     rank = rank || 1;
     context.fillStyle = isArray(s.fill) ? s.fill[rank-1] : null;
     context.strokeStyle = isArray(s.stroke) ? s.stroke[rank-1] : null;
-    context.lineWidth = isArray(s.width) ? s.width[rank-1] : null;
+    // Vonalvastagság tömb skálázása!
+    var w = isArray(s.width) ? s.width[rank-1] : null;
+    context.lineWidth = w ? w * globalScaleRatio : null;
+    
     context.globalAlpha = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
-    context.font = isArray(s.font) ? s.font[rank-1] : null;
-    if (has(s, "dash")) context.setLineDash(s.dash); else context.setLineDash([]);
+    context.font = scaleFont(isArray(s.font) ? s.font[rank-1] : null);
+    
+    if (has(s, "dash")) context.setLineDash(s.dash.map(d => d * globalScaleRatio)); else context.setLineDash([]);
     context.textAlign = s.align || "left";
     context.textBaseline = s.baseline || "bottom";
     context.beginPath();
   }
 
+  // ÚJ: Font méret skálázó
+  function scaleFont(fontStr) {
+      if (!fontStr) return null;
+      return fontStr.replace(/(\d+(\.\d+)?)px/, function(match, num) {
+          // Minimum 5px, hogy ne tűnjön el teljesen mobilon se
+          var newSize = Math.max(parseFloat(num) * globalScaleRatio, 5); 
+          return newSize + "px"; 
+      });
+  }
   function setSkyStyle(dist, pt) {
     var factor, color1, color2, color3,
         upper = 1.36, 
@@ -899,11 +1043,18 @@ Celestial.display = function(config) {
     return has(starnames[id], lang) ? starnames[id][lang] : starnames[id].name; 
   }
   
+  // function starSize(d) {
+  //   var mag = d.properties.mag;
+  //   if (mag === null) return 0.1; 
+  //   var r = starbase * adapt * Math.exp(starexp * (mag+2));
+  //   return Math.max(r, 0.1);
+  // }ú
   function starSize(d) {
     var mag = d.properties.mag;
     if (mag === null) return 0.1; 
+    // Itt a starbase már skálázva van a redraw-ban!
     var r = starbase * adapt * Math.exp(starexp * (mag+2));
-    return Math.max(r, 0.1);
+    return Math.max(r, 0.1 * globalScaleRatio);
   }
 
   
@@ -960,26 +1111,39 @@ Celestial.display = function(config) {
   //   return Math.max(r, 2 * responsiveRatio);
   //   // --- MÓDOSÍTÁS VÉGE ---
   // }
- function planetSize(d) {
-    var mag = d.mag;
-    if (mag === null) return 2; 
+ // function planetSize(d) {
+ //    var mag = d.mag;
+ //    if (mag === null) return 2; 
     
-    // --- JAVÍTOTT MÉRETEZÉSI LOGIKA ---
-    var responsiveRatio = width / 1024;
+ //    // --- JAVÍTOTT MÉRETEZÉSI LOGIKA ---
+ //    var responsiveRatio = width / 1024;
     
-    // Ugyanaz a biztonsági minimum limit
-    if (responsiveRatio < 0.5) responsiveRatio = 0.5;
+ //    // Ugyanaz a biztonsági minimum limit
+ //    if (responsiveRatio < 0.5) responsiveRatio = 0.5;
 
-    // Az alapméretet (4) szorozzuk a ratióval
-    var r = 4 * responsiveRatio * adapt * Math.exp(-0.05 * (mag+2));
+ //    // Az alapméretet (4) szorozzuk a ratióval
+ //    var r = 4 * responsiveRatio * adapt * Math.exp(-0.05 * (mag+2));
     
-    // A minimum méretet (2) is skálázzuk
-    return Math.max(r, 2 * responsiveRatio);
-    // --- MÓDOSÍTÁS VÉGE ---
+ //    // A minimum méretet (2) is skálázzuk
+ //    return Math.max(r, 2 * responsiveRatio);
+ //    // --- MÓDOSÍTÁS VÉGE ---
+ //  }
+  // function planetSymbol(s) {
+  //   var size = s.replace(/(^\D*)(\d+)(\D.+$)/i,'$2');
+  //   size = Math.round(adapt * size);
+  //   return s.replace(/(^\D*)(\d+)(\D.+$)/i,'$1' + size + '$3');
+  // }
+  function planetSize(d) {
+    var mag = d.mag;
+    if (mag === null) return 2 * globalScaleRatio; 
+    
+    var r = 4 * globalScaleRatio * adapt * Math.exp(-0.05 * (mag+2));
+    return Math.max(r, 2 * globalScaleRatio);
   }
+  
   function planetSymbol(s) {
     var size = s.replace(/(^\D*)(\d+)(\D.+$)/i,'$2');
-    size = Math.round(adapt * size);
+    size = Math.round(adapt * size * globalScaleRatio); // Itt is skálázunk
     return s.replace(/(^\D*)(\d+)(\D.+$)/i,'$1' + size + '$3');
   }
  
@@ -1062,6 +1226,15 @@ Celestial.display = function(config) {
   };
   this.symbol = Canvas.symbol;
   this.dsoSymbol = dsoSymbol;
+  // this.redraw = redraw; 
+  // this.resize = function(config) { 
+  //   if (config !== undefined) {  
+  //     if (has(config, "width")) cfg.width = config.width; 
+  //     else if (isNumber(config)) cfg.width = config;
+  //   }
+  //   resize(true); 
+  //   return cfg.width;
+  // }; 
   this.redraw = redraw; 
   this.resize = function(config) { 
     if (config !== undefined) {  
@@ -1070,7 +1243,7 @@ Celestial.display = function(config) {
     }
     resize(true); 
     return cfg.width;
-  }; 
+  };
   this.reload = function(config) { 
     var ctr;
     //if (!config || !has(config, "transform")) return;
@@ -4687,10 +4860,913 @@ var Moon = {
   }
 
 };
+// function exportSVG(fname) {
+//         console.warn("exportSVG");
+//   var doc = d3.select("body").append("div").attr("id", "d3-celestial-svg").attr("style", "display: none"),
+//       svg = d3.select("#d3-celestial-svg").append("svg"), //.attr("style", "display: none"),
+//       m = Celestial.metrics(),
+//       cfg = settings.set(),
+//       path = cfg.datapath,
+//       proj = projections[cfg.projection],
+//       rotation = getAngles(cfg.center),
+//       center = [-rotation[0], -rotation[1]],
+//       scale0 = proj.scale * m.width/1024,
+//       // --- JAVÍTÁS: Átvesszük a látható térkép eltolását ---
+//       // Ha létezik a mapProjection (a képernyőn lévő térkép), elkérjük a translate értéket.
+//       // Ha nem, akkor maradunk a középnél.
+//       trans = (typeof mapProjection !== 'undefined' && mapProjection) 
+//               ? mapProjection.translate() 
+//               : [m.width/2, m.height/2],
+
+//       // Itt a 'trans' változót használjuk a fix [m.width/2, m.height/2] helyett:
+//       // projection = Celestial.projection(cfg.projection).rotate(rotation).translate([m.width/2, m.height/2]).scale([m.scale]),
+//       projection = Celestial.projection(cfg.projection).rotate(rotation).translate(trans).scale([m.scale]),
+//       adapt = cfg.adaptable ? Math.sqrt(m.scale/scale0) : 1,
+//       culture = (cfg.culture !== "" && cfg.culture !== "iau") ? cfg.culture : "",
+//       circle, id;
+//       console.log("svg", svg);
+//   // Itt számoljuk ki a skálát az exportáláshoz is!
+//   var exportScaleRatio = m.width / REFERENCE_WIDTH;
+//   svg.selectAll("*").remove();
+
+//   var defs = svg.append("defs");
+
+//   if (proj.clip) {
+//     projection.clipAngle(90);
+//   }
+//   circle = d3.geo.circle().angle([179.95]).origin(center);
+
+//   svg.attr("width", m.width).attr("height", m.height);
+//   // .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
+
+//   var groupNames = ['background', 'milkyWay', 'milkyWayBg', 'gridLines', 'constBoundaries', 
+//                     'planesequatorial', 'planesecliptic', 'planesgalactic', 'planessupergalactic',
+//                     'constLines', 'mapBorder','stars', 'dsos', 'planets', 'gridvaluesLon', 'gridvaluesLat', 
+//                     'constNames', 'starDesignations', 'starNames', 'dsoNames', 'planetNames', 'horizon', 'daylight'],
+//                 groups = {}, styles = {};
+
+//   for (var i=0; i<groupNames.length; i++) {
+//      // inkscape:groupmode="layer", inkscape:label="Ebene 1" 
+//     groups[groupNames[i]] = svg.append('g').attr({"id": groupNames[i], ":inkscape:groupmode": "layer", ":inkscape:label": groupNames[i]});
+//     styles[groupNames[i]] = {};
+//   }
+
+//   var graticule = d3.geo.graticule().minorStep([15,10]);
+  
+//   var map = d3.geo.path().projection(projection);
+
+//   var q = d3.queue(2);
+  
+//   groups.background.append("path").datum(circle).attr("class", "background").attr("d", map); 
+//   styles.background.fill = cfg.background.fill;
+
+//   if (cfg.lines.graticule.show) {
+//     if (cfg.transform === "equatorial") {
+//       groups.gridLines.append("path").datum(graticule)
+//        .attr("class", "gridLines")
+//        .attr("d", map);
+//       styles.gridLines = svgStyle(cfg.lines.graticule);
+//     } else {
+//       Celestial.graticule(groups.gridLines, map, cfg.transform);
+//       styles.gridLines = svgStyle(cfg.lines.graticule);
+//     }
+//     if (has(cfg.lines.graticule, "lon") && cfg.lines.graticule.lon.pos.length > 0) {
+//       var jlon = {type: "FeatureCollection", features: getGridValues("lon", cfg.lines.graticule.lon.pos)};      
+//       groups.gridvaluesLon.selectAll(".gridvalues_lon")
+//         .data(jlon.features)
+//         .enter().append("text")
+//         .attr("transform", function(d, i) { return point(d.geometry.coordinates); })
+//         .text( function(d) { return d.properties.value; } )
+//         .attr({dy: ".5em", dx: "-.75em", class: "gridvaluesLon"});
+//       styles.gridvaluesLon = svgTextStyle(cfg.lines.graticule.lon); 
+//     }
+//     if (has(cfg.lines.graticule, "lat") && cfg.lines.graticule.lat.pos.length > 0) {
+//       var jlat = {type: "FeatureCollection", features: getGridValues("lat", cfg.lines.graticule.lat.pos)};
+//       groups.gridvaluesLat.selectAll(".gridvalues_lat")
+//         .data(jlat.features)
+//         .enter().append("text")
+//         .attr("transform", function(d, i) { return point(d.geometry.coordinates); })
+//         .text( function(d) { return d.properties.value; } )
+//         .attr({dy: "-.5em", dx: "-.75em", class: "gridvaluesLat"});
+//        styles.gridvaluesLat = svgTextStyle(cfg.lines.graticule.lat); 
+//     }
+//   }
+
+//   //Celestial planes
+//   for (var key in cfg.lines) {
+//     if (has(cfg.lines, key) && key != "graticule" && cfg.lines[key].show !== false) { 
+//       id = "planes" + key;
+//       groups[id].append("path")
+//          .datum(d3.geo.circle().angle([90]).origin(poles[key]) )
+//          .attr("class", id)
+//          .attr("d", map);
+//       styles[id] = svgStyle(cfg.lines[key]);
+//     }
+//   }
+
+//   //Milky way outline
+//   if (cfg.mw.show) {
+//     q.defer(function(callback) { 
+//       d3.json(path + "mw.json", function(error, json) {
+//         if (error) callback(error);
+//         var mw = getData(json, cfg.transform);
+//         var mw_back = getMwbackground(mw);
+        
+//         groups.milkyWay.selectAll(".mway")
+//          .data(mw.features)
+//          .enter().append("path")
+//          .attr("class", "milkyWay")
+//          .attr("d", map);
+//         styles.milkyWay = svgStyle(cfg.mw.style);
+        
+//         if (!has(cfg.background, "opacity") || cfg.background.opacity > 0.95) {
+//           groups.milkyWayBg.selectAll(".mwaybg")
+//            .data(mw_back.features)
+//            .enter().append("path")
+//            .attr("class", "milkyWayBg")
+//            .attr("d", map);
+//           styles.milkyWayBg = {"fill": cfg.background.fill, 
+//                    "fill-opacity": cfg.background.opacity };
+//         }
+//         callback(null);
+//       });
+//     });
+//   }
+
+//   //Constellation boundaries
+//   if (cfg.constellations.bounds) { 
+//     q.defer(function(callback) { 
+//       d3.json(path + filename("constellations", "borders"), function(error, json) {
+//         if (error) callback(error);
+
+//         var conb = getData(json, cfg.transform);
+//         if (Celestial.constellation) {
+//           var re = new RegExp("\\b" + Celestial.constellation + "\\b");
+//         }
+
+//         groups.constBoundaries.selectAll(".bounds")
+//          .data(conb.features)
+//          .enter().append("path")
+//          .attr("class", function(d) { return (Celestial.constellation && d.ids.search(re) !== -1) ? "constBoundariesSel" : "constBoundaries"; }) 
+//          .attr("d", map);
+
+//         styles.constBoundaries = svgStyle(cfg.constellations.boundStyle);
+//         styles.constBoundariesSel = {"fill": "none",
+//             "stroke": cfg.constellations.boundStyle.stroke, 
+//             "stroke-width": cfg.constellations.boundStyle.width * 1.5,
+//             "stroke-opacity": 1,
+//             "stroke-dasharray": "none"};
+        
+//         callback(null);
+//       });
+//     });
+//   }
+
+//   //Constellation lines
+//   if (cfg.constellations.lines) { 
+//     q.defer(function(callback) { 
+//       d3.json(path + filename("constellations", "lines"), function(error, json) {
+//         if (error) callback(error);
+
+//         var conl = getData(json, cfg.transform);
+//         groups.constLines.selectAll(".lines")
+//          .data(conl.features)
+//          .enter().append("path")
+//          .attr("class", function(d) { return "constLines" + d.properties.rank; })
+//          .attr("d", map);
+
+//         var dasharray = has(cfg.constellations.lineStyle, "dash") ? cfg.constellations.lineStyle.dash.join(" ") : "none";
+         
+//         styles.constLines1 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[0],
+//                               "stroke-width": cfg.constellations.lineStyle.width[0],
+//                               "stroke-opacity": cfg.constellations.lineStyle.opacity[0],
+//                               "stroke-dasharray": dasharray};
+//         styles.constLines2 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[1],
+//                               "stroke-width": cfg.constellations.lineStyle.width[1],
+//                               "stroke-opacity": cfg.constellations.lineStyle.opacity[1],
+//                               "stroke-dasharray": dasharray};
+//         styles.constLines3 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[2],
+//                               "stroke-width": cfg.constellations.lineStyle.width[2],
+//                               "stroke-opacity": cfg.constellations.lineStyle.opacity[2],
+//                               "stroke-dasharray": dasharray};
+//         callback(null);
+//       });
+//     });
+//   }
+
+//   // Map border
+//   q.defer(function(callback) {
+//     var rot = projection.rotate();
+//     projection.rotate([0,0,0]);
+//     groups.mapBorder.append("path")
+//      .datum(graticule.outline)
+//      .attr("class", "mapBorder")
+//      .attr("d", map);
+     
+//     styles.mapBorder = {"fill": "none", "stroke": cfg.background.stroke, "stroke-width": cfg.background.width, "stroke-opacity": 1, "stroke-dasharray": "none" };
+
+//     projection.rotate(rot);
+//     callback(null);
+//   });  
+  
+//   //Constellation names or designation
+//   if (cfg.constellations.names) { 
+//     q.defer(function(callback) { 
+//       d3.json(path + filename("constellations"), function(error, json) {
+//         if (error) callback(error);
+
+//         var conn = getData(json, cfg.transform);
+//         groups.constNames.selectAll(".constnames")
+//          .data(conn.features.filter( function(d) {
+//             return clip(d.geometry.coordinates) === 1; 
+//           }))
+//          .enter().append("text")
+//          .attr("class", function(d) { return "constNames" + d.properties.rank; })
+//          .attr("transform", function(d, i) { return point(d.geometry.coordinates); })
+//          .text( function(d) { return constName(d); } ); 
+ 
+//         styles.constNames1 = {"fill": cfg.constellations.nameStyle.fill[0],
+//                               "fill-opacity": cfg.constellations.nameStyle.opacity[0],
+//                               "font": cfg.constellations.nameStyle.font[0],
+//                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
+//         styles.constNames2 = {"fill": cfg.constellations.nameStyle.fill[1],
+//                               "fill-opacity": cfg.constellations.nameStyle.opacity[1],
+//                               "font": cfg.constellations.nameStyle.font[1],
+//                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
+//         styles.constNames3 = {"fill": cfg.constellations.nameStyle.fill[2],
+//                               "fill-opacity": cfg.constellations.nameStyle.opacity[2],
+//                               "font": cfg.constellations.nameStyle.font[2],
+//                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
+//         callback(null);
+//       });
+//     });
+//   }
+  
+//   //Stars
+//   if (cfg.stars.show) { 
+//     q.defer(function(callback) { 
+//       d3.json(path +  cfg.stars.data, function(error, json) {
+//         if (error) callback(error);
+
+//         var cons = getData(json, cfg.transform);
+        
+//         groups.stars.selectAll(".stars")
+//           .data(cons.features.filter( function(d) {
+//             return d.properties.mag <= cfg.stars.limit; 
+//           }))
+//           .enter().append("path")
+//           .attr("class", function(d) { return "stars" + starColor(d.properties.bv); })
+//           .attr("d", map.pointRadius( function(d) {
+//             return d.properties ? starSize(d.properties.mag) : 1;
+//           }));
+
+//         styles.stars = svgStyle(cfg.stars.style);
+//         var range = bvcolor.domain();
+//         for (i=Round(range[1],1); i<=Round(range[0],1); i+=0.1) {
+//           styles["stars" + Math.round(i*10).toString()] = {"fill": bvcolor(i)};
+//         }
+          
+//         if (cfg.stars.designation) { 
+//           groups.starDesignations.selectAll(".stardesigs")
+//             .data(cons.features.filter( function(d) {
+//               return d.properties.mag <= cfg.stars.designationLimit*adapt && clip(d.geometry.coordinates) === 1; 
+//             }))
+//             .enter().append("text")
+//             .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//             .text( function(d) { return starDesignation(d.id); })
+//             .attr({dy: ".85em", dx: ".35em", class: "starDesignations"});
+//           styles.starDesignations = svgTextStyle(cfg.stars.designationStyle);
+//         }
+//         if (cfg.stars.propername) { 
+//           groups.starNames.selectAll(".starnames")
+//             .data(cons.features.filter( function(d) {
+//               return d.properties.mag <= cfg.stars.propernameLimit*adapt && clip(d.geometry.coordinates) === 1; 
+//             }))
+//             .enter().append("text")
+//             .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//             .text( function(d) { return starPropername(d.id); })
+//             .attr({dy: "-.5em", dx: "-.35em", class: "starNames"});
+
+//           styles.starNames = svgTextStyle(cfg.stars.propernameStyle);
+//         }
+//         callback(null);
+//       });
+//     });
+//   }
+
+//   //Deep space objects
+//   if (cfg.dsos.show) { 
+//     q.defer(function(callback) { 
+//       d3.json(path +  cfg.dsos.data, function(error, json) {
+//         if (error) callback(error);
+
+//         var cond = getData(json, cfg.transform);
+        
+//         groups.dsos.selectAll(".dsos")
+//           .data(cond.features.filter( function(d) {
+//             return clip(d.geometry.coordinates) === 1 && 
+//                    (d.properties.mag === 999 && Math.sqrt(parseInt(d.properties.dim)) > cfg.dsos.limit*adapt ||
+//                    d.properties.mag !== 999 && d.properties.mag <= cfg.dsos.limit); 
+//           }))
+//           .enter().append("path")
+//           .attr("class", function(d) { return "dsos" + d.properties.type; })
+//           .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//           .attr("d", function(d) { return dsoSymbol(d.properties); });
+
+//         styles.dsos = svgStyle(cfg.dsos.style);
+
+//         for (key in cfg.dsos.symbols) {
+//           if (!has(cfg.dsos.symbols, key)) continue;
+//           id = "dsos" + key;
+//           styles[id] = { "fill-opacity": cfg.dsos.style.opacity, "stroke-opacity": cfg.dsos.style.opacity };
+//           if (has(cfg.dsos.symbols[key], "stroke")) {
+//             styles[id].fill = "none"; 
+//             styles[id].stroke = cfg.dsos.colors ? cfg.dsos.symbols[key].stroke : cfg.dsos.style.stroke;
+//             styles[id]["stroke-width"] = cfg.dsos.colors ? cfg.dsos.symbols[key].width : cfg.dsos.style.width;
+//           } else {
+//             styles[id].stroke = "none"; 
+//             styles[id].fill = cfg.dsos.colors ? cfg.dsos.symbols[key].fill : cfg.dsos.style.fill;
+//           }
+//         }
+        
+      
+//         if (cfg.dsos.names) { 
+//           groups.dsoNames.selectAll(".dsonames")
+//             .data(cond.features.filter( function(d) {
+//               return clip(d.geometry.coordinates) === 1 && 
+//                    (d.properties.mag == 999 && Math.sqrt(parseInt(d.properties.dim)) > cfg.dsos.nameLimit ||
+//                      d.properties.mag != 999 && d.properties.mag <= cfg.dsos.nameLimit); 
+//             }))
+//             .enter().append("text")
+//             .attr("class", function(d) { return "dsoNames " + d.properties.type; })
+//             .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//             .text( function(d) { return dsoName(d); })
+//             .attr({dy: "-.5em", dx: ".35em"});
+               
+//           styles.dsoNames = {"fill-opacity": cfg.dsos.style.opacity,
+//                     "font": cfg.dsos.nameStyle.font,
+//                     "text-anchor": svgAlign(cfg.dsos.nameStyle.align)};
+          
+//           for (key in cfg.dsos.symbols) {
+//             if (!has(cfg.dsos.symbols, key)) continue;
+//             styles[key] = {"fill": cfg.dsos.colors ? cfg.dsos.symbols[key].fill : cfg.dsos.style.fill };
+//           }
+//         }
+//         callback(null);
+//       });
+//     });
+//   }
+
+//   //Planets
+//   if ((cfg.location || cfg.formFields.location) && cfg.planets.show && Celestial.origin) {
+//     q.defer(function(callback) {
+//       var dt = Celestial.date(),
+//           o = Celestial.origin(dt).spherical(),
+//           jp = {type: "FeatureCollection", features: []},
+//           jlun = {type: "FeatureCollection", features: []};
+//       Celestial.container.selectAll(".planet").each(function(d) {
+//         var id = d.id(), r = 12,
+//             p = d(dt).equatorial(o);
+            
+//         p.ephemeris.pos = transformDeg(p.ephemeris.pos, euler[cfg.transform]);  //transform; 
+//         if (clip(p.ephemeris.pos) === 1) {
+//           if (id === "lun")
+//             jlun.features.push(createEntry(p));
+//           else
+//             jp.features.push(createEntry(p));
+//         }
+//       });
+//       if (cfg.planets.symbolType === "disk") {
+//         groups.planets.selectAll(".planets")
+//          .data(jp.features)
+//          .enter().append("path")
+//          .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//          .attr("d", function(d) { 
+//            var r = (has(cfg.planets.symbols[d.id], "size")) ? (cfg.planets.symbols[d.id].size - 1) * adapt : null;
+//            return planetSymbol(d.properties, r); 
+//          })
+//          .attr("class", function(d) { return "planets " + d.id; });
+//       } else {
+//         groups.planets.selectAll(".planets")
+//          .data(jp.features)
+//          .enter().append("text")
+//          .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//          .text( function(d) { return d.properties.symbol; })
+//          .attr("class", function(d) { return "planets " + d.id; })
+//          .attr({dy: ".35em"});
+//       }
+//       // Special case for Moon crescent
+//       if (jlun.features.length > 0) {
+//         if (cfg.planets.symbolType === "letter") {
+//           groups.planets.selectAll(".moon")
+//            .data(jlun.features)
+//            .enter().append("text")
+//            .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//            .text( function(d) { return d.properties.symbol; })
+//            .attr("class", function(d) { return "planets " + d.id; })
+//            .attr({dy: ".35em"});
+//         } else {
+//           var rl = has(cfg.planets.symbols.lun, "size") ? (cfg.planets.symbols.lun.size - 1) * adapt : 11 * adapt; 
+//           groups.planets.selectAll(".dmoon")
+//            .data(jlun.features)
+//            .enter().append("path")
+//            .attr("class", "darkluna" )
+//            .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//            .attr("d", function(d) { return d3.svg.symbol().type("circle").size(rl*rl)(); });
+//           groups.planets.selectAll(".moon")
+//            .data(jlun.features)
+//            .enter().append("path")
+//            .attr("class", function(d) { return "planets " + d.id; })
+//            .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//            .attr("d", function(d) { return moonSymbol(d.properties, rl); });
+//         }
+//       } 
+      
+//       styles.planets = svgTextStyle(cfg.planets.symbolStyle);
+//       styles.planets.font = planetFont(cfg.planets.symbolStyle.font);
+//       styles.darkluna = {"fill": "#557"};
+//       for (key in cfg.planets.symbols) {
+//          if (!has(cfg.planets.symbols, key)) continue;
+//          styles[key] = {"fill": cfg.planets.symbols[key].fill};
+//       }
+        
+//       //Planet names
+//       if (cfg.planets.names) {
+//         groups.planetNames.selectAll(".planetnames")
+//          .data(jp.features)
+//          .enter().append("text")
+//          .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//          .text( function(d) { return d.properties.name; })
+//          .attr({dy: ".85em", dx: "-.35em"})
+//          .attr("class", function(d) { return "planetNames " + d.id; });
+//         if (jlun.features.length > 0) {
+//           groups.planetNames.selectAll(".moonname")
+//            .data(jlun.features)
+//            .enter().append("text")
+//            .attr("transform", function(d) { return point(d.geometry.coordinates); })
+//            .text( function(d) { return d.properties.name; })
+//            .attr({dy: ".85em", dx: "-.35em"})
+//            .attr("class", function(d) { return "planetNames " + d.id; });
+//         }
+//       }
+//       styles.planetNames = svgTextStyle(cfg.planets.nameStyle);
+      
+//       callback(null);
+//     });  
+//   }
+  
+//   if ((cfg.location || cfg.formFields.location) && cfg.daylight.show && proj.clip) {
+//     q.defer(function(callback) {
+//       var sol = getPlanet("sol");
+//       if (sol) {
+//         var up = Celestial.zenith(),
+//             solpos = sol.ephemeris.pos,
+//             dist = d3.geo.distance(up, solpos),
+//             pt = projection(solpos),
+//             daylight = d3.geo.circle().angle([179.95]).origin(solpos);
+
+//         groups.daylight.append("path").datum(daylight)
+//          .attr("class", "daylight")
+//          .attr("d", map);
+       
+//         styles.daylight = svgSkyStyle(dist, pt);  
+
+//         if (clip(solpos) === 1 && dist < halfπ) {
+//           groups.daylight.append("circle")
+//            .attr("cx", pt[0])
+//            .attr("cy", pt[1])
+//            .attr("r", 5)
+//            .style("fill", "#fff");
+//         }
+//       }
+//       callback(null);
+//     });  
+//   }
+
+//   if ((cfg.location || cfg.formFields.location) && cfg.horizon.show && !proj.clip) {
+//     q.defer(function(callback) {
+//       var horizon = d3.geo.circle().angle([90]).origin(Celestial.nadir());
+     
+//       groups.horizon.append("path").datum(horizon)
+//        .attr("class", "horizon")
+//        .attr("d", map);
+//       styles.horizon =  svgStyle(cfg.horizon);  
+//       callback(null);
+//     });
+//   }
+  
+//   if (Celestial.data.length > 0) { 
+//     Celestial.data.forEach( function(d) {
+//       if (has(d, "save")) {
+//        q.defer(function(callback) { 
+//          d.save(); 
+//         callback(null);
+//        });
+//       }
+//     });
+//   }
+  
+//   // Helper functions
+  
+//   function clip(coords) {
+//     return proj.clip && d3.geo.distance(center, coords) > halfπ ? 0 : 1;
+//   }
+
+//   function point(coords) {
+//     return "translate(" + projection(coords) + ")";
+//   }
+    
+//   function filename(what, sub, ext) {
+//     var cult = (has(formats[what], culture)) ? "." + culture : "";
+//     ext = ext ? "." + ext : ".json";
+//     sub = sub ? "." + sub : "";
+//     return what + sub + cult + ext;
+//   }
+
+//   // function svgStyle(s) {
+//   //   var res = {};
+//   //   res.fill = s.fill || "none";
+//   //   res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//   //   res.stroke = s.stroke || "none";
+//   //   res["stroke-width"] = s.width !== null ? s.width : 0;
+//   //   res["stroke-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//   //   if (has(s, "dash")) res["stroke-dasharray"] = s.dash.join(" ");
+//   //   else res["stroke-dasharray"] = "none";
+//   //   res.font = s.font || null;
+//   //   return res;
+//   // }
+//   // Font méretező segéd az export-hoz
+//   function scaleExportFont(fontStr) {
+//       if (!fontStr) return null;
+//       return fontStr.replace(/(\d+(\.\d+)?)px/, function(match, num) {
+//           var newSize = Math.max(parseFloat(num) * exportScaleRatio, 5); 
+//           return newSize + "px"; 
+//       });
+//   }
+//   // Font méretező segéd az export-hoz
+//   function scaleFont(fontStr) {
+//       if (!fontStr) return null;
+//       return fontStr.replace(/(\d+(\.\d+)?)px/, function(match, num) {
+//           var newSize = Math.max(parseFloat(num) * exportScaleRatio, 5); 
+//           return newSize + "px"; 
+//       });
+//   }
+//   function svgStyle(s) {
+//     var res = {};
+//     res.fill = s.fill || "none";
+//     res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//     res.stroke = s.stroke || "none";
+//     // Skálázott vastagság
+//     res["stroke-width"] = s.width !== null ? s.width * exportScaleRatio : 0;
+//     res["stroke-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//     if (has(s, "dash")) res["stroke-dasharray"] = s.dash.map(d => d * exportScaleRatio).join(" ");
+//     else res["stroke-dasharray"] = "none";
+//     res.font = scaleFont(s.font); // Font skálázás
+//     return res;
+//   }
+
+//   // function svgTextStyle(s) {
+//   //   var res = {};
+//   //   res.stroke = "none";
+//   //   res.fill = s.fill || "none";
+//   //   res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//   //   //res.textBaseline = s.baseline || "bottom";
+//   //   res["text-anchor"] = svgAlign(s.align);
+//   //   res.font = s.font || null;
+//   //   return res;
+//   // }
+
+//   // function svgStyleA(rank, s) {
+//   //   var res = {};
+//   //   rank = rank || 1;
+//   //   res.fill = isArray(s.fill) ? s.fill[rank-1] : null;
+//   //   res["fill-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+//   //   res.stroke = isArray(s.stroke) ? s.stroke[rank-1] : null;
+//   //   res["stroke-width"] = isArray(s.width) ? s.width[rank-1] : null;
+//   //   res["stroke-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+//   //   res["text-anchor"] = svgAlign(s.align);
+//   //   res.font = isArray(s.font) ? s.font[rank-1] : null;
+//   //   //res.textBaseline = s.baseline || "bottom";
+//   //   return res;
+//   // }
+
+//   function svgTextStyle(s) {
+//     var res = {};
+//     res.stroke = "none";
+//     res.fill = s.fill || "none";
+//     res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+//     res["text-anchor"] = svgAlign(s.align);
+//     res.font = scaleExportFont(s.font); // Font skálázás
+//     return res;
+//   }
+
+//   function svgStyleA(rank, s) {
+//     var res = {};
+//     rank = rank || 1;
+//     res.fill = isArray(s.fill) ? s.fill[rank-1] : null;
+//     res["fill-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+//     res.stroke = isArray(s.stroke) ? s.stroke[rank-1] : null;
+//     // Tömbből jövő vastagság skálázása
+//     var w = isArray(s.width) ? s.width[rank-1] : null;
+//     res["stroke-width"] = w ? w * exportScaleRatio : null;
+    
+//     res["stroke-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+//     res["text-anchor"] = svgAlign(s.align);
+//     res.font = scaleExportFont(isArray(s.font) ? s.font[rank-1] : null); // Font skálázás
+//     return res;
+//   }
+
+//   function svgSkyStyle(dist, pt) {
+//     var factor, color1, color2, color3,
+//         upper = 1.36, 
+//         lower = 1.885;
+    
+//     if (dist > lower) return {fill: "transparent"};
+    
+//     if (dist <= upper) { 
+//       color1 = "#daf1fa";
+//       color2 = "#93d7f0"; 
+//       color3 = "#57c0e8"; 
+//       factor = -(upper-dist) / 10; 
+//     } else {
+//       factor = (dist - upper) / (lower - upper);
+//       color1 = d3.interpolateLab("#daf1fa", "#e8c866")(factor);
+//       color2 = d3.interpolateLab("#93c7d0", "#ff854a")(factor);
+//       color3 = d3.interpolateLab("#57b0c8", "#6caae2")(factor);
+//     }
+
+//     var gradient = groups.daylight.append("radialGradient")
+//      .attr("cx", pt[0])
+//      .attr("cy", pt[1])
+//      .attr("fr", "0")
+//      .attr("r", "300")
+//      .attr("id", "skygradient")
+//      .attr("gradientUnits", "userSpaceOnUse");
+
+//     gradient.append("stop").attr("offset", "0").attr("stop-color", color1);
+//     gradient.append("stop").attr("offset", 0.2+0.4*factor).attr("stop-color", color2);
+//     gradient.append("stop").attr("offset", "1").attr("stop-color", color3);
+
+//     return {"fill": "url(#skygradient)", "fill-opacity": skyTransparency(factor, 1.4)};
+//   }
+
+//   function skyTransparency(t, a) {
+//     return 0.9 * (1 - ((Math.pow(Math.E, t*a) - 1) / (Math.pow(Math.E, a) - 1)));
+//   }
+  
+
+
+//   function svgAlign(s) {
+//     if (!s) return "start";
+//     if (s === "center") return "middle"; 
+//     if (s === "right") return "end";
+//     return "start";
+//   }
+
+//   // function dsoSymbol(p) {
+//   //   var size = dsoSize(p.mag, p.dim) || 9,
+//   //       type = dsoShape(p.type);
+//   //   if (d3.svg.symbolTypes.indexOf(type) !== -1) {
+//   //     return d3.svg.symbol().type(type).size(size)();
+//   //   } else {
+//   //     return d3.svg.customSymbol().type(type).size(size)();
+//   //   }
+//   // }
+//   function dsoSymbol(p) {
+//     // Ez hívja meg a fenti dsoSize-t, tehát közvetve ez is skálázott lesz
+//     var size = dsoSize(p.mag, p.dim) || 9 * exportScaleRatio,
+//         type = dsoShape(p.type);
+//     if (d3.svg.symbolTypes.indexOf(type) !== -1) {
+//       return d3.svg.symbol().type(type).size(size)();
+//     } else {
+//       return d3.svg.customSymbol().type(type).size(size)();
+//     }
+//   }
+
+//   function dsoShape(type) {
+//     if (!type || !has(cfg.dsos.symbols, type)) return "circle"; 
+//     else return cfg.dsos.symbols[type].shape; 
+//   }
+
+//   // function dsoSize(mag, dim) {
+//   //   if (!mag || mag === 999) return Math.pow(parseInt(dim) * cfg.dsos.size * adapt / 7, 0.5); 
+//   //   return Math.pow(2 * cfg.dsos.size * adapt - mag, cfg.dsos.exponent);
+//   // }
+//   function dsoSize(mag, dim) {
+//     // Itt a cfg.dsos.size-t is meg kell szorozni az exportScaleRatio-val
+//     var scaledBase = cfg.dsos.size * exportScaleRatio;
+//     if (!mag || mag === 999) return Math.pow(parseInt(dim) * scaledBase * adapt / 7, 0.5); 
+//     return Math.pow(2 * scaledBase * adapt - mag, cfg.dsos.exponent);
+//   }
+ 
+//   function dsoName(d) {
+//     //return p[cfg.dsos.namesType]; 
+//     var lang = cfg.dsos.namesType, id = d.id;
+//     if (lang === "desig" || !has(dsonames, id)) return d.properties.desig;
+//     return has(dsonames[id], lang) ? dsonames[id][lang] : d.properties.desig; 
+//   }
+
+//   function dsoColor(p) {
+//     if (cfg.dsos.colors === true) return svgStyle(cfg.dsos.symbols[p.type]);
+//     return svgStyle(cfg.dsos.style);
+//   }
+ 
+//   function starDesignation(id) {
+//     if (!has(starnames, id)) return "";
+//     return starnames[id][cfg.stars.designationType]; 
+//   }
+
+//   function starPropername(id) {
+//     var lang = cfg.stars.propernameType;
+//     if (!has(starnames, id)) return "";
+//     return has(starnames[id], lang) ? starnames[id][lang] : starnames[id].name; 
+//   }
+
+//   // function starSize(mag) {
+//   //   if (mag === null) return 0.1; 
+//   //   var d = cfg.stars.size * adapt * Math.exp(cfg.stars.exponent * (mag + 2));
+//   //   return Math.max(d, 0.1);
+//   // }
+//   // Ugyanígy frissítsd a svgTextStyle, svgStyleA függvényeket is az exportSVG-n belül!
+//   // Fontos: A starSize, planetSize, dsoSize függvényeket is frissíteni kell itt!
+
+//   function starSize(mag) {
+//     if (mag === null) return 0.1 * exportScaleRatio; 
+//     // Itt direktben használjuk az exportScaleRatio-t
+//     var d = cfg.stars.size * exportScaleRatio * adapt * Math.exp(cfg.stars.exponent * (mag + 2));
+//     return Math.max(d, 0.1 * exportScaleRatio);
+//   }
+//   function starColor(bv) {
+//     if (!cfg.stars.colors || isNaN(bv)) return ""; 
+//     return Math.round(bv*10).toString();
+//   }
+  
+//   function constName(d) { 
+//     return d.properties[cfg.constellations.namesType]; 
+//   }
+
+//   function moonSymbol(p, r) { 
+//     var size = r ? r*r : 121;
+//     return d3.svg.customSymbol().type("crescent").size(size).ratio(p.age)();
+//   }
+
+//   function planetSymbol(p, r) { 
+//     var size = r ? r*r : planetSize(p.mag);
+//     return d3.svg.symbol().type("circle").size(size)();
+//   }
+
+//   function planetFont(s) {
+//     var size = s.replace(/(^\D*)(\d+)(\D.+$)/i,'$2');
+//     size = Math.round(adapt * size);
+//     return s.replace(/(^\D*)(\d+)(\D.+$)/i,'$1' + size + '$3');
+//   }
+
+//   // function planetSize(m) {
+//   //   var mag = m || 2; 
+//   //   var r = 4 * adapt * Math.exp(-0.05 * (mag+2));
+//   //   return Math.max(r, 2);
+//   // }
+//   function planetSize(m) {
+//     var mag = m || 2; 
+//     var r = 4 * exportScaleRatio * adapt * Math.exp(-0.05 * (mag+2));
+//     return Math.max(r, 2 * exportScaleRatio);
+//   }
+
+//   function createEntry(o) {
+//     var res = {type: "Feature", "id":o.id, properties: {}, geometry:{}};
+//     res.properties.name = o[cfg.planets.namesType];
+//     if (cfg.planets.symbolType === "symbol" || cfg.planets.symbolType === "letter")
+//       res.properties.symbol = cfg.planets.symbols[res.id][cfg.planets.symbolType];
+//     res.properties.mag = o.ephemeris.mag || 10;
+//     if (res.id === "lun") {
+//       res.properties.age = o.ephemeris.age;
+//       res.properties.phase = o.ephemeris.phase;
+//     }
+//     res.geometry.type = "Point";
+//     res.geometry.coordinates = o.ephemeris.pos;
+//     return res;
+//   }
+
+//   function createStyles() {
+//     var res = "";
+//     for (var key in styles) {
+//       if (!has(styles, key)) continue;
+//       res += " ." + key + stringifyStyle(styles[key]);
+//     }
+//     return "/*\u003c![CDATA[*/\n" + res + "\n/*]]\u003e*/";
+//   }
+
+//   function stringifyStyle(s) {
+//     var res = " {";
+//     for (var key in s) {
+//       if (!has(s, key)) continue;
+//       res += key + ":" + s[key] + "; ";
+//     }
+//     return res + "} ";
+//   }
+
+//   // q.await(function(error) {
+//   //   if (error) throw error;
+//   //   var svg = d3.select("#d3-celestial-svg svg")
+//   //     .attr("title", "D3-Celestial")
+//   //     .attr("version", 1.1)
+//   //     .attr("encoding", "UTF-8")
+//   //     .attr("xmlns", "http://www.w3.org/2000/svg")
+//   //     .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
+//   //     .attr("xmlns:sodipodi", "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd")
+//   //     .attr("xmlns:inkscape", "http://www.inkscape.org/namespaces/inkscape")
+//   //     .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
+
+//   //   defs.append("style")
+//   //    .attr("type", "text\/css")
+//   //    .text(createStyles());
+//   //   /*defs.append(":sodipodi:namedview")
+//   //    .attr(":inkscape:window-width", m.width+200)
+//   //    .attr(":inkscape:window-height", m.height)
+//   //    .attr(":inkscape:window-maximized", "1");*/
+//   //   if (fname) {
+//   //     var blob = new Blob([svg.node().outerHTML], {type:"image/svg+xml;charset=utf-8"});
+    
+//   //     var a = d3.select("body").append("a").node(); 
+//   //     a.download = fname || "d3-celestial.svg";
+//   //     a.rel = "noopener";
+//   //     a.href = URL.createObjectURL(blob);
+//   //     a.click();
+//   //     d3.select(a).remove();
+//   //   } else if (exportCallback !== null) {
+//   //     exportCallback(svg.node().outerHTML);
+//   //   }
+//   //   d3.select("#d3-celestial-svg").remove();
+//   // });
+//   // Ezt másold be a régi q.await(...) helyére az exportSVG függvény végén:
+//   // q.await(function(error) {
+//   //   if (error) throw error;
+//   //   var svg = d3.select("#d3-celestial-svg svg")
+//   //     .attr("title", "D3-Celestial")
+//   //     .attr("version", 1.1)
+//   //     .attr("encoding", "UTF-8")
+//   //     .attr("xmlns", "http://www.w3.org/2000/svg")
+//   //     .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
+//   //     .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
+
+//   //   defs.append("style")
+//   //    .attr("type", "text\/css")
+//   //    .text(createStyles());
+//   q.await(function(error) {
+//     if (error) throw error;
+//     var svg = d3.select("#d3-celestial-svg svg")
+//       .attr("title", "D3-Celestial")
+//       .attr("version", 1.1)
+//       .attr("encoding", "UTF-8")
+//       .attr("xmlns", "http://www.w3.org/2000/svg")
+//       .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
+//       // --- EZ A KÉT SOR HIÁNYZOTT: ---
+//       .attr("xmlns:inkscape", "http://www.inkscape.org/namespaces/inkscape")
+//       .attr("xmlns:sodipodi", "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd")
+//       // --------------------------------
+//       .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
+
+//     defs.append("style")
+//      .attr("type", "text\/css")
+//      .text(createStyles());
+
+//     if (fname) {
+//       // --- HA VAN FÁJLNÉV -> LETÖLTÉS ---
+//       var blob = new Blob([svg.node().outerHTML], {type:"image/svg+xml;charset=utf-8"});
+//       var a = d3.select("body").append("a").node(); 
+//       a.download = fname || "d3-celestial.svg";
+//       a.rel = "noopener";
+//       a.href = URL.createObjectURL(blob);
+//       a.click();
+//       d3.select(a).remove();
+//     } else {
+//       // --- HA NINCS FÁJLNÉV -> BEILLESZTÉS A TERVEZŐBE ---
+//       var targetLayer = document.getElementById("celestial-map-layer");
+//       if (targetLayer) {
+//           targetLayer.innerHTML = ''; // Törlés
+          
+//           var generatedNode = svg.node();
+//           generatedNode.setAttribute("id", "generated-celestial-map");
+//           generatedNode.setAttribute("width", m.width);
+//           generatedNode.setAttribute("height", m.height);
+          
+//           targetLayer.appendChild(generatedNode);
+          
+//           // Frissítés
+//           if (typeof window.updateCanvasSize === 'function') {
+//                setTimeout(function() { window.updateCanvasSize(); }, 50);
+//           }
+//       } else if (exportCallback !== null) {
+//           exportCallback(svg.node().outerHTML);
+//       }
+//     }
+//     d3.select("#d3-celestial-svg").remove();
+//   });
+
+// }
 function exportSVG(fname) {
-        console.warn("exportSVG");
   var doc = d3.select("body").append("div").attr("id", "d3-celestial-svg").attr("style", "display: none"),
-      svg = d3.select("#d3-celestial-svg").append("svg"), //.attr("style", "display: none"),
+      svg = d3.select("#d3-celestial-svg").append("svg"),
       m = Celestial.metrics(),
       cfg = settings.set(),
       path = cfg.datapath,
@@ -4698,20 +5774,19 @@ function exportSVG(fname) {
       rotation = getAngles(cfg.center),
       center = [-rotation[0], -rotation[1]],
       scale0 = proj.scale * m.width/1024,
-      // --- JAVÍTÁS: Átvesszük a látható térkép eltolását ---
-      // Ha létezik a mapProjection (a képernyőn lévő térkép), elkérjük a translate értéket.
-      // Ha nem, akkor maradunk a középnél.
+      
+      // JAVÍTÁS: Átvesszük a látható térkép eltolását
       trans = (typeof mapProjection !== 'undefined' && mapProjection) 
               ? mapProjection.translate() 
               : [m.width/2, m.height/2],
 
-      // Itt a 'trans' változót használjuk a fix [m.width/2, m.height/2] helyett:
-      // projection = Celestial.projection(cfg.projection).rotate(rotation).translate([m.width/2, m.height/2]).scale([m.scale]),
       projection = Celestial.projection(cfg.projection).rotate(rotation).translate(trans).scale([m.scale]),
       adapt = cfg.adaptable ? Math.sqrt(m.scale/scale0) : 1,
       culture = (cfg.culture !== "" && cfg.culture !== "iau") ? cfg.culture : "",
       circle, id;
-      console.log("svg", svg);
+
+  // --- SKÁLA SZÁMÍTÁSA EXPORTÁLÁSHOZ ---
+  var exportScaleRatio = m.width / REFERENCE_WIDTH;
 
   svg.selectAll("*").remove();
 
@@ -4723,7 +5798,6 @@ function exportSVG(fname) {
   circle = d3.geo.circle().angle([179.95]).origin(center);
 
   svg.attr("width", m.width).attr("height", m.height);
-  // .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
 
   var groupNames = ['background', 'milkyWay', 'milkyWayBg', 'gridLines', 'constBoundaries', 
                     'planesequatorial', 'planesecliptic', 'planesgalactic', 'planessupergalactic',
@@ -4732,15 +5806,146 @@ function exportSVG(fname) {
                 groups = {}, styles = {};
 
   for (var i=0; i<groupNames.length; i++) {
-     // inkscape:groupmode="layer", inkscape:label="Ebene 1" 
     groups[groupNames[i]] = svg.append('g').attr({"id": groupNames[i], ":inkscape:groupmode": "layer", ":inkscape:label": groupNames[i]});
     styles[groupNames[i]] = {};
   }
 
-  var graticule = d3.geo.graticule().minorStep([15,10]);
-  
-  var map = d3.geo.path().projection(projection);
+  // --- HELPER FÜGGVÉNYEK AZ EXPORT-ON BELÜL ---
 
+  // Font méretező segéd az export-hoz (EZ HIÁNYZOTT!)
+  function scaleExportFont(fontStr) {
+      if (!fontStr) return null;
+      return fontStr.replace(/(\d+(\.\d+)?)px/, function(match, num) {
+          var newSize = Math.max(parseFloat(num) * exportScaleRatio, 5); 
+          return newSize + "px"; 
+      });
+  }
+
+  function svgStyle(s) {
+    var res = {};
+    res.fill = s.fill || "none";
+    res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+    res.stroke = s.stroke || "none";
+    // Skálázott vastagság
+    res["stroke-width"] = s.width !== null ? s.width * exportScaleRatio : 0;
+    res["stroke-opacity"] = s.opacity !== null ? s.opacity : 1;  
+    if (has(s, "dash")) res["stroke-dasharray"] = s.dash.map(d => d * exportScaleRatio).join(" ");
+    else res["stroke-dasharray"] = "none";
+    
+    // JAVÍTÁS: Itt hívjuk a scaleExportFont-ot!
+    res.font = scaleExportFont(s.font); 
+    return res;
+  }
+
+  function svgTextStyle(s) {
+    var res = {};
+    res.stroke = "none";
+    res.fill = s.fill || "none";
+    res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
+    res["text-anchor"] = svgAlign(s.align);
+    
+    // JAVÍTÁS: Itt is!
+    res.font = scaleExportFont(s.font); 
+    return res;
+  }
+
+  function svgStyleA(rank, s) {
+    var res = {};
+    rank = rank || 1;
+    res.fill = isArray(s.fill) ? s.fill[rank-1] : null;
+    res["fill-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+    res.stroke = isArray(s.stroke) ? s.stroke[rank-1] : null;
+    
+    var w = isArray(s.width) ? s.width[rank-1] : null;
+    res["stroke-width"] = w ? w * exportScaleRatio : null;
+    
+    res["stroke-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
+    res["text-anchor"] = svgAlign(s.align);
+    
+    // JAVÍTÁS: És itt is!
+    res.font = scaleExportFont(isArray(s.font) ? s.font[rank-1] : null); 
+    return res;
+  }
+
+  function starSize(mag) {
+    if (mag === null) return 0.1 * exportScaleRatio; 
+    var d = cfg.stars.size * exportScaleRatio * adapt * Math.exp(cfg.stars.exponent * (mag + 2));
+    return Math.max(d, 0.1 * exportScaleRatio);
+  }
+  // --- EZT A FÜGGVÉNYT ILLESZD BE IDE ALÁ: ---
+  function starColor(bv) {
+    if (!cfg.stars.colors || isNaN(bv)) return ""; 
+    return Math.round(bv*10).toString();
+  }
+
+  function planetSize(m) {
+    var mag = m || 2; 
+    var r = 4 * exportScaleRatio * adapt * Math.exp(-0.05 * (mag+2));
+    return Math.max(r, 2 * exportScaleRatio);
+  }
+
+  function dsoSize(mag, dim) {
+    var scaledBase = cfg.dsos.size * exportScaleRatio;
+    if (!mag || mag === 999) return Math.pow(parseInt(dim) * scaledBase * adapt / 7, 0.5); 
+    return Math.pow(2 * scaledBase * adapt - mag, cfg.dsos.exponent);
+  }
+
+  function dsoSymbol(p) {
+    var size = dsoSize(p.mag, p.dim) || 9 * exportScaleRatio,
+        type = dsoShape(p.type);
+    if (d3.svg.symbolTypes.indexOf(type) !== -1) {
+      return d3.svg.symbol().type(type).size(size)();
+    } else {
+      return d3.svg.customSymbol().type(type).size(size)();
+    }
+  }
+
+// --- HIÁNYZÓ SEGÉDFÜGGVÉNYEK (exportSVG-n belül) ---
+
+  function svgAlign(s) {
+    if (!s) return "start";
+    if (s === "center") return "middle"; 
+    if (s === "right") return "end";
+    return "start";
+  }
+
+  function createEntry(o) {
+    var res = {type: "Feature", "id":o.id, properties: {}, geometry:{}};
+    res.properties.name = o[cfg.planets.namesType];
+    if (cfg.planets.symbolType === "symbol" || cfg.planets.symbolType === "letter")
+      res.properties.symbol = cfg.planets.symbols[res.id][cfg.planets.symbolType];
+    res.properties.mag = o.ephemeris.mag || 10;
+    if (res.id === "lun") {
+      res.properties.age = o.ephemeris.age;
+      res.properties.phase = o.ephemeris.phase;
+    }
+    res.geometry.type = "Point";
+    res.geometry.coordinates = o.ephemeris.pos;
+    return res;
+  }
+
+  function createStyles() {
+    var res = "";
+    for (var key in styles) {
+      if (!has(styles, key)) continue;
+      res += " ." + key + stringifyStyle(styles[key]);
+    }
+    return "/*\u003c![CDATA[*/\n" + res + "\n/*]]\u003e*/";
+  }
+
+  function stringifyStyle(s) {
+    var res = " {";
+    for (var key in s) {
+      if (!has(s, key)) continue;
+      res += key + ":" + s[key] + "; ";
+    }
+    return res + "} ";
+  }
+  
+  // --- INNENTŐL A FÜGGVÉNY MARADÉK RÉSZE VÁLTOZATLAN ---
+
+  var graticule = d3.geo.graticule().minorStep([15,10]);
+  var map = d3.geo.path().projection(projection);
   var q = d3.queue(2);
   
   groups.background.append("path").datum(circle).attr("class", "background").attr("d", map); 
@@ -4839,7 +6044,7 @@ function exportSVG(fname) {
         styles.constBoundaries = svgStyle(cfg.constellations.boundStyle);
         styles.constBoundariesSel = {"fill": "none",
             "stroke": cfg.constellations.boundStyle.stroke, 
-            "stroke-width": cfg.constellations.boundStyle.width * 1.5,
+            "stroke-width": cfg.constellations.boundStyle.width * 1.5 * exportScaleRatio,
             "stroke-opacity": 1,
             "stroke-dasharray": "none"};
         
@@ -4861,18 +6066,18 @@ function exportSVG(fname) {
          .attr("class", function(d) { return "constLines" + d.properties.rank; })
          .attr("d", map);
 
-        var dasharray = has(cfg.constellations.lineStyle, "dash") ? cfg.constellations.lineStyle.dash.join(" ") : "none";
+        var dasharray = has(cfg.constellations.lineStyle, "dash") ? cfg.constellations.lineStyle.dash.map(d => d * exportScaleRatio).join(" ") : "none";
          
         styles.constLines1 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[0],
-                              "stroke-width": cfg.constellations.lineStyle.width[0],
+                              "stroke-width": cfg.constellations.lineStyle.width[0] * exportScaleRatio,
                               "stroke-opacity": cfg.constellations.lineStyle.opacity[0],
                               "stroke-dasharray": dasharray};
         styles.constLines2 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[1],
-                              "stroke-width": cfg.constellations.lineStyle.width[1],
+                              "stroke-width": cfg.constellations.lineStyle.width[1] * exportScaleRatio,
                               "stroke-opacity": cfg.constellations.lineStyle.opacity[1],
                               "stroke-dasharray": dasharray};
         styles.constLines3 = {"fill": "none", "stroke": cfg.constellations.lineStyle.stroke[2],
-                              "stroke-width": cfg.constellations.lineStyle.width[2],
+                              "stroke-width": cfg.constellations.lineStyle.width[2] * exportScaleRatio,
                               "stroke-opacity": cfg.constellations.lineStyle.opacity[2],
                               "stroke-dasharray": dasharray};
         callback(null);
@@ -4889,7 +6094,7 @@ function exportSVG(fname) {
      .attr("class", "mapBorder")
      .attr("d", map);
      
-    styles.mapBorder = {"fill": "none", "stroke": cfg.background.stroke, "stroke-width": cfg.background.width, "stroke-opacity": 1, "stroke-dasharray": "none" };
+    styles.mapBorder = {"fill": "none", "stroke": cfg.background.stroke, "stroke-width": cfg.background.width * exportScaleRatio, "stroke-opacity": 1, "stroke-dasharray": "none" };
 
     projection.rotate(rot);
     callback(null);
@@ -4913,15 +6118,15 @@ function exportSVG(fname) {
  
         styles.constNames1 = {"fill": cfg.constellations.nameStyle.fill[0],
                               "fill-opacity": cfg.constellations.nameStyle.opacity[0],
-                              "font": cfg.constellations.nameStyle.font[0],
+                              "font": scaleExportFont(cfg.constellations.nameStyle.font[0]),
                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
         styles.constNames2 = {"fill": cfg.constellations.nameStyle.fill[1],
                               "fill-opacity": cfg.constellations.nameStyle.opacity[1],
-                              "font": cfg.constellations.nameStyle.font[1],
+                              "font": scaleExportFont(cfg.constellations.nameStyle.font[1]),
                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
         styles.constNames3 = {"fill": cfg.constellations.nameStyle.fill[2],
                               "fill-opacity": cfg.constellations.nameStyle.opacity[2],
-                              "font": cfg.constellations.nameStyle.font[2],
+                              "font": scaleExportFont(cfg.constellations.nameStyle.font[2]),
                               "text-anchor": svgAlign(cfg.constellations.nameStyle.align)};
         callback(null);
       });
@@ -5008,7 +6213,7 @@ function exportSVG(fname) {
           if (has(cfg.dsos.symbols[key], "stroke")) {
             styles[id].fill = "none"; 
             styles[id].stroke = cfg.dsos.colors ? cfg.dsos.symbols[key].stroke : cfg.dsos.style.stroke;
-            styles[id]["stroke-width"] = cfg.dsos.colors ? cfg.dsos.symbols[key].width : cfg.dsos.style.width;
+            styles[id]["stroke-width"] = (cfg.dsos.colors ? cfg.dsos.symbols[key].width : cfg.dsos.style.width) * exportScaleRatio;
           } else {
             styles[id].stroke = "none"; 
             styles[id].fill = cfg.dsos.colors ? cfg.dsos.symbols[key].fill : cfg.dsos.style.fill;
@@ -5030,7 +6235,7 @@ function exportSVG(fname) {
             .attr({dy: "-.5em", dx: ".35em"});
                
           styles.dsoNames = {"fill-opacity": cfg.dsos.style.opacity,
-                    "font": cfg.dsos.nameStyle.font,
+                    "font": scaleExportFont(cfg.dsos.nameStyle.font),
                     "text-anchor": svgAlign(cfg.dsos.nameStyle.align)};
           
           for (key in cfg.dsos.symbols) {
@@ -5068,7 +6273,7 @@ function exportSVG(fname) {
          .enter().append("path")
          .attr("transform", function(d) { return point(d.geometry.coordinates); })
          .attr("d", function(d) { 
-           var r = (has(cfg.planets.symbols[d.id], "size")) ? (cfg.planets.symbols[d.id].size - 1) * adapt : null;
+           var r = (has(cfg.planets.symbols[d.id], "size")) ? (cfg.planets.symbols[d.id].size - 1) * adapt * exportScaleRatio : null;
            return planetSymbol(d.properties, r); 
          })
          .attr("class", function(d) { return "planets " + d.id; });
@@ -5092,7 +6297,7 @@ function exportSVG(fname) {
            .attr("class", function(d) { return "planets " + d.id; })
            .attr({dy: ".35em"});
         } else {
-          var rl = has(cfg.planets.symbols.lun, "size") ? (cfg.planets.symbols.lun.size - 1) * adapt : 11 * adapt; 
+          var rl = has(cfg.planets.symbols.lun, "size") ? (cfg.planets.symbols.lun.size - 1) * adapt * exportScaleRatio : 11 * adapt * exportScaleRatio; 
           groups.planets.selectAll(".dmoon")
            .data(jlun.features)
            .enter().append("path")
@@ -5161,7 +6366,7 @@ function exportSVG(fname) {
           groups.daylight.append("circle")
            .attr("cx", pt[0])
            .attr("cy", pt[1])
-           .attr("r", 5)
+           .attr("r", 5 * exportScaleRatio)
            .style("fill", "#fff");
         }
       }
@@ -5209,44 +6414,6 @@ function exportSVG(fname) {
     return what + sub + cult + ext;
   }
 
-  function svgStyle(s) {
-    var res = {};
-    res.fill = s.fill || "none";
-    res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
-    res.stroke = s.stroke || "none";
-    res["stroke-width"] = s.width !== null ? s.width : 0;
-    res["stroke-opacity"] = s.opacity !== null ? s.opacity : 1;  
-    if (has(s, "dash")) res["stroke-dasharray"] = s.dash.join(" ");
-    else res["stroke-dasharray"] = "none";
-    res.font = s.font || null;
-    return res;
-  }
-
-  function svgTextStyle(s) {
-    var res = {};
-    res.stroke = "none";
-    res.fill = s.fill || "none";
-    res["fill-opacity"] = s.opacity !== null ? s.opacity : 1;  
-    //res.textBaseline = s.baseline || "bottom";
-    res["text-anchor"] = svgAlign(s.align);
-    res.font = s.font || null;
-    return res;
-  }
-
-  function svgStyleA(rank, s) {
-    var res = {};
-    rank = rank || 1;
-    res.fill = isArray(s.fill) ? s.fill[rank-1] : null;
-    res["fill-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
-    res.stroke = isArray(s.stroke) ? s.stroke[rank-1] : null;
-    res["stroke-width"] = isArray(s.width) ? s.width[rank-1] : null;
-    res["stroke-opacity"] = isArray(s.opacity) ? s.opacity[rank-1] : 1;  
-    res["text-anchor"] = svgAlign(s.align);
-    res.font = isArray(s.font) ? s.font[rank-1] : null;
-    //res.textBaseline = s.baseline || "bottom";
-    return res;
-  }
-
   function svgSkyStyle(dist, pt) {
     var factor, color1, color2, color3,
         upper = 1.36, 
@@ -5285,8 +6452,6 @@ function exportSVG(fname) {
     return 0.9 * (1 - ((Math.pow(Math.E, t*a) - 1) / (Math.pow(Math.E, a) - 1)));
   }
   
-
-
   function svgAlign(s) {
     if (!s) return "start";
     if (s === "center") return "middle"; 
@@ -5294,166 +6459,7 @@ function exportSVG(fname) {
     return "start";
   }
 
-  function dsoSymbol(p) {
-    var size = dsoSize(p.mag, p.dim) || 9,
-        type = dsoShape(p.type);
-    if (d3.svg.symbolTypes.indexOf(type) !== -1) {
-      return d3.svg.symbol().type(type).size(size)();
-    } else {
-      return d3.svg.customSymbol().type(type).size(size)();
-    }
-  }
-
-  function dsoShape(type) {
-    if (!type || !has(cfg.dsos.symbols, type)) return "circle"; 
-    else return cfg.dsos.symbols[type].shape; 
-  }
-
-  function dsoSize(mag, dim) {
-    if (!mag || mag === 999) return Math.pow(parseInt(dim) * cfg.dsos.size * adapt / 7, 0.5); 
-    return Math.pow(2 * cfg.dsos.size * adapt - mag, cfg.dsos.exponent);
-  }
- 
-  function dsoName(d) {
-    //return p[cfg.dsos.namesType]; 
-    var lang = cfg.dsos.namesType, id = d.id;
-    if (lang === "desig" || !has(dsonames, id)) return d.properties.desig;
-    return has(dsonames[id], lang) ? dsonames[id][lang] : d.properties.desig; 
-  }
-
-  function dsoColor(p) {
-    if (cfg.dsos.colors === true) return svgStyle(cfg.dsos.symbols[p.type]);
-    return svgStyle(cfg.dsos.style);
-  }
- 
-  function starDesignation(id) {
-    if (!has(starnames, id)) return "";
-    return starnames[id][cfg.stars.designationType]; 
-  }
-
-  function starPropername(id) {
-    var lang = cfg.stars.propernameType;
-    if (!has(starnames, id)) return "";
-    return has(starnames[id], lang) ? starnames[id][lang] : starnames[id].name; 
-  }
-
-  function starSize(mag) {
-    if (mag === null) return 0.1; 
-    var d = cfg.stars.size * adapt * Math.exp(cfg.stars.exponent * (mag + 2));
-    return Math.max(d, 0.1);
-  }
-  
-  function starColor(bv) {
-    if (!cfg.stars.colors || isNaN(bv)) return ""; 
-    return Math.round(bv*10).toString();
-  }
-  
-  function constName(d) { 
-    return d.properties[cfg.constellations.namesType]; 
-  }
-
-  function moonSymbol(p, r) { 
-    var size = r ? r*r : 121;
-    return d3.svg.customSymbol().type("crescent").size(size).ratio(p.age)();
-  }
-
-  function planetSymbol(p, r) { 
-    var size = r ? r*r : planetSize(p.mag);
-    return d3.svg.symbol().type("circle").size(size)();
-  }
-
-  function planetFont(s) {
-    var size = s.replace(/(^\D*)(\d+)(\D.+$)/i,'$2');
-    size = Math.round(adapt * size);
-    return s.replace(/(^\D*)(\d+)(\D.+$)/i,'$1' + size + '$3');
-  }
-
-  function planetSize(m) {
-    var mag = m || 2; 
-    var r = 4 * adapt * Math.exp(-0.05 * (mag+2));
-    return Math.max(r, 2);
-  }
-
-  function createEntry(o) {
-    var res = {type: "Feature", "id":o.id, properties: {}, geometry:{}};
-    res.properties.name = o[cfg.planets.namesType];
-    if (cfg.planets.symbolType === "symbol" || cfg.planets.symbolType === "letter")
-      res.properties.symbol = cfg.planets.symbols[res.id][cfg.planets.symbolType];
-    res.properties.mag = o.ephemeris.mag || 10;
-    if (res.id === "lun") {
-      res.properties.age = o.ephemeris.age;
-      res.properties.phase = o.ephemeris.phase;
-    }
-    res.geometry.type = "Point";
-    res.geometry.coordinates = o.ephemeris.pos;
-    return res;
-  }
-
-  function createStyles() {
-    var res = "";
-    for (var key in styles) {
-      if (!has(styles, key)) continue;
-      res += " ." + key + stringifyStyle(styles[key]);
-    }
-    return "/*\u003c![CDATA[*/\n" + res + "\n/*]]\u003e*/";
-  }
-
-  function stringifyStyle(s) {
-    var res = " {";
-    for (var key in s) {
-      if (!has(s, key)) continue;
-      res += key + ":" + s[key] + "; ";
-    }
-    return res + "} ";
-  }
-
-  // q.await(function(error) {
-  //   if (error) throw error;
-  //   var svg = d3.select("#d3-celestial-svg svg")
-  //     .attr("title", "D3-Celestial")
-  //     .attr("version", 1.1)
-  //     .attr("encoding", "UTF-8")
-  //     .attr("xmlns", "http://www.w3.org/2000/svg")
-  //     .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
-  //     .attr("xmlns:sodipodi", "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd")
-  //     .attr("xmlns:inkscape", "http://www.inkscape.org/namespaces/inkscape")
-  //     .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
-
-  //   defs.append("style")
-  //    .attr("type", "text\/css")
-  //    .text(createStyles());
-  //   /*defs.append(":sodipodi:namedview")
-  //    .attr(":inkscape:window-width", m.width+200)
-  //    .attr(":inkscape:window-height", m.height)
-  //    .attr(":inkscape:window-maximized", "1");*/
-  //   if (fname) {
-  //     var blob = new Blob([svg.node().outerHTML], {type:"image/svg+xml;charset=utf-8"});
-    
-  //     var a = d3.select("body").append("a").node(); 
-  //     a.download = fname || "d3-celestial.svg";
-  //     a.rel = "noopener";
-  //     a.href = URL.createObjectURL(blob);
-  //     a.click();
-  //     d3.select(a).remove();
-  //   } else if (exportCallback !== null) {
-  //     exportCallback(svg.node().outerHTML);
-  //   }
-  //   d3.select("#d3-celestial-svg").remove();
-  // });
-  // Ezt másold be a régi q.await(...) helyére az exportSVG függvény végén:
-  // q.await(function(error) {
-  //   if (error) throw error;
-  //   var svg = d3.select("#d3-celestial-svg svg")
-  //     .attr("title", "D3-Celestial")
-  //     .attr("version", 1.1)
-  //     .attr("encoding", "UTF-8")
-  //     .attr("xmlns", "http://www.w3.org/2000/svg")
-  //     .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
-  //     .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
-
-  //   defs.append("style")
-  //    .attr("type", "text\/css")
-  //    .text(createStyles());
+  // --- Q.AWAIT ---
   q.await(function(error) {
     if (error) throw error;
     var svg = d3.select("#d3-celestial-svg svg")
@@ -5462,10 +6468,8 @@ function exportSVG(fname) {
       .attr("encoding", "UTF-8")
       .attr("xmlns", "http://www.w3.org/2000/svg")
       .attr("xmlns:xlink", "http://www.w3.org/1999/xlink")
-      // --- EZ A KÉT SOR HIÁNYZOTT: ---
       .attr("xmlns:inkscape", "http://www.inkscape.org/namespaces/inkscape")
       .attr("xmlns:sodipodi", "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd")
-      // --------------------------------
       .attr("viewBox", " 0 0 " + (m.width) + " " + (m.height));
 
     defs.append("style")
@@ -5504,9 +6508,7 @@ function exportSVG(fname) {
     }
     d3.select("#d3-celestial-svg").remove();
   });
-
 }
-
 
 // function copySVG(fname) {
 //   var doc = d3.select("body").append("div").attr("id", "d3-celestial-svg").attr("style", "display: none"),

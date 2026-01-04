@@ -3749,6 +3749,15 @@ function switchToMainEditor() { $("#tabs").tabs("option", "active", 0); }
 //         container.appendChild(card);
 //     }
 // }
+
+// ÚJ: Optimális méret meghatározása
+// Mindig a referencia méretet (1440) adjuk vissza a Tervezőnek,
+// így a csillagok és vonalak mérete "PC-s" lesz (tehát arányos), 
+// amit aztán a böngésző kicsinyít le a mobil képernyőjére.
+window.getOptimalMapSize = function() {
+    return 1440; 
+};
+
 // --- JAVÍTOTT: Csillagtérkép átmásolása a Tervezőbe (Képként) ---
 // ÁTNEVEZVE: updateDesignerPreview-ra, hogy ne akadjon össze a celestial.js copySVG-jével!
 window.updateDesignerPreview = function() {
@@ -3763,14 +3772,31 @@ window.updateDesignerPreview = function() {
         return;
     }
     
-    // Ellenőrizzük, hogy van-e mérete a canvasnak
-    if (sourceCanvas.width === 0 || sourceCanvas.height === 0) {
-        console.warn("Hiba: A forrás canvas mérete 0! Megpróbáljuk újraméretezni...");
-        // Ha van global getOptimalMapSize, használjuk
-        if(typeof getOptimalMapSize === 'function' && typeof Celestial !== 'undefined') {
-             Celestial.resize({width: getOptimalMapSize()});
-        }
+    // // Ellenőrizzük, hogy van-e mérete a canvasnak
+    // if (sourceCanvas.width === 0 || sourceCanvas.height === 0) {
+    //     console.warn("Hiba: A forrás canvas mérete 0! Megpróbáljuk újraméretezni...");
+    //     // Ha van global getOptimalMapSize, használjuk
+    //     if(typeof getOptimalMapSize === 'function' && typeof Celestial !== 'undefined') {
+    //          Celestial.resize({width: getOptimalMapSize()});
+    //     }
+    // }
+    // --- MÓDOSÍTÁS KEZD ---
+    // A régi "if (sourceCanvas.width === 0 ...)" HELYETT ez legyen:
+    
+    // Ellenőrzés: Ha a forrás canvas nem a referencia méret (1440px), kényszerítjük!
+    // Ez biztosítja, hogy mobilon is a "PC-s" arányokkal generálódjon le a kép.
+    if (sourceCanvas.width !== 1440) {
+         console.log("Canvas mérete (" + sourceCanvas.width + ") eltér a referenciától. Átméretezés 1440-re...");
+         if(typeof Celestial !== 'undefined') {
+             Celestial.resize({width: 1440});
+             
+             // Fontos: Várni kell egy picit, hogy az újrarajzolás megtörténjen,
+             // ezért visszahívjuk önmagunkat 100ms múlva.
+             setTimeout(window.updateDesignerPreview, 100);
+             return; // Megállunk, majd a timeout folytatja
+         }
     }
+    // --- MÓDOSÍTÁS VÉGE ---
 
     // 2. Cél réteg keresése a Tervezőben
     const targetLayer = document.getElementById('celestial-map-layer');
@@ -7434,7 +7460,9 @@ $(document).ready(function() {
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 2]);
                     console.log("(mapHeight / 3) * 6", (mapHeight / 3) * 6);
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 8.5]);
-                    mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1]]);
+                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();

@@ -27,16 +27,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Allura&family=Cinzel:wght@400..900&family=Cormorant:ital,wght@0,300..700;1,300..700&family=Dancing+Script:wght@400..700&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Great+Vibes&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Maven+Pro:wght@400..900&family=MedievalSharp&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Parisienne&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Quicksand:wght@300..700&family=Raleway:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rye&family=Sacramento&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&family=Special+Elite&family=Tangerine:wght@400;700&family=Uncial+Antiqua&display=swap" rel="stylesheet">
-    <style type="text/css">
+<style type="text/css">
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Space+Grotesk:wght@300;400;500;600&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
       
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    /* --- ALAP BEÁLLÍTÁSOK --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
       --primary-bg: #0a0e27;
@@ -61,1498 +58,483 @@
     }
 
     body::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 50%, rgba(74, 158, 255, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 80% 50%, rgba(178, 74, 255, 0.05) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(74, 158, 255, 0.05) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 50%, rgba(178, 74, 255, 0.05) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
     }
     
+    /* --- FŐ LAYOUT --- */
     .layout {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-      position: relative;
-      z-index: 1;
+      display: flex; flexDirection: column; height: 100vh; width: 100vw;
+      position: relative; z-index: 1;
     }
     
     /* Desktop layout */
     @media (min-width: 769px) {
-      .layout {
-        flex-direction: row;
-      }
-      
-      /*.mapwrap {
-        flex: 0 0 70%;
-        position: relative;
-        overflow: hidden;
-        border-right: 2px solid var(--border-color);
-        box-shadow: inset -10px 0 30px rgba(0, 0, 0, 0.3);
-      }*/
+      .layout { flex-direction: row; }
       .mapwrap {
-        flex: 0 0 70%;
-        position: relative;
-        overflow: hidden;
+        flex: 0 0 70%; position: relative; overflow: hidden;
         border-right: 2px solid var(--border-color);
         box-shadow: inset -10px 0 30px rgba(0, 0, 0, 0.3);
-        
-        /* --- ÚJ SOROK A KÖZÉPRE IGAZÍTÁSHOZ --- */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        /* ------------------------------------ */
+        display: flex; justify-content: center; align-items: center;
       }
       .settingswrap {
-        flex: 0 0 30%;
-        background: var(--secondary-bg);
-        overflow-y: auto;
-        padding: 24px;
-        backdrop-filter: blur(10px);
+        flex: 0 0 30%; background: var(--secondary-bg);
+        overflow-y: auto; padding: 24px; backdrop-filter: blur(10px);
       }
     }
     
     /* Mobile layout */
     @media (max-width: 768px) {
+      .layout { flex-direction: column; }
       .mapwrap {
-/*        height: 55vh;*/
-        position: relative;
-        overflow: hidden;
+        flex: 1; position: relative; overflow: hidden;
         border-bottom: 2px solid var(--border-color);
-        align-content: center;
-        justify-content: center;
-        align-items: center;
-        display: flex;
+        display: flex; justify-content: center; align-items: center;
       }
-      
       .settingswrap {
-        height: 45vh;
-        background: var(--secondary-bg);
-        overflow-y: auto;
-        padding: 16px;
+        height: 45vh; background: var(--secondary-bg);
+        overflow-y: auto; padding: 16px;
       }
     }
-    
-    /*.map {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }*/
 
-    .map {
-      /* EREDETI: width: 100%; height: 100%; */
-      
-      /* ÚJ BEÁLLÍTÁS: */
-      width: auto;
-      height: auto;
-      
-      position: relative;
-    }
-
+    .map { width: auto; height: auto; position: relative; }
     .map::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-/*      background: radial-gradient(circle at center, transparent 40%, rgba(10, 14, 39, 0.3) 100%);*/
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
     }
     
-    /* Custom Scrollbar */
-    .settingswrap::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .settingswrap::-webkit-scrollbar-track {
-      background: rgba(30, 40, 73, 0.3);
-      border-radius: 10px;
-    }
-
+    /* --- GÖRGETŐSÁV --- */
+    .settingswrap::-webkit-scrollbar { width: 8px; }
+    .settingswrap::-webkit-scrollbar-track { background: rgba(30, 40, 73, 0.3); border-radius: 10px; }
     .settingswrap::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
-      border-radius: 10px;
-      box-shadow: 0 0 10px var(--glow-blue);
+      border-radius: 10px; box-shadow: 0 0 10px var(--glow-blue);
     }
+    .settingswrap::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue)); }
 
-    .settingswrap::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue));
-    }
+    /* --- FÜLEK (TABS) - ITT A LÉNYEG --- */
+    /*#tabs, #tabs_r, #tabss { border: none; background: transparent; }
+    #tabs_r { height: 100%; display: flex; flex-direction: column; }*/
 
-    /* Tabs */
-    #tabs {
-      border: none;
-      background: transparent;
-    }
-    /* Tabs_r */
-/*    #tabs_r {
-      border: none;
-      background: transparent;
-    }*/
-    /* Fülek stílusa a jobb oldalon */
-    #tabs_r {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    /* Tabs */
-    #tabss {
-      border: none;
-      background: transparent;
-    }
-
-    #mobile_tabs {
+    /* Alap stílus a konténernek (mindkettőnek) */
+    /*#mobile_tabs, #mobile_tabs_r {
       display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0;
-      list-style: none;
+      gap: 8px; 
+      margin-bottom: 24px; 
+      padding: 6px;
+      list-style: none; 
       border: none;
       background: rgba(30, 40, 73, 0.3);
       border-radius: 16px;
+      backdrop-filter: blur(10px);
+      align-items: center;
+    }*/
+    /* --- FÜLEK (TABS) - VÉGLEGES JAVÍTÁS --- */
+    #tabs, #tabs_r, #tabss { border: none; background: transparent; }
+/*    #tabs_r { height: 100%; display: flex; flex-direction: column; }*/
+
+    /* Közös alapstílus (PC és Mobil is) */
+    #mobile_tabs, #mobile_tabs_r {
+      display: flex;
+      gap: 8px; 
+/*      margin-bottom: 24px; */
       padding: 6px;
+      list-style: none !important; /* jQuery UI reset */
+      border: none;
+      background: rgba(30, 40, 73, 0.3);
+      border-radius: 16px;
       backdrop-filter: blur(10px);
       align-items: center;
     }
 
-    #mobile_tabs li {
-      flex: 1;
-      margin: 0;
-    }
-
-    #mobile_tabs li a {
-      display: block;
-      padding: 12px 8px;
-      text-align: center;
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    #mobile_tabs li a::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    #mobile_tabs li a:hover::before {
-      left: 100%;
-    }
-
-    #mobile_tabs li.ui-tabs-active a {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
-      transform: translateY(-2px);
-    }
-
-
-    #mobile_tabs_r {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0;
-      list-style: none;
-      border: none;
-      background: rgba(30, 40, 73, 0.3);
-      border-radius: 16px;
-      padding: 6px;
-      backdrop-filter: blur(10px);
-      align-items: center;
-    }
-
-    #mobile_tabs_r li {
-      flex: 1;
-      margin: 0;
-    }
-
-    #mobile_tabs_r li a {
-      display: block;
-      padding: 12px 8px;
-      text-align: center;
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    #mobile_tabs_r li a::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    #mobile_tabs_r li a:hover::before {
-      left: 100%;
-    }
-
-    #mobile_tabs_r li.ui-tabs-active a {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
-      transform: translateY(-2px);
-    }
-
-/*    #mobile_tabs_r {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0;
-      list-style: none;
-      border: none;
-      background: rgba(30, 40, 73, 0.3);
-      border-radius: 16px;
-      padding: 6px;
-      backdrop-filter: blur(10px);
-      align-items: center;
-    }*/
-/*    #mobile_tabs_r {
-        background: #2c3e50; / * Sötét fejléc * /
-        padding: 10px;
-        border-radius: 0;
-        margin: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-    }*/
-/*    #mobile_tabs_r {
-        display: flex; 
-        gap: 5px; 
-        padding: 10px; 
-        margin: 0;
-        list-style: none; 
-        background: rgba(0,0,0,0.2); / *  Sötét háttér * /
-        border-bottom: 1px solid var(--border-color); 
-        flex-shrink: 0; 
-        flex-wrap: wrap;
-    }*/
-/*    #mobile_tabs_r li {
-      flex: 1;
-      margin: 0;
-    }*/
-
-/*    #mobile_tabs_r li a {
-      display: block;
-      padding: 12px 8px;
-      text-align: center;
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }*/
-/*    #mobile_tabs_r li a {
-        color: #ddd;
-        background: rgba(255,255,255,0.1);
-        padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-    }*/
-    /*#mobile_tabs_r li { flex: 1; min-width: fit-content; text-align: center; }
-    
-    #mobile_tabs_r li a {
-        display: block; 
-        padding: 10px 12px; 
-        text-decoration: none; 
-        color: var(--text-secondary); / * Szürke szöveg * /
-        font-size: 12px; 
-        font-weight: 500; 
-        border-radius: 6px; 
-        transition: all 0.2s; 
-        white-space: nowrap;
-        background: rgba(255,255,255,0.05); / * Halvány áttetsző * /
-    }
-
-    #mobile_tabs_r li a::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    #mobile_tabs_r li a:hover::before {
-      left: 100%;
-    }*/
-
-/*    #mobile_tabs_r li.ui-tabs-active a {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
-      transform: translateY(-2px);
-    }*/
-    /*#mobile_tabs_r li.ui-tabs-active a {
-        background: var(--accent-blue);
-        color: white;
-        font-weight: bold;
-    }*/
-/*#mobile_tabs_r li.ui-tabs-active a {
-        background: var(--accent-blue); / * Kék aktív állapot * /
-        color: white; 
-        font-weight: bold;
-        box-shadow: 0 0 10px var(--glow-blue);
-    }*/
-
-    #mobile_tabss {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0;
-      list-style: none;
-      border: none;
-      background: rgba(30, 40, 73, 0.3);
-      border-radius: 16px;
-      padding: 6px;
-      backdrop-filter: blur(10px);
-    }
-
-    #mobile_tabss li {
-      flex: 1;
-      margin: 0;
-    }
-
-    #mobile_tabss li a {
-      display: block;
-      padding: 12px 8px;
-      text-align: center;
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    #mobile_tabss li a::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    #mobile_tabss li a:hover::before {
-      left: 100%;
-    }
-
-    #mobile_tabss li.ui-tabs-active a {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
-      transform: translateY(-2px);
-    }
-
-
-
-    #mobile_tabsss {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 0;
-      list-style: none;
-      border: none;
-      background: rgba(30, 40, 73, 0.3);
-      border-radius: 16px;
-      padding: 6px;
-      backdrop-filter: blur(10px);
-    }
-
-    #mobile_tabsss button {
-      flex: 1;
-      margin: 0;
-    }
-
-    #mobile_tabsss button {
-      display: block;
-      padding: 12px 8px;
-      text-align: center;
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 13px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      background: none; 
-      border: none; 
-      color: var(--text-secondary);
-      cursor: pointer;
-    }
-    
-    #mobile_tabsss button:hover {
-        color: var(--text-primary);
-    }
-
-    /* Csak az aktív gomb legyen kiemelt (ha van ilyen) */
-    #mobile_tabsss button.active-button {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
-      transform: translateY(-2px);
-    }
-
-/* Panel tartalmak */
-    .ui-tabs-panel {
-        padding: 15px !important;
-        overflow-y: auto;
-        flex: 1;
-    }
-    /*.ui-tabs .ui-tabs-panel {
-      padding: 0;
-      border: none;
-      background: transparent;
-      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }*/
-    .ui-tabs {
-      padding: 0;
-      border: none;
-      background: transparent;
-      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    h2 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 16px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      position: relative;
-      padding-left: 12px;
-    }
-
-    h2::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 70%;
-      background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
-      border-radius: 2px;
-      box-shadow: 0 0 10px var(--glow-blue);
-    }
-
-    h3.small {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--accent-cyan);
-      margin: 20px 0 12px 0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Section styling */
-    .section {
-      background: rgba(30, 40, 73, 0.2);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(5px);
-      transition: all 0.3s ease;
-    }
-
-    .section:hover {
-      border-color: var(--accent-blue);
-      box-shadow: 0 4px 20px rgba(74, 158, 255, 0.1);
-      transform: translateY(-2px);
-    }
-
-    /* Collapsible sections */
-    .collapsible-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
+    /* Gombok alapstílusa */
+    #mobile_tabs li a, #mobile_tabs_r li a {
+      display: block; 
       padding: 12px 16px;
-      background: linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(178, 74, 255, 0.1));
-      border: 1px solid var(--border-color);
+      text-align: center; 
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-weight: 500; 
+      font-size: 13px;
       border-radius: 12px;
-      margin-bottom: 12px;
-      transition: all 0.3s ease;
-      user-select: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative; 
+      overflow: hidden;
+      white-space: nowrap; /* Hogy ne törjön a szöveg */
     }
 
+    /* Aktív állapot */
+    #mobile_tabs li.ui-tabs-active a, #mobile_tabs_r li.ui-tabs-active a {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white; 
+      font-weight: 600;
+      box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-purple);
+      transform: translateY(-2px);
+    }
+
+    /* --- PC SPECIFIKUS (Tördelhet 2 sorba) --- */
+    /*@media (min-width: 769px) {
+        #mobile_tabs, #mobile_tabs_r {
+            flex-wrap: wrap;       / * Engedjük a sortörést * /
+            justify-content: center;
+        }
+        #mobile_tabs li, #mobile_tabs_r li {
+            flex: 1 0 auto;        / * Kitölti a rendelkezésre álló helyet * /
+        }
+    }*/
+    /* --- PC NÉZET (769px-től) --- */
+    @media (min-width: 769px) {
+        #mobile_tabs, #mobile_tabs_r {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #mobile_tabs li, #mobile_tabs_r li {
+            flex: 1 0 auto;
+        }
+    }
+
+    /* --- MOBIL SPECIFIKUS (Görgethető, nem törik, nem megy össze) --- */
+    /*@media (max-width: 768px) {
+        #mobile_tabs, #mobile_tabs_r {
+            flex-wrap: nowrap;          / * Szigorúan egy sor * /
+            overflow-x: auto;           / * Görgetés engedélyezése * /
+            justify-content: flex-start; / * Balra igazítás * /
+            
+            / * Görgetősáv elrejtése, hogy szép legyen * /
+            scrollbar-width: none;      / * Firefox * /
+            -ms-overflow-style: none;   / * IE/Edge * /
+            padding-right: 15px;        / * Hely a végén * /
+        }
+        
+        #mobile_tabs::-webkit-scrollbar, 
+        #mobile_tabs_r::-webkit-scrollbar { 
+            display: none; / * Chrome/Safari * /
+        }
+
+        / * ITT A JAVÍTÁS: * /
+        #mobile_tabs li, #mobile_tabs_r li {
+            flex: 0 0 auto;  / * NE menjen össze (shrink: 0), vegye fel a tartalom méretét * /
+            width: auto;     / * Ne próbálja elosztani a helyet * /
+        }
+
+        #mobile_tabs li a, #mobile_tabs_r li a {
+            padding: 10px 14px; / * Fix padding, hogy kényelmes legyen * /
+            font-size: 13px;
+        }
+    }*/
+    /* --- MOBIL NÉZET (768px-ig) --- */
+    @media (max-width: 768px) {
+        #mobile_tabs, #mobile_tabs_r {
+            /* Flexbox kényszerítése */
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important; /* TILOS a sortörés */
+            
+            /* Görgetés beállítása */
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            
+            /* Igazítás */
+            justify-content: flex-start !important;
+            
+            /* Méretek */
+            width: 100% !important;
+            max-width: 100vw !important;
+            padding: 10px 5px !important;
+            gap: 8px !important;
+            
+            /* Görgetősáv elrejtése */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+
+        /* Webkit görgetősáv elrejtés */
+        #mobile_tabs::-webkit-scrollbar, 
+        #mobile_tabs_r::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        /* LISTA ELEMEK (A gombok tárolói) */
+        #mobile_tabs li, #mobile_tabs_r li {
+            /* A LEGFONTOSABB SOROK: */
+            flex: 0 0 auto !important; /* NE ZSUGORODJON! */
+            width: auto !important;    /* Akkora legyen, mint a tartalom */
+            
+            /* jQuery UI resetelése */
+            float: none !important;
+            margin: 0 !important;
+            display: block !important;
+        }
+
+        /* MAGA A GOMB (Link) */
+        #mobile_tabs li a, #mobile_tabs_r li a {
+            display: block !important;
+            
+            /* Méretezés kényszerítése */
+            padding: 12px 16px !important; 
+            font-size: 13px !important;
+            line-height: normal !important;
+            
+            /* Szövegkezelés */
+            white-space: nowrap !important; /* Szöveg nem törhet meg */
+            text-overflow: clip !important;
+            
+            /* Stílus */
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-radius: 12px;
+            background: transparent; /* Alapból átlátszó */
+        }
+        
+        /* Aktív gomb stílusa mobilon */
+        #mobile_tabs li.ui-tabs-active a, 
+        #mobile_tabs_r li.ui-tabs-active a {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 10px var(--glow-blue);
+        }
+    }
+
+    /* Panel tartalom */
+    .ui-tabs-panel {
+      padding: 5px !important; overflow-y: visible; flex: 1;
+      border: none; background: transparent;
+      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* --- CÍMSOROK ÉS EGYÉB --- */
+    h2 {
+      font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: 1px;
+      position: relative; padding-left: 12px;
+    }
+    h2::before {
+      content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 4px; height: 70%;
+      background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 2px; box-shadow: 0 0 10px var(--glow-blue);
+    }
+    h3.small {
+      font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 600;
+      color: var(--accent-cyan); margin: 20px 0 12px 0;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .collapsible-header {
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; padding: 12px 16px;
+      background: linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(178, 74, 255, 0.1));
+      border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 12px;
+      transition: all 0.3s ease; user-select: none;
+    }
+    /*.collapsible-header {
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; 
+      background: linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(178, 74, 255, 0.1));
+      border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 12px;
+      transition: all 0.3s ease; user-select: none;
+    }*/
     .collapsible-header:hover {
       background: linear-gradient(135deg, rgba(74, 158, 255, 0.2), rgba(178, 74, 255, 0.2));
       border-color: var(--accent-blue);
-      box-shadow: 0 0 20px var(--glow-blue);
     }
-
-    .collapsible-header h2 {
-      margin: 0;
-      font-size: 16px;
-      padding-left: 0;
-    }
-
-    .collapsible-header h2::before {
-      display: none;
-    }
-
-    .collapsible-icon {
-      font-size: 18px;
-      transition: transform 0.3s ease;
-      color: var(--accent-blue);
-
-      display: flex;
-      flex: 1 1 0%;
-          transform: rotate(0deg);
-      place-content: flex-end;
-
-    }
+    .collapsible-header h2 { margin: 0; font-size: 16px; padding-left: 0; }
+    .collapsible-header h2::before { display: none; }
     
-    .collapsible-header.collapsed .collapsible-icon-icon {
-      transform: rotate(-90deg);
+    .collapsible-icon {
+        font-size: 18px; color: var(--accent-blue);
+        display: flex; flex: 1 1 0%; place-content: flex-end;
     }
+    .collapsible-icon-icon { transition: transform 0.3s ease; display: inline-block; transform: rotate(0deg); }
+    .collapsible-header.collapsed .collapsible-icon-icon { transform: rotate(-90deg); }
 
     .collapsible-content {
-      max-height: 2000px;
-      overflow: hidden;
-      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-      opacity: 1;
+      max-height: 2000px; overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; opacity: 1;
     }
+    .collapsible-content.collapsed { max-height: 0; opacity: 0; }
 
-    .collapsible-content.collapsed {
-      max-height: 0;
-      opacity: 0;
+    .section {
+      background: rgba(30, 40, 73, 0.2); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(5px);
     }
+    /*.section {
+      background: rgba(30, 40, 73, 0.2); border: 1px solid var(--border-color);
+      border-radius: 12px;  margin-bottom: 16px; backdrop-filter: blur(5px);
+    }*/
 
-    .setting-group {
-      margin-bottom: 16px;
-      animation: slideIn 0.3s ease;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-    
+    .setting-group { margin-bottom: 16px; }
     label {
-      display: block;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      transition: color 0.3s ease;
+      display: block; color: var(--text-secondary); margin-bottom: 8px;
+      font-size: 13px; font-weight: 500;
     }
-
-    label:hover {
-      color: var(--text-primary);
-    }
-
-    /* Checkbox labels */
     label:has(input[type="checkbox"]) {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      padding: 10px;
-      border-radius: 8px;
-      transition: all 0.3s ease;
-      background: rgba(30, 40, 73, 0.2);
-      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      padding: 10px; border-radius: 8px; background: rgba(30, 40, 73, 0.2); margin-bottom: 8px;
     }
-
-    label:has(input[type="checkbox"]):hover {
-      background: rgba(74, 158, 255, 0.1);
-      transform: translateX(4px);
-    }
-
     input[type="checkbox"] {
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--accent-blue);
-      border-radius: 6px;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.3s ease;
-      flex-shrink: 0;
+      appearance: none; width: 20px; height: 20px;
+      border: 2px solid var(--accent-blue); border-radius: 6px; cursor: pointer;
+      position: relative; flex-shrink: 0;
     }
-
-    input[type="checkbox"]:hover {
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 10px var(--glow-blue);
-    }
-
     input[type="checkbox"]:checked {
       background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
       border-color: var(--accent-purple);
-      box-shadow: 0 0 15px var(--glow-purple);
     }
-
     input[type="checkbox"]:checked::after {
-      content: '✓';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 14px;
-      font-weight: bold;
-      animation: checkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      content: '✓'; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); color: white; font-size: 14px; font-weight: bold;
     }
 
-    @keyframes checkPop {
-      0% {
-        transform: translate(-50%, -50%) scale(0);
-      }
-      50% {
-        transform: translate(-50%, -50%) scale(1.2);
-      }
-      100% {
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
-    
-    /* INPUT, SELECT, TEXTAREA STYLES - ÁTVÉVE AZ ÖN FÁJLÁBÓL */
     input[type=text], select, input[type=number], textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background: rgba(17, 22, 51, 0.6);
-      color: var(--text-primary);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px;
-      transition: all 0.3s ease;
-      outline: none;
-      resize: vertical; /* Textarea engedélyezése */
+      width: 100%; padding: 12px 16px;
+      border-radius: 10px; border: 1px solid var(--border-color);
+      background: rgba(17, 22, 51, 0.6); color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none;
     }
-
-    input[type=text]:focus, select:focus, input[type=number]:focus, textarea:focus {
-      border-color: var(--accent-blue);
-      background: rgba(17, 22, 51, 0.9);
-      box-shadow: 0 0 20px var(--glow-blue), inset 0 0 10px rgba(74, 158, 255, 0.1);
-      transform: translateY(-2px);
-    }
-
-    input[type=text]:hover, select:hover, input[type=number]:hover, textarea:hover {
-      border-color: var(--accent-cyan);
-    }
-
     input[type=color] {
-      width: 100%;
-      height: 45px;
-      border-radius: 10px;
-      border: 2px solid var(--border-color);
-      background: rgba(17, 22, 51, 0.6);
-      cursor: pointer;
-      transition: all 0.3s ease;
+      width: 100%; height: 45px; border-radius: 10px;
+      border: 2px solid var(--border-color); background: rgba(17, 22, 51, 0.6); cursor: pointer;
     }
-
-    input[type=color]:hover {
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 20px var(--glow-blue);
-      transform: scale(1.02);
-    }
-
-    /* Range slider */
     input[type=range] {
-      width: 100%;
-      height: 6px;
-      border-radius: 10px;
+      width: 100%; height: 6px; border-radius: 10px;
       background: linear-gradient(90deg, var(--border-color), var(--accent-blue));
-      outline: none;
-      appearance: none;
+      outline: none; appearance: none;
     }
-
     input[type=range]::-webkit-slider-thumb {
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      cursor: pointer;
-      box-shadow: 0 0 10px var(--glow-blue);
-      transition: all 0.3s ease;
+      appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); cursor: pointer;
     }
 
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.3);
-      box-shadow: 0 0 20px var(--glow-purple);
+    /* Gombok - Egységes méret a Tervezőben is */
+    button, .add-btn {
+      padding: 12px 16px; 
+      border-radius: 10px; border: none;
+      font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.3s ease;
     }
+    .add-btn.primary { background: var(--accent-blue); color: white; }
+    .add-btn.secondary { background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .add-btn.accent { background: var(--accent-purple); color: white; }
+    
+    .export-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .export-btns button { 
+        background: var(--accent-blue); color: white; 
+        padding: 12px 0; /* Megnövelt magasság */
+        width: 100%; 
+    }
+    .grid-2-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
-    input[type=range]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      cursor: pointer;
-      border: none;
-      box-shadow: 0 0 10px var(--glow-blue);
-    }
-
-    /* Settings visibility animations */
-    .settings-panel {
-      animation: expandIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      transform-origin: top;
-    }
-
-    @keyframes expandIn {
-      from {
-        max-height: 0;
-        opacity: 0;
-        transform: scaleY(0.8);
-      }
-      to {
-        max-height: 1000px;
-        opacity: 1;
-        transform: scaleY(1);
-      }
-    }
-
-    /* Pulse animation for active elements */
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 0 10px var(--glow-blue);
-      }
-      50% {
-        box-shadow: 0 0 20px var(--glow-purple), 0 0 30px var(--glow-blue);
-      }
-    } 
-    .active-indicator { animation: pulse 2s infinite; } 
-    
-    /* Mobile responsive adjustments */
-    @media (max-width: 768px) {
-      h2 { font-size: 16px; } 
-      .section { padding: 12px; } 
-      #mobile_tabs li a { font-size: 11px; padding: 10px 6px; } 
-      #mobile_tabs_r li a { font-size: 11px; padding: 10px 6px; } 
-      #mobile_tabss li a { font-size: 11px; padding: 10px 6px; } 
-      #mobile_tabsss li a { font-size: 11px; padding: 10px 6px; } 
-      input[type=text], select, input[type=number] { padding: 10px 12px; font-size: 13px; } 
-    } 
-    
-    /* Loading animation */
-    @keyframes shimmer { 
-      0% { background-position: -1000px 0; } 
-      100% { background-position: 1000px 0; } 
-    } 
-    
-    .loading { 
-      background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent); 
-      background-size: 1000px 100%; 
-      animation: shimmer 2s infinite; 
-    } 
-    
-    .checkbox-header label { 
-      display: flex; 
-      align-items: center; 
-      gap: 10px; 
-      cursor: pointer; 
-    } 
-    
-    .collapsible-icon:hover { 
-      background: rgba(74, 158, 255, 0.1); 
-      transform: translateX(4px); 
-    }
-    
-    /* ======================================= */
-    /* === fragment-6 DESIGNER EGYEDI STÍLUS === */
-    /* ======================================= */
-    
-    /* Fő Designer Konténer, ami felülírja a .layout-ot, ha aktív */
-/*    #full-screen-designer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: none; / * JS vezérli a láthatóságát * /
-        z-index: 10;
-        background: var(--primary-bg); / * Sötét háttér * /
-    }*/
-    /* === ÚJ DESIGNER LAYOUT (TELJES KÉPERNYŐS KITÖLTÉS) === */
-/*    #full-screen-designer {
-        position: fixed; / * Absolute helyett Fixed, hogy biztosan fedjen * /
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #eef2f5; / * Világos háttér, mint a mintában * /
-        z-index: 9999;
-        display: none;
-        flex-direction: row;
-    }*/
-    #full-screen-designer {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: var(--primary-bg); /* SÖTÉT HÁTTÉR */
-        z-index: 9999;
-        display: none;
-        flex-direction: row;
-    }
-    #designer-content-wrapper {
-        display: flex;
-        height: 100%;
-    }
-    
-    /* Bal oldali vászon (70%) */
-    #designer-canvas-area {
-        flex: 0 0 70%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px;
-        border-right: 2px solid var(--border-color);
-        background: var(--primary-bg);
-        position: relative;
-    }
-    /* Bal oldali előnézeti terület */
-/*    #designer-canvas-area {
-        flex: 1; / * Kitölti a maradék helyet * /
-        background: #dcdde1; / * Szürke háttér a vászon mögött * /
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 40px;
-        overflow: auto; / * Ha kilógna a vászon * /
-        position: relative;
-    }*/
-    /*#designer-canvas-area {
-        flex: 1;
-        background: #050714; / * Sötétebb árnyalat a vászon mögött * /
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 30px;
-        overflow: hidden;
-        position: relative;
-    } */
-    /* Jobb oldali vezérlők (30%) */
-    #designer-controls {
-        flex: 0 0 30%;
-        background: var(--secondary-bg);
-        overflow-y: auto;
-        padding: 24px;
-        backdrop-filter: blur(10px);
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-/*
-    @media (max-width: 768px) {
-        #designer-content-wrapper { flex-direction: column; }
-        #designer-canvas-area { flex: 0 0 55vh; border-right: none; border-bottom: 2px solid var(--border-color); }
-        #designer-controls { flex: 0 0 45vh; padding: 16px; }
-    }*/
-    @media (max-width: 768px) {
-        /*#full-screen-designer { flex-direction: column; }
-        #settings-wrap { width: 100%; height: 50%; }
-        #designer-canvas-area { height: 50%; padding: 10px; }*/
-        #full-screen-designer {
-            /* Biztosítjuk, hogy a fő konténer is jó legyen */
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #designer-content-wrapper {
-            /* EZ A KULCS: Vízszintes helyett függőleges elrendezés */
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-        }
-
-        #designer-canvas-area {
-            /* A felső rész (Vászon) */
-            flex: 0 0 50%; /* A képernyő 50%-át foglalja el */
-            width: 100%;
-            height: 50%;
-            border-right: none;
-            border-bottom: 2px solid var(--border-color);
-            padding: 10px;
-            /* Középre igazítás */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Mivel a HTML-ben a jobb oldali sáv ID-ja 'settings-wrap' */
-        #settings-wrap { 
-            /* Az alsó rész (Beállítások) */
-            flex: 1; /* Kitölti a maradék helyet (másik 50%) */
-            width: 100%;
-            height: auto; 
-            border-left: none;
-/*            padding: 10px;*/
-            padding: 0px;
-            overflow-y: auto; /* Görgethető legyen, ha sok a beállítás */
-            padding-bottom: 0px; /* Hely a görgetés végén */
-        }
-        
-        /* A vászon dobozának igazítása mobilon */
-        #canvas-wrapper {
-            max-width: 100%;
-            max-height: 100%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-    }
-    
-    /* Vászon konténer stílusa (Aspect Ratio Trick) */
-/*    #canvas-wrapper {
-/ *        width: 100%;* /
-        max-width: 500px; 
-        box-shadow: 0 0 40px var(--glow-blue); / * Ugyanaz a glow hatás * /
-        border-radius: 8px;
-        overflow: hidden;
-/ *        max-height: 700px;* /
-        max-height: 80vh;
-    }*/
-    /* Maga a Vászon doboz (árnyékkal) */
- /*   #canvas-wrapper {
-        background: white;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-        / * Nem fix width, hanem aspect-ratio alapján * /
-        height: auto;
-        width: auto;
-        max-width: 90%;
-        max-height: 90%;
-        / * Fontos: aspect-ratio-t JS állítja majd, de alapnak jó * /
-        display: flex; 
-    }*/
-/* A Vászon keret */
-    #canvas-wrapper {
-        background: white; /* Maga a papír marad fehér (vagy amit a JS beállít) */
-        box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Erősebb sötét árnyék */
-        max-width: 95%;
-        max-height: 95%;
-        aspect-ratio: 21 / 30;
-        height: auto;
-        width: auto;
-        display: flex;
-    }
-    #canvas-container {
-        /* Kezdeti A4 (30/21) arány */
-        padding-bottom: 142.85714%; 
-        background-color: var(--primary-bg); 
-        position: relative;
-        width: 100%;
-    }
-    
-    /* Rétegek elhelyezése a vásznon */
-    #celestial-map-container, #text-overlay-svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-    }
-    /* Rétegek elhelyezése a vásznon */
-    #celestial-map-container {
-        align-content: center;
-        justify-content: center;
-        align-items: center;
-        display: flex;
-    }
-    
-    #text-overlay-svg {
-        pointer-events: none; /* Alapértelmezetten ne fogjon meg kattintást/húzást */
-    }
-    
-    #text-overlay-svg text {
-        cursor: move;
-        transition: all 0.1s ease-in-out;
-    }
-    
-    /* Kijelölt szöveg stílusa */
-    .selected-text {
-        stroke: var(--accent-cyan);
-        stroke-width: 2px;
-        stroke-dasharray: 5, 5;
-    }
-    
-    /* Szöveg Hozzáadása Gomb (Új, de stílusban illeszkedő) */
-    #add-text-btn {
-        background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-        color: white;
-        padding: 12px 16px;
-        border-radius: 10px;
-        border: none;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px var(--glow-purple);
-    }
-    #add-text-btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-    
-    /* Szövegelem lista */
-    #text-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        max-height: 150px;
-        overflow-y: auto;
-        padding: 8px;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        background: rgba(17, 22, 51, 0.4);
-    }
-    
-    .list-item {
-        padding: 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        transition: all 0.2s ease-in-out;
-        border: 1px solid transparent;
-        background: rgba(74, 158, 255, 0.05);
-    }
-
-    .active-list-item {
-        border-color: var(--accent-blue) !important;
-        box-shadow: 0 0 10px var(--glow-blue);
-        transform: translateX(2px);
-    }
-    
-    .delete-btn {
-        background: linear-gradient(135deg, #ef4444, #dc2626); /* Piros szín */
-        color: white;
-        padding: 10px 16px;
-        border-radius: 10px;
-        border: none;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 10px;
-    }
-    .delete-btn:hover {
-        box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
-        opacity: 0.9;
-    }
-
-    .grid-2-cols {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-    
-    .export-btns {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-    .export-btns button {
-        background: var(--accent-blue);
-        color: white;
-        padding: 10px 0;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .export-btns button:hover {
-        box-shadow: 0 0 10px var(--glow-blue);
-        opacity: 0.8;
-    }
-    
-    /* Stílusvezérlők rejtése */
-    #style-controls {
-        display: none;
-        /* Alapértelmezett beállítás, JS átírja flex-re, ha van kijelölt elem */
-    }
-    /* Stílus a Vissza Gombhoz (illik a témához) */
-    #back-to-editor-btn {
-        background: var(--accent-cyan);
-        color: var(--secondary-bg); /* Sötét szöveg a világos kéken */
-        padding: 12px 16px;
-        border-radius: 10px;
-        border: none;
-        font-weight: 700;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    #back-to-editor-btn:hover {
-        opacity: 0.9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px var(--glow-blue), 0 0 40px var(--glow-cyan); /* Új glow-cyan CSS változót feltételezve */
-    }
-    
-
-    /* A celestial-map-container stílusai */
-/*#celestial-map-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}*/
-
-#celestial-map-container svg {
-    position: absolute;
-    transition: all 0.3s ease;
-}
-/*#designer-svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-}*/
-/*#designer-svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-        / * background-color felel a vászon színéért * /
-    }*/
-    #designer-svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-#text-overlay-svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-/* A szövegek foghatók legyenek */
-#text-layer text {
-/*    cursor: move;*/
-    cursor: default;
-}
-
-/* A térkép ne zavarja a szövegek mozgatását, ha mögötte van */
-#celestial-map-layer {
-    pointer-events: none; 
-}
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-    height: 30px; /* Magasság növelése, hogy biztosan látszódjon */
-    background-color: var(--accent-cyan); /* Saját szín */
-    filter: brightness(1.5); /* Világosabbá teszi a böngésző alapértelmezett nyilát */
-}
-
-.add-btn {
-    padding: 8px;
-    border-radius: 6px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 12px;
-    width: 100%;
-    transition: all 0.2s;
-}
-.add-btn.primary { background: var(--accent-blue); color: white; }
-.add-btn.secondary { background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border-color); }
-.add-btn.accent { background: var(--accent-purple); color: white; }
-.add-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-.block-card {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 8px;
-    position: relative;
-}
-.block-card.inline {
-    border-left: 3px solid var(--accent-purple);
-    margin-left: 20px; /* Behúzás, hogy látsszon: ez inline */
-}
-.block-card.newline {
-    border-left: 3px solid var(--accent-blue);
-}
-.remove-block {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: none;
-    border: none;
-    color: #ff4444;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-/* --- TÉMA VÁLASZTÓ STÍLUSOK --- */
-/*.theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); / * Reszponzív rács * /
-    gap: 15px;
-    padding: 10px;
-}
-
-.theme-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
-    background: #fff;
-    cursor: pointer;
-}*/
-/* --- TÉMA VÁLASZTÓ STÍLUSOK JAVÍTÁSA --- */
-/*.theme-grid {
-    display: grid;
-    / * Reszponzív rács: minimum 140px széles kártyák, amennyi kifér * /
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-    gap: 15px;
-    padding: 10px;
-    / * Fontos: engedjük a görgetést, ha nem fér ki * /
-    max-height: 80vh; 
-    overflow-y: auto;
-}*/
-/* --- TÉMA VÁLASZTÓ RÁCS (JAVÍTOTT) --- */
+    /* --- SABLON RÁCS (Két oszlop, név felül, kép alul) --- */
     .theme-grid {
         display: grid;
-        /* Fixen 2 oszlop, hogy a párok (Kör/Szív) egymás mellett legyenek */
-        grid-template-columns: 1fr 1fr; 
-        gap: 10px;
-        padding: 10px;
-        max-height: 80vh; 
-        overflow-y: auto;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px; padding: 10px;
+        max-height: 80vh; overflow-y: auto;
     }
-/* Egy kis vizuális tuning a kártyákhoz */
-/*.theme-item {
-    position: relative;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
-}*/
-.theme-item {
+    .theme-item {
         position: relative;
-        border: 1px solid #444;
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        background: #fff; /* Alap háttér */
+        border: 1px solid #444; border-radius: 8px;
+        overflow: hidden; cursor: pointer;
+        display: flex; flexDirection: column;
+        background: #fff;
         transition: transform 0.2s, box-shadow 0.2s;
     }
-/* A kiválasztott kártya kerete */
-/*.theme-item.active-theme {
-    border-color: #4a9eff;
-    box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
-    transform: scale(1.02);
-}*/
-.theme-item.active-theme {
-        border: 2px solid var(--accent-blue);
-        box-shadow: 0 0 15px var(--glow-blue);
+    .theme-item:hover { transform: translateY(-2px); border-color: var(--accent-blue); }
+    .theme-item.active-theme { border: 2px solid var(--accent-blue); box-shadow: 0 0 15px var(--glow-blue); }
+
+    .theme-btn {
+        width: 100%; padding: 10px; border: none; font-weight: bold; text-align: center;
+        background: #fff; color: #000; font-size: 13px; border-bottom: 1px solid #ddd;
     }
-/*.theme-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}*/
-.theme-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        border-color: var(--accent-blue);
-    }
-/*.theme-btn {
-    width: 100%;
-    padding: 10px 5px;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    text-align: center;
-    / * A színeket a JS állítja be * /
-}*/
-.theme-btn {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        font-weight: bold;
-        text-align: center;
-        background: #fff;
-        color: #000;
-        font-size: 13px;
-    }
-/*.theme-preview-img {
-    width: 100%;
-    height: 120px; / * Fix magasság a képeknek * /
-    object-fit: cover; / * Levágja a kilógó részeket, de kitölti a keretet * /
-    border-top: 1px solid #ddd;
-}*/
-/* KÉP MEGJELENÍTÉS JAVÍTÁSA */
     .theme-preview-img {
-        width: 100%;
-        height: 180px; /* Fix magasság */
+        width: 100%; height: 180px;
+        background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important;
+    }
+
+    /* --- TERVEZŐ NÉZET --- */
+    #full-screen-designer {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: var(--primary-bg); z-index: 9999;
+        display: none; flex-direction: row;
+    }
+    #designer-content-wrapper { display: flex; height: 100%; width: 100%; }
+    
+    #designer-canvas-area {
+        flex: 0 0 70%; display: flex; align-items: center; justify-content: center;
+        padding: 30px; border-right: 2px solid var(--border-color);
+        background: var(--primary-bg); position: relative; overflow: hidden;
+    }
+
+    #canvas-wrapper {
+        background: white;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        max-width: 95%; max-height: 95%;
+        aspect-ratio: 21 / 30;
+        display: flex; flexDirection: column;
+    }
+    #canvas-container, #celestial-map-container {
+        position: relative; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #designer-svg, #text-overlay-svg { display: block; width: 100%; height: 100%; }
+    
+/*    #designer-controls { flex: 1; padding: 20px; overflow-y: auto; }*/
+    #designer-controls { flex: 1; padding: 6px; overflow-y: auto; }
+    .designer-controls { flex: 1; padding: 6px; overflow-y: auto; }
+
+    /* --- MOBIL NÉZET BEÁLLÍTÁSOK --- */
+    @media (max-width: 768px) {
+        #full-screen-designer { height: 100vh; overflow: hidden; }
+        #designer-content-wrapper { flex-direction: column; width: 100%; height: 100%; }
         
-        /* A LÉNYEG: contain, hogy a teljes kép látszódjon levágás nélkül */
-        background-size: contain !important; 
-        background-repeat: no-repeat !important;
-        background-position: center !important;
+        #designer-canvas-area {
+            flex: 0 0 50%; 
+            width: 100%; height: 50%;
+            border-right: none; border-bottom: 2px solid var(--border-color);
+            padding: 10px;
+        }
+        #settings-wrap {
+            width: 100%; flex: 1; 
+            border-left: none; padding: 0;
+        }
+        #settings-wrap_r {
+            width: 100%; flex: 1; 
+            border-left: none; padding: 0;
+        }
         
-        border-bottom: 1px solid #ddd;
-    }
-/* Modal stílusok a képvágóhoz */
-    .modal-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8);
-        z-index: 10000;
-        display: none;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-content {
-        background: #222;
-        padding: 20px;
-        border-radius: 12px;
-        width: 90%;
-        max-width: 600px;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid var(--accent-blue);
-    }
-    .img-container {
-        max-height: 60vh;
-        overflow: hidden;
-        margin-bottom: 20px;
-    }
-    .img-container img {
-        max-width: 100%;
+        .export-btns { grid-template-columns: repeat(3, 1fr); }
     }
     
-    /* Fülek a szövegszerkesztőhöz */
-    .text-mode-tabs {
-        display: flex;
-        gap: 5px;
-        margin-bottom: 15px;
-        background: rgba(0,0,0,0.2);
-        padding: 5px;
-        border-radius: 8px;
+    /* Cropper & Modal */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); z-index: 10000;
+        display: none; align-items: center; justify-content: center;
     }
-    .text-mode-tab {
-        flex: 1;
-        padding: 8px;
-        border: none;
-        background: transparent;
-        color: #aaa;
-        cursor: pointer;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
+    .modal-content {
+        background: #222; padding: 20px; border-radius: 12px;
+        width: 90%; max-width: 600px; max-height: 90vh;
+        border: 1px solid var(--accent-blue);
     }
-    .text-mode-tab.active {
-        background: var(--accent-blue);
-        color: white;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-    .text-mode-tab.common-tab.active {
-        background: var(--accent-purple); /* Külön szín a közösnek */
-    }
-    /* --- CROPPER KÖR ALAK --- */
-    /*.cropper-view-box,
-    .cropper-face {
-        border-radius: 50%;
-    }*/
-    /* Hogy a sötétítő réteg is kör legyen */
-    /*.cropper-view-box {
-        outline: 0;
-        box-shadow: 0 0 0 1px #39f;
-    }*/
-    /* Cropper */
+    .img-container { max-height: 60vh; overflow: hidden; margin-bottom: 20px; }
     .cropper-view-box, .cropper-face { border-radius: 50%; }
-    .cropper-view-box { outline: 0; box-shadow: 0 0 0 1px #39f; }
-    /* Jobb oldali beállítások sáv */
-  /*  #settings-wrap {
-        width: 400px;
-        background: white;
-        border-left: 1px solid #ccc;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        box-shadow: -5px 0 15px rgba(0,0,0,0.05);
-        z-index: 10;
-        padding: 0; / * Reset * /
-    }*/
-    /* JOBB OLDALI BEÁLLÍTÁSOK SÁV - VISSZAÁLLÍTVA SÖTÉTRE */
-    #settings-wrap {
-        width: 400px;
-        background: var(--secondary-bg); /* Sötétkék */
-        border-left: 1px solid var(--border-color);
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        box-shadow: -5px 0 15px rgba(0,0,0,0.3);
-        z-index: 10;
-        padding: 0;
-        color: var(--text-primary); /* Világos szöveg */
-    }
-    /* Lista elem aktív állapota */
-    .photo-list-item {
-        padding: 8px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-    }
-    .photo-list-item:hover { background: rgba(255,255,255,0.05); }
-    .photo-list-item.active { background: rgba(74, 158, 255, 0.2); border-left: 3px solid var(--accent-blue); }
-    </style>
+    
+    .text-mode-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px; }
+    .text-mode-tab { flex: 1; padding: 8px; border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 6px; }
+    .text-mode-tab.active { background: var(--accent-blue); color: white; }
+    
+    .block-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 8px; position: relative; }
+    .block-card.inline { border-left: 3px solid var(--accent-purple); margin-left: 20px; }
+    .remove-block { position: absolute; top: 5px; right: 5px; background: none; border: none; color: #ff4444; cursor: pointer; }
+</style>
 </head>
 <body>
     
@@ -1599,12 +581,12 @@ input[type=number]::-webkit-outer-spin-button {
                     </div>
                 </div>
             </div>
-            <div class="settingswrap" id="settings-wrap">
+            <div class="settingswrap" id="settings-wrap_r">
                 <div id="tabs_r">
                     <ul id="mobile_tabs_r">
-                        <li><a href="#fragment_r-1">Csillagtérkép beállítások</a></li>
-                        <li><a href="#fragment_r-2">Szöveg beállítások</a></li>
-                        <li><a href="#fragment_r-3">Kép beállítások</a></li>
+                        <li><a href="#fragment_r-1">Csillagtérkép</a></li>
+                        <li><a href="#fragment_r-2">Szöveg</a></li>
+                        <li><a href="#fragment_r-3">Kép</a></li>
                         <li><a href="#fragment_r-4">Sablonok</a></li>
                         <li><a href="#fragment_r-5">Csillagtérkép szerkesztő</a></li>
                         <!-- <li><a href="#fragment_r-4" onclick="switchToMainEditor()" id="back-to-editor-btn"> -->
@@ -1615,7 +597,7 @@ input[type=number]::-webkit-outer-spin-button {
                         <!-- <li><a href="#fragment_r-5">Tervező</a></li> -->
                     </ul>
                     <div id="fragment_r-1">
-                        <div id="designer-controls">
+                        <div class="designer-controls">
                             <!-- <button onclick="switchToMainEditor()" id="back-to-editor-btn">
                                 ← Vissza a Térkép Szerkesztéshez
                             </button> -->
@@ -1967,7 +949,7 @@ input[type=number]::-webkit-outer-spin-button {
                     </div>
 
                     <!-- <div id="fragment_r-2">
-                        <div id="designer-controls">
+                        <div class="designer-controls">
                             <div class="collapsible-header" data-target="top-text-settings">
                                 <h2>📝 FELSŐ ZÓNA</h2>
                                 <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
@@ -2053,7 +1035,7 @@ input[type=number]::-webkit-outer-spin-button {
                         </div>
                     </div> -->
                     <div id="fragment_r-2">
-                        <div id="designer-controls">
+                        <div class="designer-controls">
                             
                             <div class="text-mode-tabs">
                                 <button class="text-mode-tab active" onclick="switchTextContext('map')" id="tab-context-map">Csillagtérkép</button>
@@ -2140,7 +1122,7 @@ input[type=number]::-webkit-outer-spin-button {
                     </div>
                     <div id="fragment_r-3">
 
-                        <div id="designer-controls">
+                        <div class="designer-controls">
                           
                                 <div class="section" style="margin-top: 16px; margin-bottom: 0;">
                                       <h3 class="small" style="margin-top: 0; margin-bottom: 12px;">🖼️ KÉPES ELRENDEZÉS (DUPLA)</h3>
@@ -2248,7 +1230,7 @@ input[type=number]::-webkit-outer-spin-button {
                             </button> -->
                     </div>
                     <div id="fragment_r-4">
-                        <!-- <div id="designer-controls">
+                        <!-- <div class="designer-controls">
 
                           <div id="designer-tab-templates">
                               <h3>Válassz Stílust</h3>
@@ -2308,7 +1290,7 @@ input[type=number]::-webkit-outer-spin-button {
         <div class="settingswrap" id="settings-wrap">
             <div id="tabs">
                 <ul id="mobile_tabs">
-                    <li><a href="#fragment-1">Térkép Beállítás</a></li>
+                    <li><a href="#fragment-1">Térkép Beállítások</a></li>
                     <li><a href="#fragment-2">Tejút & Égbolt</a></li>
                     <li><a href="#fragment-3">Csillagok & Csillagképek</a></li>
                     <li><a href="#fragment-4">Háló & Vonalak</a></li>
@@ -2317,190 +1299,194 @@ input[type=number]::-webkit-outer-spin-button {
                 </ul>
 
                 <div id="fragment-1">
-                    <div class="collapsible-header" data-target="location-settings">
-                        <h2>📍 HELY & IDŐ</h2>
-                        <div id="font-tests"></div>
-                        <!-- <span class="collapsible-icon">▼</span> -->
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-                            <!-- <button id="copy2-button">copy2-button</button> -->
-                            <!-- <button id="width-button">width-button</button> -->
-                    <div class="collapsible-content" id="location-settings">
-                        <div class="setting-group">
-                            <!-- <label for="city" style="text-align: center;">Helyszín</label> -->
-                            <label for="city" style="">Helyszín</label>
-                            <input type="text" id="city" placeholder="Város keresése...">
-                              <!-- <div class="row" style="display: flex;"> -->
-                                <!-- <label for="" style="text-align: center; margin-top: 8px;">Koordináták</label> -->
-                                <label for="" style=" margin-top: 8px;">Koordináták</label>
-                              <!-- </div> -->
-                            <div class="row" style="display: flex;">
-                              <div class="col">
-                                <!-- <label for="coord_lat" style="text-align: center;">Szélességi fok <input placeholder="Szélességi fok" type="text" id="coord_lat"></label> -->
-                                <input placeholder="Szélességi fok" type="text" id="coord_lat">
-                              </div>
-                              <div class="col">
-                                <!-- <label for="coord_lon" style="text-align: center;">Hosszűsági fok <input placeholder="Szélességi fok" type="text" id="coord_lon"></label> -->
-                                <input placeholder="Hosszúsági fok" type="text" id="coord_lon">
-                              </div>
+                    <div class="designer-controls">
+                        <div class="collapsible-header" data-target="location-settings">
+                            <h2>📍 HELY & IDŐ</h2>
+                            <div id="font-tests"></div>
+                            <!-- <span class="collapsible-icon">▼</span> -->
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
+                        </div>
+                                <!-- <button id="copy2-button">copy2-button</button> -->
+                                <!-- <button id="width-button">width-button</button> -->
+                        <div class="collapsible-content" id="location-settings">
+                            <div class="section" style="padding-bottom: 0px;">
+                                <div class="setting-group">
+                                    <!-- <label for="city" style="text-align: center;">Helyszín</label> -->
+                                    <label for="city" style="">Helyszín</label>
+                                    <input type="text" id="city" placeholder="Város keresése...">
+                                      <!-- <div class="row" style="display: flex;"> -->
+                                        <!-- <label for="" style="text-align: center; margin-top: 8px;">Koordináták</label> -->
+                                        <label for="" style=" margin-top: 8px;">Koordináták</label>
+                                      <!-- </div> -->
+                                    <div class="row" style="display: flex;">
+                                      <div class="col">
+                                        <!-- <label for="coord_lat" style="text-align: center;">Szélességi fok <input placeholder="Szélességi fok" type="text" id="coord_lat"></label> -->
+                                        <input placeholder="Szélességi fok" type="text" id="coord_lat">
+                                      </div>
+                                      <div class="col">
+                                        <!-- <label for="coord_lon" style="text-align: center;">Hosszűsági fok <input placeholder="Szélességi fok" type="text" id="coord_lon"></label> -->
+                                        <input placeholder="Hosszúsági fok" type="text" id="coord_lon">
+                                      </div>
+                                    </div>
+                                </div>
+                                <div class="setting-group">
+                                    <!-- <label for="datetimepicker" style="text-align: center;">Dátum & Idő</label> -->
+                                    <label for="datetimepicker" style="">Dátum & Idő</label>
+                                    <input type="text" id="datetimepicker" placeholder="Válassz dátumot és időt">
+                                </div>
                             </div>
                         </div>
-                        <div class="setting-group">
-                            <!-- <label for="datetimepicker" style="text-align: center;">Dátum & Idő</label> -->
-                            <label for="datetimepicker" style="">Dátum & Idő</label>
-                            <input type="text" id="datetimepicker" placeholder="Válassz dátumot és időt">
+                        <div class="collapsible-header" data-target="projection-settings">
+                            <h2>🌍 Projekció</h2>
+                            <!-- <span class="collapsible-icon">▼</span> -->
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
                         </div>
-                    </div>
-                    <div class="collapsible-header" data-target="projection-settings">
-                        <h2>🌍 Projekció</h2>
-                        <!-- <span class="collapsible-icon">▼</span> -->
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-                    <div class="collapsible-content" id="projection-settings">
-                        <div class="setting-group">
-                            <!-- <button id="projectionnn">projectionnn</button> -->
-                            <label for="projection_">Projekció</label>
+                        <div class="collapsible-content" id="projection-settings">
+                            <div class="setting-group">
+                                <!-- <button id="projectionnn">projectionnn</button> -->
+                                <label for="projection_">Projekció</label>
 
-                            <select id="projection_">
-                                <!-- <option value="orthographic">Orthographic</option>
-                                <option value="stereo">Stereographic</option>
-                                <option value="gnomonic">Gnomonic</option>
-                                <option value="equirectangular">Equirectangular</option> -->
-                                <option value="stereographic">Stereographic (hemi)</option>
-                                <option value="myHeart2025">myHeart2025 (hemi)</option>
-                                <option value="customHeart">SZÍV ALAKÚ (Egyedi)</option>
-                                <option value="customHeartt">tttSZÍV ALAKÚ (Egyedi)</option>
-                                <option value="werner">WERNER (igazából Bonne)</option>
-                                <option value="orthographic">Orthographic (hemi)</option>
-                                <option value="airy">Airy’s Minimum Error (hemi)</option>
-                                <option value="azimuthalEqualArea">Azimuthal Equal Area (hemi)</option>
-                                <option value="azimuthalEquidistant">Azimuthal Equidistant (hemi)</option>
-                                <option value="berghaus">Berghaus Star (hemi)</option>
-                                <option value="cassini">Cassini (hemi)</option>
-                                <option value="twoPointEquidistant">Two-Point Equidistant (hemi)</option>
-                                <option value="wiechel">Wiechel (hemi)</option>
-                                <option value="guyou">Guyou</option>
-                                <option value="butterfly">Butterfly</option>
-                                <option value="mtFlatPolarParabolic">mtFlatPolarParabolic</option>
-                                <option value="bonne">bonne</option>
-                            </select>
+                                <select id="projection_">
+                                    <!-- <option value="orthographic">Orthographic</option>
+                                    <option value="stereo">Stereographic</option>
+                                    <option value="gnomonic">Gnomonic</option>
+                                    <option value="equirectangular">Equirectangular</option> -->
+                                    <option value="stereographic">Stereographic (hemi)</option>
+                                    <option value="myHeart2025">myHeart2025 (hemi)</option>
+                                    <option value="customHeart">SZÍV ALAKÚ (Egyedi)</option>
+                                    <option value="customHeartt">tttSZÍV ALAKÚ (Egyedi)</option>
+                                    <option value="werner">WERNER (igazából Bonne)</option>
+                                    <option value="orthographic">Orthographic (hemi)</option>
+                                    <option value="airy">Airy’s Minimum Error (hemi)</option>
+                                    <option value="azimuthalEqualArea">Azimuthal Equal Area (hemi)</option>
+                                    <option value="azimuthalEquidistant">Azimuthal Equidistant (hemi)</option>
+                                    <option value="berghaus">Berghaus Star (hemi)</option>
+                                    <option value="cassini">Cassini (hemi)</option>
+                                    <option value="twoPointEquidistant">Two-Point Equidistant (hemi)</option>
+                                    <option value="wiechel">Wiechel (hemi)</option>
+                                    <option value="guyou">Guyou</option>
+                                    <option value="butterfly">Butterfly</option>
+                                    <option value="mtFlatPolarParabolic">mtFlatPolarParabolic</option>
+                                    <option value="bonne">bonne</option>
+                                </select>
+                            </div>
+                            <div class="setting-group">
+                                <label for="szivszoge">Szív szöge</label>
+                                <input id="szivszoge" type="number" min="1.8" max="3.2" step="0.1" value="2.4">
+                                <!-- <label for="szivratioja">Szív ratioja</label>
+                                <input id="szivratioja" type="number" min="0.1" max="5" step="0.1" value="0.88"> -->
+                            </div>
                         </div>
-                        <div class="setting-group">
-                            <label for="szivszoge">Szív szöge</label>
-                            <input id="szivszoge" type="number" min="1.8" max="3.2" step="0.1" value="2.4">
-                            <!-- <label for="szivratioja">Szív ratioja</label>
-                            <input id="szivratioja" type="number" min="0.1" max="5" step="0.1" value="0.88"> -->
+
+
+
+
+                        <div class="collapsible-header" data-target="zodiacsign-settings">
+                            <h2>🌍 Csillagjegyek</h2>
+                            <!-- <span class="collapsible-icon">▼</span> -->
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
                         </div>
-                    </div>
 
+                        <div class="collapsible-content" id="zodiacsign-settings">
+                            <div class="setting-group">
+                                <!-- <button id="projectionnn">projectionnn</button> -->
+                                <label for="zodiacsigns">Csillagjegyek</label>
 
-
-
-                    <div class="collapsible-header" data-target="zodiacsign-settings">
-                        <h2>🌍 Csillagjegyek</h2>
-                        <!-- <span class="collapsible-icon">▼</span> -->
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-
-                    <div class="collapsible-content" id="zodiacsign-settings">
-                        <div class="setting-group">
-                            <!-- <button id="projectionnn">projectionnn</button> -->
-                            <label for="zodiacsigns">Csillagjegyek</label>
-
-                            <select id="zodiacsigns">
-                                <!-- <option value="orthographic">Orthographic</option>
-                                <option value="stereo">Stereographic</option>
-                                <option value="gnomonic">Gnomonic</option>
-                                <option value="equirectangular">Equirectangular</option> -->
-                                <option value="Cap">Bak (december 22. – január 20.)</option>
-                                <option value="Aqr">Vízöntő (január 21. – február 19. )</option>
-                                <option value="Psc">Halak (február 20. – március 20.)</option>
-                                <option value="Ari">Kos (március 21. – április 19.)</option>
-                                <option value="Tau">Bika (április 20. – május 20.)</option>
-                                <option value="Gem">Ikrek (május 21. – június 20.)</option>
-                                <option value="Cnc">Rák (június 21. – július 22.)</option>
-                                <option value="Leo">Oroszlán (július 23. – augusztus 22.)</option>
-                                <option value="Vir">Szűz (augusztus 23. – szeptember 22.)</option>
-                                <option value="Lib">Mérleg (szeptember 23. – október 22.)</option>
-                                <option value="Sco">Skorpió (október 23. – november 22.)</option>
-                                <option value="Sgr">Nyilas (november 23. – december 21.)</option>
-                            </select>
+                                <select id="zodiacsigns">
+                                    <!-- <option value="orthographic">Orthographic</option>
+                                    <option value="stereo">Stereographic</option>
+                                    <option value="gnomonic">Gnomonic</option>
+                                    <option value="equirectangular">Equirectangular</option> -->
+                                    <option value="Cap">Bak (december 22. – január 20.)</option>
+                                    <option value="Aqr">Vízöntő (január 21. – február 19. )</option>
+                                    <option value="Psc">Halak (február 20. – március 20.)</option>
+                                    <option value="Ari">Kos (március 21. – április 19.)</option>
+                                    <option value="Tau">Bika (április 20. – május 20.)</option>
+                                    <option value="Gem">Ikrek (május 21. – június 20.)</option>
+                                    <option value="Cnc">Rák (június 21. – július 22.)</option>
+                                    <option value="Leo">Oroszlán (július 23. – augusztus 22.)</option>
+                                    <option value="Vir">Szűz (augusztus 23. – szeptember 22.)</option>
+                                    <option value="Lib">Mérleg (szeptember 23. – október 22.)</option>
+                                    <option value="Sco">Skorpió (október 23. – november 22.)</option>
+                                    <option value="Sgr">Nyilas (november 23. – december 21.)</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
 
 
-                    <!-- <div class="collapsible-header" data-target="projectionn-settings">
-                        <h2>🌍 Projekcióóóó</h2>
-                        < ! - - <span class="collapsible-icon">▼</span> - - >
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-                    <div class="collapsible-content" id="projectionn-settings">
-                        <div class="setting-group">
-                            <label for="projectionn">Projekció</label>
-
-                            <select id="projectionn">
-                                < ! - - <option value="orthographic">Orthographic</option>
-                                <option value="stereo">Stereographic</option>
-                                <option value="gnomonic">Gnomonic</option>
-                                <option value="equirectangular">Equirectangular</option> - - >
-                                <option value="orthographic">Orthographic (hemi)</option>
-                                <option value="airy">Airy’s Minimum Error (hemi)</option>
-                                <option value="azimuthalEqualArea">Azimuthal Equal Area (hemi)</option>
-                                <option value="azimuthalEquidistant">Azimuthal Equidistant (hemi)</option>
-                                <option value="berghaus">Berghaus Star (hemi)</option>
-                                <option value="cassini">Cassini (hemi)</option>
-                                <option value="craig">Craig Retroazimuthal (hemi)</option>
-                                <option value="stereographic">Stereographic (hemi)</option>
-                                <option value="twoPointEquidistant">Two-Point Equidistant (hemi)</option>
-                                <option value="wiechel">Wiechel (hemi)</option>
-                            </select>
+                        <!-- <div class="collapsible-header" data-target="projectionn-settings">
+                            <h2>🌍 Projekcióóóó</h2>
+                            < ! - - <span class="collapsible-icon">▼</span> - - >
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
                         </div>
-                    </div> -->
+                        <div class="collapsible-content" id="projectionn-settings">
+                            <div class="setting-group">
+                                <label for="projectionn">Projekció</label>
 
-
+                                <select id="projectionn">
+                                    < ! - - <option value="orthographic">Orthographic</option>
+                                    <option value="stereo">Stereographic</option>
+                                    <option value="gnomonic">Gnomonic</option>
+                                    <option value="equirectangular">Equirectangular</option> - - >
+                                    <option value="orthographic">Orthographic (hemi)</option>
+                                    <option value="airy">Airy’s Minimum Error (hemi)</option>
+                                    <option value="azimuthalEqualArea">Azimuthal Equal Area (hemi)</option>
+                                    <option value="azimuthalEquidistant">Azimuthal Equidistant (hemi)</option>
+                                    <option value="berghaus">Berghaus Star (hemi)</option>
+                                    <option value="cassini">Cassini (hemi)</option>
+                                    <option value="craig">Craig Retroazimuthal (hemi)</option>
+                                    <option value="stereographic">Stereographic (hemi)</option>
+                                    <option value="twoPointEquidistant">Two-Point Equidistant (hemi)</option>
+                                    <option value="wiechel">Wiechel (hemi)</option>
+                                </select>
+                            </div>
+                        </div> -->
+                    </div>
                 </div>
 
                 <div id="fragment-2">
-                    <div class="collapsible-header" data-target="milkyway-settings">
-                        <h2>🌌 TEJÚT</h2>
-                        <!-- ✨<span class="collapsible-icon">▼</span> -->
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-                    <div class="collapsible-content" id="milkyway-settings">
-                        <div class="section">
-                            <label><input id="mw_show" type="checkbox" checked> Tejút megjelenítése</label>
-                            <div id="mw_show_settings" class="settings-panel">
-                                <label for="mw_style_fill">Szín</label>
-                                <input id="mw_style_fill" type="color" value="#ffffff">
-                                <label for="mw_style_opacity">Áttetszőség</label>
-                                <input id="mw_style_opacity" type="number" min="0.01" max="1" step="0.01" value="0.15">
+                    <div class="designer-controls">
+                        <div class="collapsible-header" data-target="milkyway-settings">
+                            <h2>🌌 TEJÚT</h2>
+                            <!-- ✨<span class="collapsible-icon">▼</span> -->
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
+                        </div>
+                        <div class="collapsible-content" id="milkyway-settings">
+                            <div class="section">
+                                <label><input id="mw_show" type="checkbox" checked> Tejút megjelenítése</label>
+                                <div id="mw_show_settings" class="settings-panel">
+                                    <label for="mw_style_fill">Szín</label>
+                                    <input id="mw_style_fill" type="color" value="#ffffff">
+                                    <label for="mw_style_opacity">Áttetszőség</label>
+                                    <input id="mw_style_opacity" type="number" min="0.01" max="1" step="0.01" value="0.15">
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="collapsible-header" data-target="sky-settings">
-                        <h2>🌌 ÉGBOLT</h2>
-                        <!-- <span class="collapsible-icon">▼</span> -->
-                        <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                    </div>
-                    <div class="collapsible-content" id="sky-settings">
-                        <div class="section settings-panel">
-                            <label for="background_fill">Ég színe</label>
-                            <input id="background_fill" type="color" value="#000000">
-                            <label for="background_opacity">Áttetszőség</label>
-                            <input id="background_opacity" type="number" min="0.01" max="1" step="0.01" value="1">
-                            <label for="background_stroke">Körvonal színe</label>
-                            <input id="background_stroke" type="color" value="#FFFFFF">
-                            <label for="background_stroke_width">Körvonal vastagsága</label>
-                            <input id="background_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
-                            <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="background_stroke_dash_check" style="width: auto; margin-right: 8px;"> 
-                                Szaggatott körvonal
-                            </label>
-                            <div id="background_stroke_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
-                                <div class="grid-2-cols" style="gap: 5px;">
-                                    <label style="font-size: 11px;">Vonal (px): <input type="number" id="background_stroke_dash_1" value="4" min="1" style="width: 100%;"></label>
-                                    <label style="font-size: 11px;">Szünet (px): <input type="number" id="background_stroke_dash_2" value="4" min="1" style="width: 100%;"></label>
+                        <div class="collapsible-header" data-target="sky-settings">
+                            <h2>🌌 ÉGBOLT</h2>
+                            <!-- <span class="collapsible-icon">▼</span> -->
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
+                        </div>
+                        <div class="collapsible-content" id="sky-settings">
+                            <div class="section settings-panel">
+                                <label for="background_fill">Ég színe</label>
+                                <input id="background_fill" type="color" value="#000000">
+                                <label for="background_opacity">Áttetszőség</label>
+                                <input id="background_opacity" type="number" min="0.01" max="1" step="0.01" value="1">
+                                <label for="background_stroke">Körvonal színe</label>
+                                <input id="background_stroke" type="color" value="#FFFFFF">
+                                <label for="background_stroke_width">Körvonal vastagsága</label>
+                                <input id="background_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
+                                <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox" id="background_stroke_dash_check" style="width: auto; margin-right: 8px;"> 
+                                    Szaggatott körvonal
+                                </label>
+                                <div id="background_stroke_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                    <div class="grid-2-cols" style="gap: 5px;">
+                                        <label style="font-size: 11px;">Vonal (px): <input type="number" id="background_stroke_dash_1" value="4" min="1" style="width: 100%;"></label>
+                                        <label style="font-size: 11px;">Szünet (px): <input type="number" id="background_stroke_dash_2" value="4" min="1" style="width: 100%;"></label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2508,80 +1494,82 @@ input[type=number]::-webkit-outer-spin-button {
                 </div>
 
                 <div id="fragment-3">
-                    <div class="collapsible-header" data-target="constellation-settings">
-                        <h2>✨ CSILLAGKÉPEK</h2>
-                        <span class="collapsible-icon">▼</span>
-                    </div>
-                    <div class="collapsible-content" id="constellation-settings">
-                        <div class="section">
-                            <label><input id="const_show" type="checkbox" checked>Csillagképek vonalai</label>
-                            <div id="const_show_settings" class="settings-panel">
-
-                              <label for="constellation_lineStyle_opacity">Áttetszőség</label>
-                              <input id="constellation_lineStyle_opacity" type="number" min="0.01" max="1" step="0.01" value="0.6">
-                              <label for="constellation_lineStyle_stroke">Vonalak színe</label>
-                              <input id="constellation_lineStyle_stroke" type="color" value="#cccccc">
-                              <label for="constellation_lineStyle_stroke_width">Vonalak vastagsága</label>
-                              <input id="constellation_lineStyle_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
-                              <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
-                                  <input type="checkbox" id="constellation_lineStyle_dash_check" style="width: auto; margin-right: 8px;"> 
-                                  Szaggatott vonalak
-                              </label>
-                              <div id="constellation_lineStyle_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
-                                  <div class="grid-2-cols" style="gap: 5px;">
-                                      <label style="font-size: 11px;">Vonal (px): <input type="number" id="constellation_lineStyle_dash_1" value="4" min="1" style="width: 100%;"></label>
-                                      <label style="font-size: 11px;">Szünet (px): <input type="number" id="constellation_lineStyle_dash_2" value="4" min="1" style="width: 100%;"></label>
-                                  </div>
-                              </div>
-                                <!-- <label>Fényesség limit</label>
-                                <input id="stars_limit" type="number" min="0" max="6" step="0.1" value="6">
-                                <label>Méret</label>
-                                <input id="stars_size" type="number" value="7" min="5" max="100" step="0.1">
-                                <label>Kitevő</label>
-                                <input id="stars_exponent" type="number" value="-0.28" min="-1" max="3" step="0.01">
-
-                                <label><input type="checkbox" id="stars_colors" checked> Színes csillagok</label>
-                                <div id="stars_colors_settings" style="display: none">
-                                    <label for="stars_style_fill">Egyszínű mód színe</label>
-                                    <input id="stars_style_fill" type="color" value="#FFFFFF">
-                                </div> -->
-                            </div>
+                    <div class="designer-controls">
+                        <div class="collapsible-header" data-target="constellation-settings">
+                            <h2>✨ CSILLAGKÉPEK</h2>
+                            <span class="collapsible-icon">▼</span>
                         </div>
-                    </div>
+                        <div class="collapsible-content" id="constellation-settings">
+                            <div class="section">
+                                <label><input id="const_show" type="checkbox" checked>Csillagképek vonalai</label>
+                                <div id="const_show_settings" class="settings-panel">
 
-                    <div class="collapsible-header" data-target="stars-settings">
-                        <h2>⭐ CSILLAGOK</h2>
-                        <span class="collapsible-icon">▼</span>
-                    </div>
-                    <div class="collapsible-content" id="stars-settings">
-                        <div class="section">
-                            <label><input type="checkbox" id="stars_show" checked> Csillagok megjelenítése</label>
-                            <div id="stars_show_settings" class="settings-panel">
-                                <label>Fényesség limit</label>
-                                <input id="stars_limit" type="number" min="0" max="6" step="0.1" value="6">
-                                <label>Méret</label>
-                                <input id="stars_size" type="number" value="7" min="5" max="100" step="0.1">
-                                <label>Kitevő</label>
-                                <input id="stars_exponent" type="number" value="-0.28" min="-1" max="3" step="0.01">
+                                  <label for="constellation_lineStyle_opacity">Áttetszőség</label>
+                                  <input id="constellation_lineStyle_opacity" type="number" min="0.01" max="1" step="0.01" value="0.6">
+                                  <label for="constellation_lineStyle_stroke">Vonalak színe</label>
+                                  <input id="constellation_lineStyle_stroke" type="color" value="#cccccc">
+                                  <label for="constellation_lineStyle_stroke_width">Vonalak vastagsága</label>
+                                  <input id="constellation_lineStyle_stroke_width" type="number" min="0" max="100" step="0.1" value="1.5">
+                                  <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                      <input type="checkbox" id="constellation_lineStyle_dash_check" style="width: auto; margin-right: 8px;"> 
+                                      Szaggatott vonalak
+                                  </label>
+                                  <div id="constellation_lineStyle_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                      <div class="grid-2-cols" style="gap: 5px;">
+                                          <label style="font-size: 11px;">Vonal (px): <input type="number" id="constellation_lineStyle_dash_1" value="4" min="1" style="width: 100%;"></label>
+                                          <label style="font-size: 11px;">Szünet (px): <input type="number" id="constellation_lineStyle_dash_2" value="4" min="1" style="width: 100%;"></label>
+                                      </div>
+                                  </div>
+                                    <!-- <label>Fényesség limit</label>
+                                    <input id="stars_limit" type="number" min="0" max="6" step="0.1" value="6">
+                                    <label>Méret</label>
+                                    <input id="stars_size" type="number" value="7" min="5" max="100" step="0.1">
+                                    <label>Kitevő</label>
+                                    <input id="stars_exponent" type="number" value="-0.28" min="-1" max="3" step="0.01">
 
-                                <label><input type="checkbox" id="stars_colors" checked> Színes csillagok</label>
-                                <div id="stars_colors_settings" style="display: none">
-                                    <label for="stars_style_fill">Csillagok színe</label>
-                                    <input id="stars_style_fill" type="color" value="#FFFFFF">
-                                    <label for="stars_style_opacity">Csillagok áttetszősége</label>
-                                    <input id="stars_style_opacity" type="number" value="1" min="0" max="1" step="0.01">
+                                    <label><input type="checkbox" id="stars_colors" checked> Színes csillagok</label>
+                                    <div id="stars_colors_settings" style="display: none">
+                                        <label for="stars_style_fill">Egyszínű mód színe</label>
+                                        <input id="stars_style_fill" type="color" value="#FFFFFF">
+                                    </div> -->
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="collapsible-header" data-target="planets-settings">
-                        <h2>🪐 NAP & HOLD & BOLYGÓK</h2>
-                        <span class="collapsible-icon">▼</span>
-                    </div>
-                    <div class="collapsible-content" id="planets-settings">
-                        <div class="section">
-                            <label><input type="checkbox" id="planets_show"> Nap & Hold & Bolygók megjelenítése</label>
+                        <div class="collapsible-header" data-target="stars-settings">
+                            <h2>⭐ CSILLAGOK</h2>
+                            <span class="collapsible-icon">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="stars-settings">
+                            <div class="section">
+                                <label><input type="checkbox" id="stars_show" checked> Csillagok megjelenítése</label>
+                                <div id="stars_show_settings" class="settings-panel">
+                                    <label>Fényesség limit</label>
+                                    <input id="stars_limit" type="number" min="0" max="6" step="0.1" value="6">
+                                    <label>Méret</label>
+                                    <input id="stars_size" type="number" value="7" min="5" max="100" step="0.1">
+                                    <label>Kitevő</label>
+                                    <input id="stars_exponent" type="number" value="-0.28" min="-1" max="3" step="0.01">
+
+                                    <label><input type="checkbox" id="stars_colors" checked> Színes csillagok</label>
+                                    <div id="stars_colors_settings" style="display: none">
+                                        <label for="stars_style_fill">Csillagok színe</label>
+                                        <input id="stars_style_fill" type="color" value="#FFFFFF">
+                                        <label for="stars_style_opacity">Csillagok áttetszősége</label>
+                                        <input id="stars_style_opacity" type="number" value="1" min="0" max="1" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="collapsible-header" data-target="planets-settings">
+                            <h2>🪐 NAP & HOLD & BOLYGÓK</h2>
+                            <span class="collapsible-icon">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="planets-settings">
+                            <div class="section">
+                                <label><input type="checkbox" id="planets_show"> Nap & Hold & Bolygók megjelenítése</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2686,32 +1674,34 @@ input[type=number]::-webkit-outer-spin-button {
                     </div>
                 </div> -->
                 <div id="fragment-4">
-                    <div class="section">
-                        
+
+                    <div class="designer-controls">
                         <div id="graticule-wrapper">
                             <div class="collapsible-header" data-target="graticule-section" style="display: flex; align-items: center; justify-content: space-between;">
-                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;">
+                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;padding:0px">
                                     <input id="lines_graticule" type="checkbox" checked> 
                                     <span style="margin-left: 10px;">⚪ Fokhálózat</span>
                                 </label>
-                                <span class="collapsible-icon" style="padding: 10px; cursor: pointer;"><i class="collapsible-icon-icon">▼</i></span>
+                                <span class="collapsible-icon" style="padding: 0px; cursor: pointer;"><i class="collapsible-icon-icon">▼</i></span>
                             </div>
                             <div class="collapsible-content" id="graticule-section">
-                                <div class="settings-panel">
-                                    <label for="lines_graticule_color">Szín</label>
-                                    <input id="lines_graticule_color" type="color" value="#cccccc">
-                                    <label for="lines_graticule_size">Vastagság</label>
-                                    <input id="lines_graticule_size" type="number" min="0.1" max="6" step="0.1" value="0.6">
-                                    <label for="lines_graticule_opacity">Áttetszőség</label>
-                                    <input id="lines_graticule_opacity" type="number" min="0.01" max="1" step="0.01" value="0.8">
-                                    <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" id="lines_graticule_dash_check" style="width: auto; margin-right: 8px;"> 
-                                        Szaggatott háló
-                                    </label>
-                                    <div id="lines_graticule_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
-                                        <div class="grid-2-cols" style="gap: 5px;">
-                                            <label style="font-size: 11px;">Vonal (px): <input type="number" id="lines_graticule_dash_1" value="2" min="1" style="width: 100%;"></label>
-                                            <label style="font-size: 11px;">Szünet (px): <input type="number" id="lines_graticule_dash_2" value="2" min="1" style="width: 100%;"></label>
+                                <div class="section">
+                                    <div class="settings-panel">
+                                        <label for="lines_graticule_color">Szín</label>
+                                        <input id="lines_graticule_color" type="color" value="#cccccc">
+                                        <label for="lines_graticule_size">Vastagság</label>
+                                        <input id="lines_graticule_size" type="number" min="0.1" max="6" step="0.1" value="0.6">
+                                        <label for="lines_graticule_opacity">Áttetszőség</label>
+                                        <input id="lines_graticule_opacity" type="number" min="0.01" max="1" step="0.01" value="0.8">
+                                        <label style="margin-top: 8px; display: flex; align-items: center; cursor: pointer;">
+                                            <input type="checkbox" id="lines_graticule_dash_check" style="width: auto; margin-right: 8px;"> 
+                                            Szaggatott háló
+                                        </label>
+                                        <div id="lines_graticule_dash_settings" style="display:none; margin-left: 20px; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                                            <div class="grid-2-cols" style="gap: 5px;">
+                                                <label style="font-size: 11px;">Vonal (px): <input type="number" id="lines_graticule_dash_1" value="2" min="1" style="width: 100%;"></label>
+                                                <label style="font-size: 11px;">Szünet (px): <input type="number" id="lines_graticule_dash_2" value="2" min="1" style="width: 100%;"></label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2720,127 +1710,134 @@ input[type=number]::-webkit-outer-spin-button {
 
                         <div id="equatorial-wrapper">
                             <div class="collapsible-header collapsed" data-target="equatorial-section" style="display: flex; align-items: center; justify-content: space-between;">
-                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;">
+                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;padding: 0px">
                                     <input id="lines_equatorial" type="checkbox"> 
                                     <span style="margin-left: 10px;">⚪️ Egyenlítői</span>
                                 </label>
-                                <span class="collapsible-icon" style="padding: 10px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
+                                <span class="collapsible-icon" style="padding: 0px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
                             </div>
                             <div class="collapsible-content collapsed" id="equatorial-section">
-                                <div class="settings-panel">
-                                    <label for="lines_equatorial_color">Szín</label>
-                                    <input id="lines_equatorial_color" type="color" value="#aaaaaa">
-                                    <label for="lines_equatorial_size">Vastagság</label>
-                                    <input id="lines_equatorial_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
-                                    <label for="lines_equatorial_opacity">Áttetszőség</label>
-                                    <input id="lines_equatorial_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                <div class="section">
+                                    <div class="settings-panel">
+                                        <label for="lines_equatorial_color">Szín</label>
+                                        <input id="lines_equatorial_color" type="color" value="#aaaaaa">
+                                        <label for="lines_equatorial_size">Vastagság</label>
+                                        <input id="lines_equatorial_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
+                                        <label for="lines_equatorial_opacity">Áttetszőség</label>
+                                        <input id="lines_equatorial_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
+                        </div>               
                         <div id="ecliptic-wrapper">
                             <div class="collapsible-header collapsed" data-target="ecliptic-section" style="display: flex; align-items: center; justify-content: space-between;">
-                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;">
+                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;padding: 0px">
                                     <input id="lines_ecliptic" type="checkbox"> 
                                     <span style="margin-left: 10px;">🟢 Ekliptika</span>
                                 </label>
-                                <span class="collapsible-icon" style="padding: 10px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
+                                <span class="collapsible-icon" style="padding: 0px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
                             </div>
                             <div class="collapsible-content collapsed" id="ecliptic-section">
-                                <div class="settings-panel">
-                                    <label for="lines_ecliptic_color">Szín</label>
-                                    <input id="lines_ecliptic_color" type="color" value="#66cc66">
-                                    <label for="lines_ecliptic_size">Vastagság</label>
-                                    <input id="lines_ecliptic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
-                                    <label for="lines_ecliptic_opacity">Áttetszőség</label>
-                                    <input id="lines_ecliptic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                <div class="section">
+                                    <div class="settings-panel">
+                                        <label for="lines_ecliptic_color">Szín</label>
+                                        <input id="lines_ecliptic_color" type="color" value="#66cc66">
+                                        <label for="lines_ecliptic_size">Vastagság</label>
+                                        <input id="lines_ecliptic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
+                                        <label for="lines_ecliptic_opacity">Áttetszőség</label>
+                                        <input id="lines_ecliptic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
                         <div id="galactic-wrapper">
                             <div class="collapsible-header collapsed" data-target="galactic-section" style="display: flex; align-items: center; justify-content: space-between;">
-                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;">
+                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;padding: 0px">
                                     <input id="lines_galactic" type="checkbox"> 
                                     <span style="margin-left: 10px;">🔴 Galaktikus</span>
                                 </label>
-                                <span class="collapsible-icon" style="padding: 10px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
+                                <span class="collapsible-icon" style="padding: 0px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
                             </div>
                             <div class="collapsible-content collapsed" id="galactic-section">
-                                <div class="settings-panel">
-                                    <label for="lines_galactic_color">Szín</label>
-                                    <input id="lines_galactic_color" type="color" value="#cc6666">
-                                    <label for="lines_galactic_size">Vastagság</label>
-                                    <input id="lines_galactic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
-                                    <label for="lines_galactic_opacity">Áttetszőség</label>
-                                    <input id="lines_galactic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                <div class="section">
+                                    <div class="settings-panel">
+                                        <label for="lines_galactic_color">Szín</label>
+                                        <input id="lines_galactic_color" type="color" value="#cc6666">
+                                        <label for="lines_galactic_size">Vastagság</label>
+                                        <input id="lines_galactic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
+                                        <label for="lines_galactic_opacity">Áttetszőség</label>
+                                        <input id="lines_galactic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
                         <div id="supergalactic-wrapper">
                             <div class="collapsible-header collapsed" data-target="supergalactic-section" style="display: flex; align-items: center; justify-content: space-between;">
-                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;">
+                                <label class="header-label" style="flex-grow: 1; cursor: pointer; display: flex; align-items: center; margin: 0;padding: 0px">
                                     <input id="lines_supergalactic" type="checkbox"> 
                                     <span style="margin-left: 10px;">🟣 Szupergalaktikus</span>
                                 </label>
-                                <span class="collapsible-icon" style="padding: 10px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
+                                <span class="collapsible-icon" style="padding: 0px; cursor: pointer;"><i class="collapsible-icon-icon" style="transform: rotate(-90deg);">▼</i></span>
                             </div>
                             <div class="collapsible-content collapsed" id="supergalactic-section">
-                                <div class="settings-panel">
-                                    <label for="lines_supergalactic_color">Szín</label>
-                                    <input id="lines_supergalactic_color" type="color" value="#cc66cc">
-                                    <label for="lines_supergalactic_size">Vastagság</label>
-                                    <input id="lines_supergalactic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
-                                    <label for="lines_supergalactic_opacity">Áttetszőség</label>
-                                    <input id="lines_supergalactic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                <div class="section">
+                                    <div class="settings-panel">
+                                        <label for="lines_supergalactic_color">Szín</label>
+                                        <input id="lines_supergalactic_color" type="color" value="#cc66cc">
+                                        <label for="lines_supergalactic_size">Vastagság</label>
+                                        <input id="lines_supergalactic_size" type="number" min="0.1" max="6" step="0.1" value="1.3">
+                                        <label for="lines_supergalactic_opacity">Áttetszőség</label>
+                                        <input id="lines_supergalactic_opacity" type="number" min="0.01" max="1" step="0.01" value="0.7">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
                 <div id="fragment-5">
-                    <!-- <div class="section"> -->
-                            <div class="collapsible-header" data-target="theme-settings">
-                                <h2>🎨 Témák (Presets)</h2>
-                                <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
-                            </div>
-                            <div class="collapsible-content" id="theme-settings">
-                                <div class="section">
-                                    <!-- <div class="grid-2-cols" id="theme-buttons-container" style="grid-template-columns: 1fr 1fr; gap: 10px;"></div> -->
-                                    <!-- <div class="theme-grid" id="theme-grid-container"></div> -->
-                                    <!-- <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px; text-align: center;">
-                                        <p style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Kép készítése a fenti mappához:</p>
-                                        <button onclick="saveMapThumbnail()" class="add-btn accent" style="width: 100%; background: #4a9eff;">
-                                            📸 Csak a Térkép Letöltése (PNG)
-                                        </button>
-                                    </div> -->
-                                    <div style="margin-top: 10px;">
-                                        <button onclick="downloadAllThemesSequence()" class="add-btn accent" style="width: 100%; background: #b24aff;">
-                                            🤖 Összes Téma Képének Generálása & Letöltése
-                                        </button>
-                                    </div>
-                                    <div style="margin-top: 10px; margin-bottom: 10px;">
-                                        <button onclick="restoreUserState()" class="add-btn accent" style="width: 100%; background: #546e7a;">
-                                            ↺ Saját Beállítások Visszaállítása
-                                        </button>
-                                    </div>
-                                    <div class="theme-grid" id="theme-grid-container"></div>
-                                    
-                                    <div style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
-                                        <button onclick="downloadAllThemesSequence()" class="add-btn accent" style="width: 100%; background: #b24aff;">
-                                            📸 Thumbnail Generátor Indítása
-                                        </button>
-                                        <p style="font-size:10px; color:#aaa; text-align:center; margin-top:5px;">
-                                            A letöltött képeket másold be az <b>images/themes/</b> mappába!
-                                        </button>
-                                    </div>
 
+                    <div class="designer-controls">
+                        <!-- <div class="section"> -->
+                                <div class="collapsible-header" data-target="theme-settings">
+                                    <h2>🎨 Témák (Presets)</h2>
+                                    <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
                                 </div>
-                            </div>
-                    <!-- </div> -->
+                                <div class="collapsible-content" id="theme-settings">
+                                    <div class="section">
+                                        <!-- <div class="grid-2-cols" id="theme-buttons-container" style="grid-template-columns: 1fr 1fr; gap: 10px;"></div> -->
+                                        <!-- <div class="theme-grid" id="theme-grid-container"></div> -->
+                                        <!-- <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px; text-align: center;">
+                                            <p style="font-size: 12px; color: #aaa; margin-bottom: 5px;">Kép készítése a fenti mappához:</p>
+                                            <button onclick="saveMapThumbnail()" class="add-btn accent" style="width: 100%; background: #4a9eff;">
+                                                📸 Csak a Térkép Letöltése (PNG)
+                                            </button>
+                                        </div> -->
+                                        <div style="margin-top: 10px;">
+                                            <button onclick="downloadAllThemesSequence()" class="add-btn accent" style="width: 100%; background: #b24aff;">
+                                                🤖 Összes Téma Képének Generálása & Letöltése
+                                            </button>
+                                        </div>
+                                        <div style="margin-top: 10px; margin-bottom: 10px;">
+                                            <button onclick="restoreUserState()" class="add-btn accent" style="width: 100%; background: #546e7a;">
+                                                ↺ Saját Beállítások Visszaállítása
+                                            </button>
+                                        </div>
+                                        <div class="theme-grid" id="theme-grid-container"></div>
+                                        
+                                        <div style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
+                                            <button onclick="downloadAllThemesSequence()" class="add-btn accent" style="width: 100%; background: #b24aff;">
+                                                📸 Thumbnail Generátor Indítása
+                                            </button>
+                                            <p style="font-size:10px; color:#aaa; text-align:center; margin-top:5px;">
+                                                A letöltött képeket másold be az <b>images/themes/</b> mappába!
+                                            </p>
+                                        </div>
+
+                                    </div>
+                                </div>
+                        <!-- </div> -->
+                    </div>
                 </div>
                 <div id="fragment-6">
                     <p style="text-align: center; padding: 50px; color: var(--text-secondary);">A Tervező felület megnyílt a teljes képernyőn.</p>
@@ -7568,7 +6565,12 @@ function createThemeCard(container, key, theme, variant) {
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 2]);
                     console.log("(mapHeight / 3) * 6", (mapHeight / 3) * 6);
                     console.log("(mapHeight / 3) * 6", mapHeight  * 4);
-                    mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1]]);
+                    // mapProj.translate([currentTranslate[0], mapHeight ]);
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1] + (deltaY/5)]);
+                    // mapProj.translate([currentTranslate[0], deltaY*1.5]);
+                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();
@@ -7955,7 +6957,9 @@ function createThemeCard(container, key, theme, variant) {
                     // mapProj.translate([currentTranslate[0], currentTranslate[1] + ( mapHeight / 2 )]);
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 2]);
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 10]);
-                    mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 4]);
+                    // mapProj.translate([currentTranslate[0], currentTranslate[1]]);
+                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();
