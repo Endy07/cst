@@ -446,6 +446,7 @@
         display: flex; flexDirection: column;
         background: #fff;
         transition: transform 0.2s, box-shadow 0.2s;
+            flex-direction: column;
     }
     .theme-item:hover { transform: translateY(-2px); border-color: var(--accent-blue); }
     .theme-item.active-theme { border: 2px solid var(--accent-blue); box-shadow: 0 0 15px var(--glow-blue); }
@@ -470,15 +471,29 @@
     #designer-canvas-area {
         flex: 0 0 70%; display: flex; align-items: center; justify-content: center;
         padding: 30px; border-right: 2px solid var(--border-color);
-        background: var(--primary-bg); position: relative; overflow: hidden;
+/*        background: var(--primary-bg); position: relative; overflow: hidden;*/
+        background: #bababa; position: relative; overflow: hidden;
     }
 
-    #canvas-wrapper {
+/*    #canvas-wrapper {
         background: white;
         box-shadow: 0 0 50px rgba(0,0,0,0.5);
         max-width: 95%; max-height: 95%;
         aspect-ratio: 21 / 30;
         display: flex; flexDirection: column;
+    }*/
+    /* --- VÁSZON KERET (A "PAPÍR") --- */
+    #canvas-wrapper {
+        /* JAVÍTÁS: Fehér helyett átlátszó, hogy ne villanjon ki fehér csík a széleken */
+        background: transparent; 
+        
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        /* A méreteket (width/height) a JS fogja számolni pixel-pontosan! */
+        /* Kivesszük a max-width/height korlátokat, mert a JS okosabb lesz. */
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s ease, height 0.3s ease;
+        transform-origin: center center;
     }
     #canvas-container, #celestial-map-container {
         position: relative; width: 100%; height: 100%;
@@ -534,6 +549,39 @@
     .block-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 8px; position: relative; }
     .block-card.inline { border-left: 3px solid var(--accent-purple); margin-left: 20px; }
     .remove-block { position: absolute; top: 5px; right: 5px; background: none; border: none; color: #ff4444; cursor: pointer; }
+    /* --- GÖRGETŐSÁV (SCROLLBAR) - EGYSÉGESÍTETT --- */
+    /* Ez vonatkozik a fő panelre, a sablonokra és a fotó listára is */
+    
+    .settingswrap::-webkit-scrollbar,
+    .theme-grid::-webkit-scrollbar,
+    .designer-controls::-webkit-scrollbar,
+    #photo-list-container::-webkit-scrollbar { 
+        width: 8px; 
+    }
+
+    .settingswrap::-webkit-scrollbar-track,
+    .theme-grid::-webkit-scrollbar-track,
+    .designer-controls::-webkit-scrollbar-track,
+    #photo-list-container::-webkit-scrollbar-track { 
+        background: rgba(30, 40, 73, 0.3); 
+        border-radius: 10px; 
+    }
+
+    .settingswrap::-webkit-scrollbar-thumb,
+    .theme-grid::-webkit-scrollbar-thumb,
+    .designer-controls::-webkit-scrollbar-thumb,
+    #photo-list-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+        border-radius: 10px;
+        box-shadow: 0 0 10px var(--glow-blue);
+    }
+
+    .settingswrap::-webkit-scrollbar-thumb:hover,
+    .theme-grid::-webkit-scrollbar-thumb:hover,
+    .designer-controls::-webkit-scrollbar-thumb:hover,
+    #photo-list-container::-webkit-scrollbar-thumb:hover { 
+        background: linear-gradient(180deg, var(--accent-cyan), var(--accent-blue)); 
+    }
 </style>
 </head>
 <body>
@@ -624,14 +672,42 @@
                                 <div class="section" style="margin-top: 0px; margin-bottom: 0;">
                                     <h3 class="small" style="margin-top: 0; margin-bottom: 12px;">VÁSZON BEÁLLÍTÁSOK</h3>
                     
-                                    <div class="grid-2-cols" style="margin-bottom: 10px;">
+                                    <!-- <div class="grid-2-cols" style="margin-bottom: 10px;">
                                         <label for="canvas-width">Szélesség (cm): <input type="number" id="canvas-width" value="21" min="1" oninput="updateCanvasSize()"></label>
                                         <label for="canvas-height">Magasság (cm): <input type="number" id="canvas-height" value="30" min="1" oninput="updateCanvasSize()"></label>
+                                    </div> -->
+                                    <div class="setting-group">
+                                        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" id="aspect-ratio-lock" onchange="toggleResizeLock(this)">
+                                            <span>🔒 Képarány és Térkép rögzítése</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="grid-2-cols">
+                                        <div class="setting-group">
+                                            <label>Szélesség (cm):</label>
+                                            <input type="number" id="canvas-width" value="21" step="0.1" 
+                                                   oninput="handleCanvasParamChange('width', this.value)">
+                                        </div>
+                                        <div class="setting-group">
+                                            <label>Magasság (cm):</label>
+                                            <input type="number" id="canvas-height" value="30" step="0.1" 
+                                                   oninput="handleCanvasParamChange('height', this.value)">
+                                        </div>
                                     </div>
 
                                     <div class="setting-group" style="margin-bottom: 5px;">
                                         <label for="canvas-bg-color">Háttérszín:</label>
                                         <input type="color" id="canvas-bg-color" value="#0a0e27" oninput="window.updateCanvasBackground(this.value)">
+                                    </div>
+                                    <div class="setting-group">
+                                        <label>Falad színe (Szimuláció):</label>
+                                        <div style="display:flex; gap:5px;">
+                                            <!-- <input type="color" id="wall-bg-color" value="#0a0e27" 
+                                                   oninput="updateWallColor(this.value)"> -->
+                                            <input type="color" id="wall-bg-color" value="#BABABA" 
+                                                   oninput="updateWallColor(this.value)">
+                                        </div>
                                     </div>
                                     <!-- <div class="section" style="margin-top: 16px; margin-bottom: 0;">
                                       <h3 class="small" style="margin-top: 0; margin-bottom: 12px;">🖼️ KÉP & ELRENDEZÉS</h3>
@@ -691,7 +767,72 @@
                                     <button onclick="alignCelestialMap('bottom')">Lent</button>
                                 </div>
                             </div>
+                            <!-- <div class="collapsible-header" data-target="projection-settings">
+                                <h2><3 Szív kivágás</h2>
+                                < ! - - <span class="collapsible-icon">▼</span> - - >
+                                <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
+                            </div> -->
+                            <!-- <div class="collapsible-content" id="mask-settings"> -->
+                                <!-- <div class="setting-group" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;"> -->
+                            <!-- <div class="section" style="margin-top: 0px; margin-bottom: 0;">
+                                <label>♥ Szív Alak (Maszkolás)</label>
+                                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 5px;">
+                                    <div onclick="setHeartMask('none')" class="mask-option selected" id="mask-btn-none" 
+                                             style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 50%; border: 2px solid #4a9eff; display: flex; align-items: center; justify-content: center;" title="Nincs (Kör)">
+                                        <span style="font-size: 20px;">○</span>
+                                    </div>
 
+                                    <div onclick="setHeartMask('classic')" class="mask-option" id="mask-btn-classic"
+                                             style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Klasszikus Szív">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                    </div>
+
+                                    <div onclick="setHeartMask('artistic')" class="mask-option" id="mask-btn-artistic"
+                                             style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Művészi Szív">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12,21.8c-0.2,0-0.5,0-0.7-0.2c-5.3-4.2-9.3-8.1-9.3-12.4c0-3.3,2.7-6.2,6.2-6.2c1.9,0,3.7,0.9,4.8,2.3c1.1-1.4,2.9-2.3,4.8-2.3 c3.5,0,6.2,2.8,6.2,6.2c0,4.3-4,8.2-9.3,12.4C14.5,21.8,12.2,21.8,12,21.8z"/></svg>
+                                    </div>
+                                </div>
+                            </div> -->
+                            <div class="section" style="margin-top: 0px; margin-bottom: 0;"><label>♥ Szív Alak és Méret</label>
+    
+                                <div style="display: flex; gap: 8px; justify-content: center; margin-top: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+                                    <div onclick="setHeartMask('none')" class="mask-option selected" id="mask-btn-none" 
+                                         style="cursor: pointer; width: 35px; height: 35px; background: #333; border-radius: 50%; border: 2px solid #4a9eff; display: flex; align-items: center; justify-content: center;" title="Eredeti (Kör)">
+                                        <span style="font-size: 18px;">○</span>
+                                    </div>
+
+                                    <div onclick="setHeartMask('classic')" class="mask-option" id="mask-btn-classic"
+                                         style="cursor: pointer; width: 35px; height: 35px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Klasszikus">
+                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                    </div>
+
+                                    <div onclick="setHeartMask('elegant')" class="mask-option" id="mask-btn-elegant"
+                                         style="cursor: pointer; width: 35px; height: 35px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Elegáns">
+                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 21s-8-5.5-8-11.5C4 5.5 8 3.5 12 8c4-4.5 8-2.5 8 1.5C20 15.5 12 21 12 21z"/></svg>
+                                    </div>
+
+                                    <div onclick="setHeartMask('round')" class="mask-option" id="mask-btn-round"
+                                         style="cursor: pointer; width: 35px; height: 35px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Kerekded">
+                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 20.5C6 16 3 13 3 9.5 3 7 5 5 7.5 5c1.5 0 3 .5 4.5 2 1.5-1.5 3-2 4.5-2 2.5 0 4.5 2 4.5 4.5 0 3.5-3 6.5-9 11z"/></svg>
+                                    </div>
+
+                                    <div onclick="setHeartMask('modern')" class="mask-option" id="mask-btn-modern"
+                                         style="cursor: pointer; width: 35px; height: 35px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Modern">
+                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 21L3 10a5 5 0 0 1 8-4 5 5 0 0 1 1 1 5 5 0 0 1 1-1 5 5 0 0 1 8 4L12 21z"/></svg>
+                                    </div>
+                                </div>
+
+                                <div id="mask-scale-container" style="display:none; margin-top: 10px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                                        <label style="font-size: 11px; color: #aaa;">Szív Mérete:</label>
+                                        <span style="font-size: 11px; color: #fff;">+/-</span>
+                                    </div>
+                                    <input type="range" id="mask-scale-slider" min="50" max="130" value="100" 
+                                           oninput="updateMaskScale(this.value)" style="width: 100%; cursor: pointer;">
+                                </div>
+                            </div>
+                                <!-- </div> -->
+                            <!-- </div> -->
                             <!-- <div class="collapsible-header" data-target="text-settings">
                                 <h2>📝 Szöveg beállítások</h2>
                                 < ! - - <span class="collapsible-icon">▼</span> - - >
@@ -1065,11 +1206,11 @@
 
                                     <div id="top-blocks-container"></div>
 
-                                    <div class="grid-2-cols" style="margin-top: 10px; grid-template-columns: 1fr 1fr ; gap: 5px;">
+                                    <!-- <div class="grid-2-cols" style="margin-top: 10px; grid-template-columns: 1fr 1fr ; gap: 5px;">
                                         <button onclick="addNewBlock('top', true)" class="add-btn primary">⏎ Új Sor</button>
                                         <button onclick="addNewBlock('top', false)" class="add-btn secondary">Inline</button>
-                                        <!-- <button onclick="window.openSymbolPicker(event, 'top', this)" class="add-btn accent">♥ Jel</button> -->
-                                    </div>
+                                        < ! - - <button onclick="window.openSymbolPicker(event, 'top', this)" class="add-btn accent">♥ Jel</button> - - >
+                                    </div> -->
                                 </div>
                             </div>
 
@@ -1095,11 +1236,11 @@
 
                                     <div id="bottom-blocks-container"></div>
 
-                                    <div class="grid-2-cols" style="margin-top: 10px; grid-template-columns: 1fr 1fr ; gap: 5px;">
+                                    <!-- <div class="grid-2-cols" style="margin-top: 10px; grid-template-columns: 1fr 1fr ; gap: 5px;">
                                         <button onclick="addNewBlock('bottom', true)" class="add-btn primary">⏎ Új Sor</button>
                                         <button onclick="addNewBlock('bottom', false)" class="add-btn secondary">Inline</button>
-                                        <!-- <button onclick="window.openSymbolPicker(event, 'bottom', this)" class="add-btn accent">♥ Jel</button> -->
-                                    </div>
+                                        < ! - - <button onclick="window.openSymbolPicker(event, 'bottom', this)" class="add-btn accent">♥ Jel</button> - - >
+                                    </div> -->
                                 </div>
                             </div>
                             
@@ -1377,7 +1518,32 @@
                                 <input id="szivratioja" type="number" min="0.1" max="5" step="0.1" value="0.88"> -->
                             </div>
                         </div>
+                        <!-- <div class="collapsible-header" data-target="projection-settings">
+                            <h2><3 Szív kivágás</h2>
+                            < ! - - <span class="collapsible-icon">▼</span> - - >
+                            <span class="collapsible-icon"><i class="collapsible-icon-icon">▼</i></span>
+                        </div>
+                        <div class="collapsible-content" id="mask-settings">
+                            <div class="setting-group" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+                                <label>♥ Szív Alak (Maszkolás)</label>
+                                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 5px;">
+                                    <div onclick="setHeartMask('none')" class="mask-option selected" id="mask-btn-none" 
+                                         style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 50%; border: 2px solid #4a9eff; display: flex; align-items: center; justify-content: center;" title="Nincs (Kör)">
+                                        <span style="font-size: 20px;">○</span>
+                                    </div>
 
+                                    <div onclick="setHeartMask('classic')" class="mask-option" id="mask-btn-classic"
+                                         style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Klasszikus Szív">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                    </div>
+
+                                    <div onclick="setHeartMask('artistic')" class="mask-option" id="mask-btn-artistic"
+                                         style="cursor: pointer; width: 40px; height: 40px; background: #333; border-radius: 4px; border: 1px solid #555; display: flex; align-items: center; justify-content: center;" title="Művészi Szív">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12,21.8c-0.2,0-0.5,0-0.7-0.2c-5.3-4.2-9.3-8.1-9.3-12.4c0-3.3,2.7-6.2,6.2-6.2c1.9,0,3.7,0.9,4.8,2.3c1.1-1.4,2.9-2.3,4.8-2.3 c3.5,0,6.2,2.8,6.2,6.2c0,4.3-4,8.2-9.3,12.4C14.5,21.8,12.2,21.8,12,21.8z"/></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> -->
 
 
 
@@ -6570,7 +6736,8 @@ function createThemeCard(container, key, theme, variant) {
                     // mapProj.translate([currentTranslate[0], mapHeight ]);
                     // mapProj.translate([currentTranslate[0], currentTranslate[1] + (deltaY/5)]);
                     // mapProj.translate([currentTranslate[0], deltaY*1.5]);
-                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    mapProj.translate([currentTranslate[0], currentTranslate[1] * 1.15]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();
@@ -6959,7 +7126,8 @@ function createThemeCard(container, key, theme, variant) {
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 10]);
                     // mapProj.translate([currentTranslate[0], mapHeight * 4]);
                     // mapProj.translate([currentTranslate[0], currentTranslate[1]]);
-                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    mapProj.translate([currentTranslate[0], currentTranslate[1] * 1.15]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();

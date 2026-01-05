@@ -144,6 +144,112 @@ let canvasContainer, styleControls, textList;
 // }
 // --- DOM ELEMEK ---
 let designerSVG, transformGroup, mapLayer, textLayer;
+// --- CSS INJEKTÁLÁS (A rejtőzködő gombokhoz) ---
+// Ezt a script elején lefuttatjuk, hogy meglegyen a stílus
+(function addCustomStyles() {
+    const styleId = 'dynamic-block-styles';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            /* Alapból a gombok halványak/rejtettek */
+            .block-actions {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease-in-out;
+            }
+            /* Ha a kártya fölé viszed az egeret (Hover) VAGY szerkeszted (Focus) -> Megjelennek */
+            .block-card:hover .block-actions,
+            .block-card:focus-within .block-actions {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            /* Mobilon mindig látszódjon kicsit, vagy érintésre */
+            @media (max-width: 768px) {
+                .block-actions { opacity: 1 !important; pointer-events: auto !important; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+})();
+// --- SABLON ADATBÁZIS ---
+const TEXT_TEMPLATES = {
+    "Szerelem": [
+        "A nap, amikor csillagaink találkoztak",
+        "Szeretlek a Holdig és vissza",
+        "A kezdet, ami örökké tart",
+        "Egymásnak teremtve",
+        "A mi csillagos égboltunk",
+        "Te vagy a mindenem",
+        "A szerelmünk születése",
+        "Örökkön örökké",
+        "Csillagokban megírva",
+        "A legszebb éjszakánk",
+        "Együtt, mindörökké",
+        "A szívem választottja",
+        "Végtelen szerelem"
+    ],
+    "Esküvő": [
+        "A Nagy Nap",
+        "Mr. & Mrs.",
+        "Két szív, egy lélek",
+        "Igen, mindörökké",
+        "Életünk legszebb napja",
+        "Egy új közös út kezdete",
+        "Szerelmünk ünnepe",
+        "Holtodiglan, holtomiglan",
+        "Kezdődik az örökké",
+        "Szövetségünk az ég alatt",
+        "A fogadalom napja",
+        "Együtt az úton",
+        "Tökéletes pillanat"
+    ],
+    "Születésnap": [
+        "A nap, amikor a világra jöttél",
+        "Boldog születésnapot!",
+        "Egy csillag született",
+        "A Te napod",
+        "Isten éltessen sokáig!",
+        "Ragyogj, mint a csillagok!",
+        "A legszebb ajándék",
+        "Ünnepeljük a létedet",
+        "Csodás évek állnak előtted",
+        "Kívánj valamit!",
+        "A Te csillagod",
+        "Boldogság és szeretet",
+        "Az élet szép veled"
+    ],
+    "Gyermek születése": [
+        "Isten hozott a világon!",
+        "A legkisebb csillagunk",
+        "Szeretetünk gyümölcse",
+        "A csoda megérkezett",
+        "Édes kisbabánk",
+        "Az első lélegzetvétel",
+        "Áldás az égből",
+        "A családunk kincse",
+        "Vártunk rád",
+        "A legboldogabb napunk",
+        "Kicsi kéz, nagy csoda",
+        "A jövő elkezdődött",
+        "Angyal szállt a földre"
+    ],
+    "Idézetek": [
+        "Nézz fel az égre...",
+        "A csillagok nem hazudnak",
+        "Minden történet itt kezdődik",
+        "Ragyogj!",
+        "Az univerzum bennünk él",
+        "Végtelen lehetőségek",
+        "Álmodj nagyot!",
+        "A pillanat varázsa",
+        "Csillagporból lettünk",
+        "Az égbolt mesél",
+        "Hallgass a szívedre",
+        "A végtelen érintése",
+        "Fény az éjszakában"
+    ]
+};
 
 function getDOMElements() {
     designerSVG = document.getElementById('designer-svg');
@@ -647,6 +753,336 @@ let currentMapPos = 'center'; // alapértelmezett
 //     currentMapTargetWidthCM = parseFloat(cmValue);
 //     window.refreshMapTransform();
 // }
+// --- SZÍV MASZK DEFINÍCIÓK ---
+// Ezek 0-1 közötti koordináták, vagy 1000x1000-es viewboxhoz igazítottak
+// const HEART_PATHS = {
+//     // Klasszikus telt szív (1000x1000-es mérethez igazítva)
+//     'classic': "M 500,880 C 300,700 50,450 50,250 C 50,100 200,50 350,50 C 450,50 500,150 500,150 C 500,150 550,50 650,50 C 800,50 950,100 950,250 C 950,450 700,700 500,880 Z",
+    
+//     // Kicsit szélesebb, modern szív
+//     'artistic': "M 500,900 C 200,650 20,400 20,220 C 20,100 180,20 340,20 C 440,20 500,100 500,100 C 500,100 560,20 660,20 C 820,20 980,100 980,220 C 980,400 800,650 500,900 Z"
+// };
+// --- ÚJ SZÍV MASZKOK (Szebb formák) ---
+const HEART_PATHS = {
+    // 1. Klasszikus (Szép, arányos szív)
+    'classic': "M 500 880 C 280 680 50 450 50 250 C 50 100 200 50 350 50 C 450 50 500 150 500 150 C 500 150 550 50 650 50 C 800 50 950 100 950 250 C 950 450 720 680 500 880 Z",
+    
+    // 2. Elegáns (Keskenyebb, nyújtottabb, ékszer stílus)
+    'elegant': "M 500 950 C 300 700 100 450 100 280 C 100 120 220 50 340 50 C 420 50 480 100 500 150 C 520 100 580 50 660 50 C 780 50 900 120 900 280 C 900 450 700 700 500 950 Z",
+    
+    // 3. Kerekded (Bojtos, széles, cuki)
+    'round': "M 500 850 C 200 600 20 400 20 250 C 20 100 180 20 350 20 C 450 20 500 80 500 80 C 500 80 550 20 650 20 C 820 20 980 100 980 250 C 980 400 800 600 500 850 Z",
+    
+    // 4. Modern (Minimál, élesebb vonalvezetés)
+    'modern': "M 500 900 L 150 550 C 50 450 50 300 150 200 C 250 100 400 100 500 200 C 600 100 750 100 850 200 C 950 300 950 450 850 550 L 500 900 Z"
+};
+// Globális változó a választott maszk tárolására
+let currentMapMask = 'none';
+
+// UI Kezelő függvény (ezt hívja a gomb)
+window.setHeartMask = function(type) {
+    currentMapMask = type;
+    // alert(type)
+    // 1. Gombok stílusának frissítése
+    document.querySelectorAll('.mask-option').forEach(el => {
+        el.style.border = '1px solid #555';
+        el.style.borderColor = '#555';
+    });
+    const activeBtn = document.getElementById(`mask-btn-${type}`);
+    if(activeBtn) activeBtn.style.border = '2px solid #4a9eff';
+
+    // 2. Projekció visszaállítása KÖRRE (Airy), ha szívet választottunk
+    // Mert a szív maszk csak a kerek térképen mutat jól.
+    if (type !== 'none' && typeof Celestial !== 'undefined') {
+        const projSelect = document.getElementById('projection');
+        if (projSelect && projSelect.value !== 'airy') {
+            projSelect.value = 'airy'; // Visszaváltunk Airy-re
+            // Ez triggereli a Celestial.js redraw-t is, ha be van kötve az onchange
+            if(window.loadTheme) window.loadTheme(null); // Vagy a megfelelő config frissítő
+        }
+    }
+
+    // 3. Azonnali frissítés a Tervezőben
+    // Ha már át van másolva a térkép, frissítjük a maszkját
+    applyMaskToDesigner();
+    
+    // Ha a főoldalon vagyunk, a Canvas-ra is tehetünk CSS maszkot (opcionális látványelem)
+    const mainCanvas = document.querySelector('#celestial-map canvas');
+    if (mainCanvas) {
+        if (type === 'none') {
+            mainCanvas.style.clipPath = 'none';
+            mainCanvas.style.webkitClipPath = 'none';
+        } else {
+            // CSS clip-path path() támogatás modern böngészőkben
+            // Fontos: A path koordinátákat arányosítani kellene a canvas méretéhez (0-1 range a legjobb css-ben)
+            // Egyszerűsítés: Most csak a Tervezőre koncentrálunk, a főoldali preview maradhat kör.
+        }
+    }
+    
+    // Újrageneráljuk a tervezőt
+    if (typeof window.applyDesignerTheme === 'function') {
+        // Paraméter nélkül hívjuk az aktuális témával, csak hogy frissüljön
+        // Vagy csak simán:
+        if(typeof window.copyMapToDesigner === 'function') window.copyMapToDesigner();
+    }
+};
+
+// // A maszk alkalmazása az SVG-ben
+// function applyMaskToDesigner() {
+//     const designerSVG = document.getElementById('designer-svg');
+//     if (!designerSVG) return;
+
+//     // 1. Megkeressük vagy létrehozzuk a ClipPath definíciót
+//     let defs = designerSVG.querySelector('defs');
+//     if (!defs) {
+//         defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//         designerSVG.insertBefore(defs, designerSVG.firstChild);
+//     }
+//     alert("e")
+//     // Töröljük a régi maszkot
+//     const oldMask = document.getElementById('map-heart-clip');
+//     if (oldMask) oldMask.remove();
+
+//     // Ha 'none', akkor végeztünk (levesszük a képről a hivatkozást)
+//     const mapImage = document.querySelector('.celestial-map-image');
+//     if (!mapImage) return;
+
+//     if (currentMapMask === 'none') {
+//         mapImage.removeAttribute('clip-path');
+//         return;
+//     }
+
+//     // 2. Létrehozzuk az új ClipPath-t
+//     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+//     clipPath.setAttribute('id', 'map-heart-clip');
+
+//     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+//     path.setAttribute('d', HEART_PATHS[currentMapMask]);
+    
+//     // FONTOS: Transzformáció, hogy illeszkedjen a térkép méretéhez
+//     // A Celestial térkép képünk általában négyzetes.
+//     // A path adataink 1000x1000-es dobozra vannak írva.
+//     // Ha a kép mérete más (pl. a forrás canvas mérete), akkor skálázni kell a clipPath-t.
+//     // SVG trükk: clipPathUnits="objectBoundingBox" és a path adatokat 0..1 közé konvertálni.
+//     // VAGY: Egyszerűbb, ha a path adatokat skálázzuk a transform attribútummal.
+    
+//     // A legegyszerűbb megoldás: feltételezzük, hogy a mapImage 1000x1000-es koordináta rendszerben van? 
+//     // Nem, a mapImage mérete változhat.
+    
+//     // MEGOLDÁS: objectBoundingBox használata. Ehhez át kell írni a path-t 0..1 tartományba.
+//     // De a fenti path-ok 0..1000 tartományban vannak.
+//     // Akkor használjuk a transform="scale(1/1000)" trükköt a clipPath-on belül!
+    
+//     path.setAttribute('transform', 'scale(0.001, 0.001)'); 
+//     clipPath.setAttribute('clipPathUnits', 'objectBoundingBox');
+    
+//     clipPath.appendChild(path);
+//     defs.appendChild(clipPath);
+
+//     // 3. Rárakjuk a képre
+//     mapImage.setAttribute('clip-path', 'url(#map-heart-clip)');
+// }
+
+// // A maszk alkalmazása az SVG-ben
+// function applyMaskToDesigner() {
+//     const designerSVG = document.getElementById('designer-svg');
+//     if (!designerSVG) return;
+
+//     // 1. Megkeressük vagy létrehozzuk a <defs>-t
+//     let defs = designerSVG.querySelector('defs');
+//     if (!defs) {
+//         defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//         designerSVG.insertBefore(defs, designerSVG.firstChild);
+//     }
+
+//     // Töröljük a régi maszkot
+//     const oldMask = document.getElementById('map-heart-clip');
+//     if (oldMask) oldMask.remove();
+
+//     // Megkeressük a képet, amire a maszkot tenni kell
+//     const mapImage = document.querySelector('.celestial-map-image');
+    
+//     // Ha 'none' (kör), akkor levesszük a clip-path-ot
+//     if (currentMapMask === 'none') {
+//         if (mapImage) mapImage.removeAttribute('clip-path');
+//         // Vizuális visszajelzés a gombokon
+//         updateMaskButtons('none');
+//         return;
+//     }
+
+//     // Gombok frissítése
+//     updateMaskButtons(currentMapMask);
+
+//     // 2. Létrehozzuk az új ClipPath-t
+//     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+//     clipPath.setAttribute('id', 'map-heart-clip');
+//     // FONTOS: Ez teszi lehetővé, hogy a maszk kövesse a kép méretét (reszponzív)
+//     clipPath.setAttribute('clipPathUnits', 'objectBoundingBox');
+
+//     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+//     path.setAttribute('d', HEART_PATHS[currentMapMask]);
+    
+//     // TRÜKK: Mivel a path adataink 0..1000 tartományban vannak,
+//     // de az objectBoundingBox 0..1-et vár, le kell kicsinyíteni ezredrészére!
+//     path.setAttribute('transform', 'scale(0.001, 0.001)'); 
+    
+//     clipPath.appendChild(path);
+//     defs.appendChild(clipPath);
+
+//     // 3. Rárakjuk a képre a maszkot
+//     if (mapImage) {
+//         mapImage.setAttribute('clip-path', 'url(#map-heart-clip)');
+//     }
+// }
+// // Globális változó a maszk skálázásához
+// let currentMaskScale = 1.0;
+
+// // Csúszka eseménykezelője
+// window.updateMaskScale = function(val) {
+//     currentMaskScale = parseInt(val) / 100;
+//     applyMaskToDesigner(); // Újrarajzoljuk a maszkot az új mérettel
+// }
+
+// // A maszk alkalmazása az SVG-ben (JAVÍTOTT: Skálázással)
+// function applyMaskToDesigner() {
+//     const designerSVG = document.getElementById('designer-svg');
+//     if (!designerSVG) return;
+
+//     // Maszk csúszka megjelenítése/elrejtése
+//     const sliderContainer = document.getElementById('mask-scale-container');
+//     if (sliderContainer) {
+//         sliderContainer.style.display = (currentMapMask === 'none') ? 'none' : 'block';
+//     }
+
+//     // 1. Defs keresése
+//     let defs = designerSVG.querySelector('defs');
+//     if (!defs) {
+//         defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//         designerSVG.insertBefore(defs, designerSVG.firstChild);
+//     }
+
+//     // Régi törlése
+//     const oldMask = document.getElementById('map-heart-clip');
+//     if (oldMask) oldMask.remove();
+
+//     const mapImage = document.querySelector('.celestial-map-image');
+//     if (!mapImage) return;
+
+//     // Ha nincs maszk
+//     if (currentMapMask === 'none') {
+//         mapImage.removeAttribute('clip-path');
+//         updateMaskButtons('none');
+//         return;
+//     }
+
+//     updateMaskButtons(currentMapMask);
+
+//     // 2. Új ClipPath létrehozása
+//     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+//     clipPath.setAttribute('id', 'map-heart-clip');
+//     clipPath.setAttribute('clipPathUnits', 'objectBoundingBox');
+
+//     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+//     path.setAttribute('d', HEART_PATHS[currentMapMask]);
+    
+//     // --- SKÁLÁZÁS LOGIKA ---
+//     // A path 1000x1000-es. 
+//     // Alap skála: 0.001 (hogy 0..1 legyen).
+//     // Felhasználói skála: currentMaskScale.
+//     // Ahhoz, hogy a maszk változzon a középvonalhoz képest, trükközni kell a transzformációval.
+//     // De a legegyszerűbb, ha csak a méretet állítjuk.
+    
+//     // Scale: 0.001 * currentMaskScale
+//     // Translate: Hogy középen maradjon, el kell tolni.
+//     // Ha 0.8-ra kicsinyítjük, akkor (1 - 0.8) / 2 = 0.1-el el kell tolni jobbra/le.
+    
+//     const finalScale = 0.001 * currentMaskScale;
+//     const offset = (1 - currentMaskScale) / 2;
+    
+//     // Transform string: translate(offset, offset) scale(finalScale)
+//     // Fontos: a sorrend számít!
+//     path.setAttribute('transform', `translate(${offset}, ${offset}) scale(${finalScale})`); 
+    
+//     clipPath.appendChild(path);
+//     defs.appendChild(clipPath);
+
+//     // 3. Alkalmazás
+//     mapImage.setAttribute('clip-path', 'url(#map-heart-clip)');
+// }
+
+// Globális változó a maszk skálázásához (Alap: 100%)
+let currentMaskScale = 1.0;
+
+// Csúszka eseménykezelője (HTML-ből hívjuk)
+window.updateMaskScale = function(val) {
+    currentMaskScale = parseInt(val) / 100;
+    applyMaskToDesigner(); 
+}
+
+// A maszk alkalmazása
+function applyMaskToDesigner() {
+    const designerSVG = document.getElementById('designer-svg');
+    if (!designerSVG) return;
+
+    // Csúszka megjelenítése/elrejtése
+    const sliderContainer = document.getElementById('mask-scale-container');
+    if (sliderContainer) {
+        sliderContainer.style.display = (currentMapMask === 'none') ? 'none' : 'block';
+    }
+
+    let defs = designerSVG.querySelector('defs');
+    if (!defs) {
+        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        designerSVG.insertBefore(defs, designerSVG.firstChild);
+    }
+
+    const oldMask = document.getElementById('map-heart-clip');
+    if (oldMask) oldMask.remove();
+
+    const mapImage = document.querySelector('.celestial-map-image');
+    if (!mapImage) return;
+
+    if (currentMapMask === 'none') {
+        mapImage.removeAttribute('clip-path');
+        updateMaskButtons('none');
+        return;
+    }
+
+    updateMaskButtons(currentMapMask);
+
+    const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+    clipPath.setAttribute('id', 'map-heart-clip');
+    clipPath.setAttribute('clipPathUnits', 'objectBoundingBox');
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute('d', HEART_PATHS[currentMapMask]);
+    
+    // --- MÉRETEZÉS ÉS KÖZÉPRE IGAZÍTÁS ---
+    // Mivel 0..1 koordináták kellenek, és a path 1000-es:
+    // 1. Skálázzuk le 0.001-re (alap) * a felhasználó méretével.
+    // 2. Toljuk el (Translate), hogy középen maradjon.
+    //    Ha a méret 0.8 (80%), akkor a maradék hely 0.2. Ennek a fele (0.1) kell balra és fentre.
+    
+    const baseScale = 0.001; 
+    const finalScale = baseScale * currentMaskScale;
+    const offset = (1 - currentMaskScale) / 2;
+    
+    path.setAttribute('transform', `translate(${offset}, ${offset}) scale(${finalScale})`); 
+    
+    clipPath.appendChild(path);
+    defs.appendChild(clipPath);
+
+    mapImage.setAttribute('clip-path', 'url(#map-heart-clip)');
+}
+// Segédfüggvény a gombok színezéséhez
+function updateMaskButtons(activeType) {
+    document.querySelectorAll('.mask-option').forEach(el => {
+        el.style.border = '1px solid #555';
+        el.style.borderColor = '#555';
+    });
+    const activeBtn = document.getElementById(`mask-btn-${activeType}`);
+    if(activeBtn) activeBtn.style.border = '2px solid #4a9eff';
+}
 
 // --- ÚJ: Max méretre igazítás gombhoz ---
 window.fitMapToCanvas = function() {
@@ -1093,13 +1529,14 @@ window.alignCelestialMap = function(position) {
 //         mapWrap.style.background = color;
 //     }
 // }
-// --- JAVÍTOTT EXPORTÁLÁS (Fix méretű háttérrel + Választott színnel) ---
+// // --- JAVÍTOTT EXPORTÁLÁS (Fix méretű háttérrel + Választott színnel) ---
 // async function exportCanvas(format) {
 //     if (!getDOMElements()) {
 //         alert("Hiba: A tervező elem nem található.");
 //         return;
 //     }
-
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
 //     try {
 //         // 1. Méretek és Szín lekérése (Biztonságosabban)
 //         // A viewBox.baseVal pontosabb értékeket ad vissza, mint a string split
@@ -1111,16 +1548,48 @@ window.alignCelestialMap = function(position) {
 
 //         // Háttérszín lekérése közvetlenül az SVG stílusából (amit a user beállított)
 //         // Ha nincs beállítva, alapértelmezett sötétkék
-//         const bgColor = designerSVG.style.backgroundColor || "#0a0e27";
+//         const bgColor = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+//         // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // 2. CSS STÍLUSOK ÖSSZEGYŰJTÉSE (EZ A HIÁNYZÓ LÁNCSZEM A CSILLAGOKHOZ!)
+//         let usedStyles = "";
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 const rules = sheets[i].cssRules;
+//                 if (rules) {
+//                     for (let j = 0; j < rules.length; j++) {
+//                         usedStyles += rules[j].cssText + "\n";
+//                     }
+//                 }
+//             } catch (e) {
+//                 // CORS hiba esetén átugorjuk
+//             }
+//         }
+
+//         // 3. SVG KLÓNOZÁSA ÉS STÍLUSOK INJEKTÁLÁSA
+//         // Ez közös lépés mindkét formátumnál!
+//         const svgClone = designerSVG.cloneNode(true);
+        
+//         // Méretek fixálása
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // Stílus elem beszúrása
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = usedStyles;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
 
 //         // --- A: VEKTOROS EXPORT (SVG) ---
 //         if (format === 'svg') {
-//             const svgClone = designerSVG.cloneNode(true);
+//             // const svgClone = designerSVG.cloneNode(true);
             
 //             // Méretek fixálása: Pixelben adjuk meg, így a böngésző nem torzítja el
-//             svgClone.setAttribute("width", width);
-//             svgClone.setAttribute("height", height);
-//             svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+//             // svgClone.setAttribute("width", width);
+//             // svgClone.setAttribute("height", height);
+//             // svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
             
 //             // HÁTTÉR TÉGLALAP (JAVÍTVA)
 //             // Nem 100%-ot használunk, hanem a pontos viewBox méreteket!
@@ -1134,6 +1603,56 @@ window.alignCelestialMap = function(position) {
             
 //             // Beszúrjuk legelső elemnek (hogy minden más alatt legyen)
 //             svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+//             // --- GRADIENS KEZELÉS (VISSZATETTÜK!) ---
+//             if (bgStyle.includes("gradient")) {
+//                 let defs = svgClone.querySelector('defs');
+//                 if (!defs) {
+//                     defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                     svgClone.insertBefore(defs, svgClone.firstChild);
+//                 }
+
+//                 // Színek kinyerése a stringből
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+                
+//                 if (colors && colors.length >= 2) {
+//                     const gradId = "bg-gradient-" + Date.now();
+//                     const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                     gradient.setAttribute("id", gradId);
+                    
+//                     // Átlós irány (135deg)
+//                     gradient.setAttribute("x1", "0%");
+//                     gradient.setAttribute("y1", "0%");
+//                     gradient.setAttribute("x2", "100%");
+//                     gradient.setAttribute("y2", "100%");
+
+//                     const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop1.setAttribute("offset", "0%");
+//                     stop1.setAttribute("stop-color", colors[0]);
+                    
+//                     const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop2.setAttribute("offset", "100%");
+//                     stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+//                     gradient.appendChild(stop1);
+//                     gradient.appendChild(stop2);
+//                     defs.appendChild(gradient);
+
+//                     bgRect.setAttribute("fill", `url(#${gradId})`);
+//                 } else {
+//                     bgRect.setAttribute("fill", "#000000"); // Fallback
+//                 }
+//             } else {
+//                 // Sima szín
+//                 bgRect.setAttribute("fill", bgStyle);
+//             }
+            
+//             // Háttér beszúrása a legelső helyre (a stílus után)
+//             if(svgClone.firstChild) {
+//                  svgClone.insertBefore(bgRect, svgClone.firstChild.nextSibling);
+//             } else {
+//                  svgClone.appendChild(bgRect);
+//             }
 
 //             // Serializálás
 //             const serializer = new XMLSerializer();
@@ -1169,8 +1688,23 @@ window.alignCelestialMap = function(position) {
             
 //             const ctx = canvas.getContext("2d");
             
+//             // Háttér festése Canvas-on (Itt működik a gradiens logika!)
+//             if (bgStyle.includes('gradient')) {
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//                 if (colors && colors.length >= 2) {
+//                     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+//                     gradient.addColorStop(0, colors[0]);
+//                     gradient.addColorStop(1, colors[colors.length - 1]);
+//                     ctx.fillStyle = gradient;
+//                 } else {
+//                     ctx.fillStyle = "#0a0e27";
+//                 }
+//             } else {
+//                 ctx.fillStyle = bgStyle;
+//             }
+
 //             // Háttér kitöltése a választott színnel
-//             ctx.fillStyle = bgColor;
+//             // ctx.fillStyle = bgColor;
 //             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 //             const img = new Image();
@@ -1189,8 +1723,1181 @@ window.alignCelestialMap = function(position) {
 //                 document.body.removeChild(link);
                 
 //                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.onerror = function(e) {
+//                 console.error("Hiba a kép generálásakor:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
+
+
+
+// // --- JAVÍTOTT EXPORTÁLÁS (Betűtípus Fix + Háttér Rect) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
+
+//     try {
+//         // 1. Méretek lekérése
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // 2. STÍLUSOK ÉS FONTOK ÖSSZEGYŰJTÉSE (FONTOS!)
+//         let usedStyles = "";
+        
+//         // A) Google Fonts importálása
+//         // Megkeressük a <link> taget a head-ben, ami a fontokat tölti be
+//         const fontLink = document.querySelector("link[href*='fonts.googleapis.com']");
+//         if (fontLink) {
+//             usedStyles += `@import url('${fontLink.href}');\n`;
+//         }
+
+//         // B) Helyi CSS szabályok másolása
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 const rules = sheets[i].cssRules;
+//                 if (rules) {
+//                     for (let j = 0; j < rules.length; j++) {
+//                         usedStyles += rules[j].cssText + "\n";
+//                     }
+//                 }
+//             } catch (e) {
+//                 // CORS hiba esetén átugorjuk (pl. külső CSS fájlok)
+//             }
+//         }
+
+//         // 3. SVG KLÓNOZÁSA
+//         const svgClone = designerSVG.cloneNode(true);
+        
+//         // Méretek fixálása
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // 4. STÍLUSOK BEILLESZTÉSE
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = usedStyles;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+//         // 5. HÁTTÉR TÉGLALAP (RECT) LÉTREHOZÁSA
+//         // Ez lesz a legalsó réteg, ami színt ad a képnek
+//         const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//         bgRect.setAttribute("x", x);
+//         bgRect.setAttribute("y", y);
+//         bgRect.setAttribute("width", width);
+//         bgRect.setAttribute("height", height);
+//         bgRect.setAttribute("id", "export-background");
+
+//         // --- GRADIENS KEZELÉS ---
+//         if (bgStyle.includes("gradient")) {
+//             // Megkeressük vagy létrehozzuk a <defs> szekciót
+//             let defs = svgClone.querySelector('defs');
+//             if (!defs) {
+//                 defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                 svgClone.insertBefore(defs, svgClone.firstChild);
+//             }
+
+//             // Színek kinyerése a stringből (pl. #0B1026 és #1a2542)
+//             const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+            
+//             if (colors && colors.length >= 2) {
+//                 // SVG LinearGradient létrehozása
+//                 const gradId = "bg-gradient-export-" + Date.now();
+//                 const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                 gradient.setAttribute("id", gradId);
+                
+//                 // Átlós irány (kb. 135deg)
+//                 gradient.setAttribute("x1", "0%");
+//                 gradient.setAttribute("y1", "0%");
+//                 gradient.setAttribute("x2", "100%");
+//                 gradient.setAttribute("y2", "100%");
+
+//                 const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop1.setAttribute("offset", "0%");
+//                 stop1.setAttribute("stop-color", colors[0]);
+                
+//                 const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop2.setAttribute("offset", "100%");
+//                 stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+//                 gradient.appendChild(stop1);
+//                 gradient.appendChild(stop2);
+//                 defs.appendChild(gradient);
+
+//                 bgRect.setAttribute("fill", `url(#${gradId})`);
+//             } else {
+//                 bgRect.setAttribute("fill", "#000000"); // Fallback
+//             }
+//         } else {
+//             // Sima szín
+//             bgRect.setAttribute("fill", bgStyle);
+//         }
+        
+//         // Beszúrjuk a hátteret a legelső helyre (a <style> és <defs> után, de a tartalom elé)
+//         // Keressük meg az első olyan elemet, ami nem defs vagy style
+//         let firstContent = svgClone.firstChild;
+//         while(firstContent && (firstContent.tagName === 'defs' || firstContent.tagName === 'style')) {
+//             firstContent = firstContent.nextSibling;
+//         }
+//         if (firstContent) {
+//             svgClone.insertBefore(bgRect, firstContent);
+//         } else {
+//             svgClone.appendChild(bgRect);
+//         }
+
+//         // 6. SERIALIZÁLÁS
+//         const serializer = new XMLSerializer();
+//         let source = serializer.serializeToString(svgClone);
+
+//         // Névtér javítások
+//         if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//             source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//         }
+//         if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//             source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//         }
+
+//         // --- EXPORTÁLÁS ---
+//         if (format === 'svg') {
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+//             document.body.style.cursor = 'default';
+            
+//         } else {
+//             // PNG / JPEG
+//             const scaleFactor = 3; // Nagy felbontás
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+            
+//             const ctx = canvas.getContext("2d");
+            
+//             // Biztonsági háttér festés (ha az SVG renderelés hibázna)
+//             if (bgStyle.includes('gradient')) {
+//                 // Egyszerűsített gradiens a canvasra is
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//                 if(colors) {
+//                     const grd = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+//                     grd.addColorStop(0, colors[0]);
+//                     grd.addColorStop(1, colors[colors.length-1]);
+//                     ctx.fillStyle = grd;
+//                 } else ctx.fillStyle = "#000";
+//             } else {
+//                 ctx.fillStyle = bgStyle;
+//             }
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             // Fontos: base64 kódolás az ékezetek és speciális karakterek miatt
+//             const svgBlob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 // Töröljük a biztonsági hátteret, és rárajzoljuk a teljes SVG-t (amiben már benne van a rect)
+//                 // Vagy egyszerűen rárajzoljuk, a rect úgyis fedi.
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+                
+//                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
 //             };
             
+//             img.onerror = function(e) {
+//                 console.error("Hiba a kép generálásakor:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
+
+
+// // --- VÉGLEGES EXPORTÁLÁS (Google Fonts Fix + Háttér Rect) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
+
+//     try {
+//         // 1. MÉRETEK ÉS HÁTTÉR LEKÉRÉSE
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         // Háttérstílus (szín vagy gradiens)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // 2. STÍLUSOK ÉS FONTOK ÖSSZEGYŰJTÉSE (EZ A JAVÍTOTT RÉSZ!)
+//         let usedStyles = "";
+        
+//         // A) Google Fonts URL keresése és importálása (CORS megkerülése)
+//         const fontLink = document.querySelector("link[href*='fonts.googleapis.com']");
+//         if (fontLink) {
+//             // Nem olvassuk a szabályokat, csak a linket emeljük be!
+//             usedStyles += `@import url('${fontLink.href}');\n`;
+//         }
+
+//         // B) Helyi CSS szabályok másolása (ez működik a saját stílusokkal)
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 // Csak a belső stílusokat olvassuk, a külsőket (amik hibát dobnának) átugorjuk
+//                 if (!sheets[i].href || sheets[i].href.includes(location.origin)) {
+//                     const rules = sheets[i].cssRules;
+//                     if (rules) {
+//                         for (let j = 0; j < rules.length; j++) {
+//                             usedStyles += rules[j].cssText + "\n";
+//                         }
+//                     }
+//                 }
+//             } catch (e) {
+//                 // Biztonsági okokból a böngésző tilthatja a hozzáférést, ezt lenyeljük
+//             }
+//         }
+
+//         // 3. SVG ELŐKÉSZÍTÉSE
+//         const svgClone = designerSVG.cloneNode(true);
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // Stílusok beillesztése
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = usedStyles;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+//         // 4. HÁTTÉR TÉGLALAP (RECT) LÉTREHOZÁSA (KÉRÉS SZERINT)
+//         const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//         bgRect.setAttribute("x", x);
+//         bgRect.setAttribute("y", y);
+//         bgRect.setAttribute("width", width);
+//         bgRect.setAttribute("height", height);
+//         bgRect.setAttribute("id", "export-background");
+
+//         // --- HÁTTÉR SZÍNEZÉSE (Gradiens vagy Sima) ---
+//         if (bgStyle.includes("gradient")) {
+//             let defs = svgClone.querySelector('defs');
+//             if (!defs) {
+//                 defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                 svgClone.insertBefore(defs, svgClone.firstChild);
+//             }
+
+//             // Színek kinyerése
+//             const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+            
+//             if (colors && colors.length >= 2) {
+//                 const gradId = "bg-gradient-export-" + Date.now();
+//                 const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                 gradient.setAttribute("id", gradId);
+                
+//                 // Átlós irány
+//                 gradient.setAttribute("x1", "0%");
+//                 gradient.setAttribute("y1", "0%");
+//                 gradient.setAttribute("x2", "100%");
+//                 gradient.setAttribute("y2", "100%");
+
+//                 const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop1.setAttribute("offset", "0%");
+//                 stop1.setAttribute("stop-color", colors[0]);
+                
+//                 const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop2.setAttribute("offset", "100%");
+//                 stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+//                 gradient.appendChild(stop1);
+//                 gradient.appendChild(stop2);
+//                 defs.appendChild(gradient);
+
+//                 bgRect.setAttribute("fill", `url(#${gradId})`);
+//             } else {
+//                 bgRect.setAttribute("fill", "#000000"); // Fallback
+//             }
+//         } else {
+//             bgRect.setAttribute("fill", bgStyle);
+//         }
+        
+//         // Rect beszúrása a tartalom alá (a style után)
+//         let firstContent = svgClone.firstChild;
+//         while(firstContent && (firstContent.tagName === 'defs' || firstContent.tagName === 'style')) {
+//             firstContent = firstContent.nextSibling;
+//         }
+//         if (firstContent) {
+//             svgClone.insertBefore(bgRect, firstContent);
+//         } else {
+//             svgClone.appendChild(bgRect);
+//         }
+
+//         // 5. RENDERELÉS ÉS LETÖLTÉS
+//         const serializer = new XMLSerializer();
+//         let source = serializer.serializeToString(svgClone);
+
+//         // Névtér javítások
+//         if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//             source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//         }
+//         if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//             source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//         }
+
+//         if (format === 'svg') {
+//             // SVG Letöltés
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+//             document.body.style.cursor = 'default';
+            
+//         } else {
+//             // PNG / JPEG Letöltés
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+//             const ctx = canvas.getContext("2d");
+            
+//             // Canvas háttér (biztonsági)
+//             ctx.fillStyle = bgStyle.includes('gradient') ? "#000" : bgStyle; 
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             const svgBlob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+                
+//                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
+//             };
+            
+//             img.onerror = function(e) {
+//                 console.error("Hiba a kép generálásakor:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
+
+
+// // --- VÉGLEGES EXPORTÁLÁS (Fix Font Import + Háttér Rect) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
+
+//     try {
+//         // 1. MÉRETEK ÉS HÁTTÉR LEKÉRÉSE
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         // Háttérstílus (szín vagy gradiens)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // 2. STÍLUSOK GENERÁLÁSA (Manuális Font Import!)
+//         let usedStyles = "";
+        
+//         // A) Google Fonts URL generálása az ismert listából
+//         // Ez sokkal biztosabb, mint a DOM-ban keresgélni a <link>-et
+//         if (typeof availableFonts !== 'undefined' && availableFonts.length > 0) {
+//             // Szóközök cseréje pluszjelre a URL-hez
+//             const fontFamilies = availableFonts.map(f => f.replace(/ /g, '+')).join('&family=');
+//             // Teljes URL összerakása
+//             const googleFontUrl = `https://fonts.googleapis.com/css2?family=${fontFamilies}&display=swap`;
+//             // Import szabály hozzáadása
+//             usedStyles += `@import url('${googleFontUrl}');\n`;
+//         }
+
+//         // B) Helyi CSS szabályok másolása (marad a try-catch a biztonság miatt)
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 // Csak a belső vagy engedélyezett stílusokat olvassuk
+//                 if (!sheets[i].href || sheets[i].href.includes(location.origin)) {
+//                     const rules = sheets[i].cssRules;
+//                     if (rules) {
+//                         for (let j = 0; j < rules.length; j++) {
+//                             usedStyles += rules[j].cssText + "\n";
+//                         }
+//                     }
+//                 }
+//             } catch (e) {
+//                 // CORS hibák lenyelése
+//             }
+//         }
+
+//         // 3. SVG ELŐKÉSZÍTÉSE
+//         const svgClone = designerSVG.cloneNode(true);
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // Stílusok beillesztése (Fontos: ez legyen legelöl!)
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = usedStyles;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+//         // 4. HÁTTÉR TÉGLALAP (RECT) LÉTREHOZÁSA
+//         // Kérésedre: Ez a rect adja a hátteret
+//         const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//         bgRect.setAttribute("x", x);
+//         bgRect.setAttribute("y", y);
+//         bgRect.setAttribute("width", width);
+//         bgRect.setAttribute("height", height);
+//         bgRect.setAttribute("id", "export-background");
+
+//         // --- HÁTTÉR SZÍNEZÉSE (Gradiens vagy Sima) ---
+//         if (bgStyle.includes("gradient")) {
+//             let defs = svgClone.querySelector('defs');
+//             if (!defs) {
+//                 defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                 // A stílus után szúrjuk be
+//                 svgClone.insertBefore(defs, styleElement.nextSibling);
+//             }
+
+//             const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+            
+//             if (colors && colors.length >= 2) {
+//                 const gradId = "bg-gradient-export-" + Date.now();
+//                 const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                 gradient.setAttribute("id", gradId);
+//                 gradient.setAttribute("x1", "0%");
+//                 gradient.setAttribute("y1", "0%");
+//                 gradient.setAttribute("x2", "100%");
+//                 gradient.setAttribute("y2", "100%");
+
+//                 const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop1.setAttribute("offset", "0%");
+//                 stop1.setAttribute("stop-color", colors[0]);
+                
+//                 const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop2.setAttribute("offset", "100%");
+//                 stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+//                 gradient.appendChild(stop1);
+//                 gradient.appendChild(stop2);
+//                 defs.appendChild(gradient);
+
+//                 bgRect.setAttribute("fill", `url(#${gradId})`);
+//             } else {
+//                 bgRect.setAttribute("fill", "#000000"); 
+//             }
+//         } else {
+//             bgRect.setAttribute("fill", bgStyle);
+//         }
+        
+//         // Rect beszúrása a tartalom alá (de a definíciók után)
+//         // Megkeressük az első "valódi" elemet
+//         let insertPoint = svgClone.firstChild;
+//         while(insertPoint && (insertPoint.tagName === 'defs' || insertPoint.tagName === 'style')) {
+//             insertPoint = insertPoint.nextSibling;
+//         }
+//         if (insertPoint) {
+//             svgClone.insertBefore(bgRect, insertPoint);
+//         } else {
+//             svgClone.appendChild(bgRect);
+//         }
+
+//         // 5. RENDERELÉS ÉS LETÖLTÉS
+//         const serializer = new XMLSerializer();
+//         let source = serializer.serializeToString(svgClone);
+
+//         // Névtér javítások
+//         if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//             source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//         }
+//         if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//             source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//         }
+
+//         if (format === 'svg') {
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+//             document.body.style.cursor = 'default';
+            
+//         } else {
+//             // PNG Export
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+//             const ctx = canvas.getContext("2d");
+            
+//             // Biztonsági háttér festés Canvasra is (ha a rect nem töltene be azonnal)
+//             if (bgStyle.includes('gradient')) {
+//                  ctx.fillStyle = "#000000"; 
+//             } else {
+//                  ctx.fillStyle = bgStyle;
+//             }
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             const svgBlob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+                
+//                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
+//             };
+            
+//             img.onerror = function(e) {
+//                 console.error("Hiba a kép generálásakor:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
+
+
+// // --- VÉGLEGES EXPORTÁLÁS (CSS Fetch + Rect Háttér) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
+
+//     try {
+//         // 1. MÉRETEK ÉS HÁTTÉR
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // 2. BETŰTÍPUSOK ÉS STÍLUSOK ÖSSZEÁLLÍTÁSA
+//         let finalCSS = "";
+
+//         // A) Google Fonts szabályok LETÖLTÉSE (Fetch)
+//         // Ez a kulcs: nem @import linket teszünk be, hanem a konkrét CSS szöveget!
+//         if (typeof availableFonts !== 'undefined' && availableFonts.length > 0) {
+//             try {
+//                 // URL összeállítása
+//                 const families = availableFonts.map(f => f.replace(/ /g, '+')).join('&family=');
+//                 const fontUrl = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+                
+//                 // Letöltés a háttérben
+//                 const response = await fetch(fontUrl);
+//                 if (response.ok) {
+//                     const fontCssText = await response.text();
+//                     finalCSS += fontCssText + "\n";
+//                 }
+//             } catch (e) {
+//                 console.warn("Nem sikerült letölteni a fontokat, marad az alapértelmezett.", e);
+//             }
+//         }
+
+//         // B) Helyi stílusok másolása
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 if (!sheets[i].href || sheets[i].href.includes(location.origin)) {
+//                     const rules = sheets[i].cssRules;
+//                     if (rules) {
+//                         for (let j = 0; j < rules.length; j++) {
+//                             finalCSS += rules[j].cssText + "\n";
+//                         }
+//                     }
+//                 }
+//             } catch (e) {}
+//         }
+
+//         // 3. SVG KLÓNOZÁSA
+//         const svgClone = designerSVG.cloneNode(true);
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // Stílus elem létrehozása és beszúrása
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = finalCSS;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+//         // 4. HÁTTÉR TÉGLALAP (RECT) LÉTREHOZÁSA
+//         // Ez adja a hátteret, ahogy kérted
+//         const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//         bgRect.setAttribute("x", x);
+//         bgRect.setAttribute("y", y);
+//         bgRect.setAttribute("width", width);
+//         bgRect.setAttribute("height", height);
+//         bgRect.setAttribute("id", "export-background");
+
+//         // Színezés (Gradiens vagy Sima)
+//         if (bgStyle.includes("gradient")) {
+//             let defs = svgClone.querySelector('defs');
+//             if (!defs) {
+//                 defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                 svgClone.insertBefore(defs, styleElement.nextSibling);
+//             }
+
+//             const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//             if (colors && colors.length >= 2) {
+//                 const gradId = "bg-gradient-export-" + Date.now();
+//                 const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                 gradient.setAttribute("id", gradId);
+//                 gradient.setAttribute("x1", "0%"); gradient.setAttribute("y1", "0%");
+//                 gradient.setAttribute("x2", "100%"); gradient.setAttribute("y2", "100%"); // Átlós
+
+//                 const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop1.setAttribute("offset", "0%");
+//                 stop1.setAttribute("stop-color", colors[0]);
+                
+//                 const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                 stop2.setAttribute("offset", "100%");
+//                 stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+//                 gradient.appendChild(stop1);
+//                 gradient.appendChild(stop2);
+//                 defs.appendChild(gradient);
+
+//                 bgRect.setAttribute("fill", `url(#${gradId})`);
+//             } else {
+//                 bgRect.setAttribute("fill", "#000000");
+//             }
+//         } else {
+//             bgRect.setAttribute("fill", bgStyle);
+//         }
+
+//         // Rect beszúrása a tartalom alá
+//         let insertPoint = svgClone.firstChild;
+//         while(insertPoint && (insertPoint.tagName === 'defs' || insertPoint.tagName === 'style')) {
+//             insertPoint = insertPoint.nextSibling;
+//         }
+//         if (insertPoint) svgClone.insertBefore(bgRect, insertPoint);
+//         else svgClone.appendChild(bgRect);
+
+//         // 5. EXPORTÁLÁS
+//         const serializer = new XMLSerializer();
+//         let source = serializer.serializeToString(svgClone);
+
+//         // Névtér javítás
+//         if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//             source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//         }
+//         if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//             source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//         }
+
+//         if (format === 'svg') {
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+//             document.body.style.cursor = 'default';
+//         } else {
+//             // PNG Export
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+//             const ctx = canvas.getContext("2d");
+            
+//             // Biztonsági háttér festés
+//             ctx.fillStyle = bgStyle.includes('gradient') ? "#000000" : bgStyle;
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             const svgBlob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+//                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.onerror = function(e) {
+//                 console.error("Hiba:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
+
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
+
+// --- VÉGLEGES EXPORTÁLÁS (Base64 Font Embed + Rect Háttér) ---
+async function exportCanvas(format) {
+    if (!getDOMElements()) {
+        alert("Hiba: A tervező elem nem található.");
+        return;
+    }
+
+    // Homokóra kurzor, mert a font letöltés eltarthat 1-2 másodpercig
+    document.body.style.cursor = 'wait';
+
+    try {
+        // 1. MÉRETEK ÉS HÁTTÉR
+        const vb = designerSVG.viewBox.baseVal;
+        const width = vb.width;
+        const height = vb.height;
+        const x = vb.x;
+        const y = vb.y;
+
+        const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+        // 2. STÍLUSOK ÉS FONTOK BEÁGYAZÁSA (BASE64 TRANSZFORMÁCIÓVAL)
+        let finalCSS = "";
+
+        // A) Google Fonts letöltése és BEÁGYAZÁSA
+        // Ez a lépés oldja meg a PNG problémát!
+        if (typeof availableFonts !== 'undefined' && availableFonts.length > 0) {
+            try {
+                // 1. CSS Szöveg letöltése
+                const families = availableFonts.map(f => f.replace(/ /g, '+')).join('&family=');
+                const fontUrl = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+                
+                const response = await fetch(fontUrl);
+                if (response.ok) {
+                    let cssText = await response.text();
+                    
+                    // 2. Megkeressük benne a .woff2 linkeket
+                    // Regex: url(https://...)
+                    const urlRegex = /url\(([^)]+)\)/g;
+                    let match;
+                    const urlsToFetch = [];
+                    
+                    // Kigyűjtjük az egyedi URL-eket
+                    while ((match = urlRegex.exec(cssText)) !== null) {
+                        let cleanUrl = match[1].replace(/['"]/g, '');
+                        if (!urlsToFetch.includes(cleanUrl)) {
+                            urlsToFetch.push(cleanUrl);
+                        }
+                    }
+
+                    // 3. Letöltjük a font fájlokat és Base64-re alakítjuk
+                    for (const fontFileUrl of urlsToFetch) {
+                        try {
+                            const fontRes = await fetch(fontFileUrl);
+                            const fontBlob = await fontRes.blob();
+                            
+                            // Promise a FileReader-hez
+                            const base64Data = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(fontBlob);
+                            });
+
+                            // 4. Kicseréljük a CSS-ben a linket a Base64 adatra
+                            // Így a font "fizikailag" ott lesz a fájlban
+                            cssText = cssText.split(fontFileUrl).join(base64Data);
+                            
+                        } catch (err) {
+                            console.warn("Nem sikerült beágyazni egy fontot:", fontFileUrl);
+                        }
+                    }
+                    
+                    finalCSS += cssText + "\n";
+                }
+            } catch (e) {
+                console.warn("Hiba a fontok beágyazásakor:", e);
+            }
+        }
+
+        // B) Helyi stílusok másolása (szokásos módon)
+        const sheets = document.styleSheets;
+        for (let i = 0; i < sheets.length; i++) {
+            try {
+                if (!sheets[i].href || sheets[i].href.includes(location.origin)) {
+                    const rules = sheets[i].cssRules;
+                    if (rules) {
+                        for (let j = 0; j < rules.length; j++) {
+                            finalCSS += rules[j].cssText + "\n";
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // 3. SVG KLÓNOZÁSA
+        const svgClone = designerSVG.cloneNode(true);
+        svgClone.setAttribute("width", width);
+        svgClone.setAttribute("height", height);
+        svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+        // Stílus beszúrása
+        const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        styleElement.textContent = finalCSS;
+        svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+        // 4. HÁTTÉR TÉGLALAP (RECT)
+        const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bgRect.setAttribute("x", x);
+        bgRect.setAttribute("y", y);
+        bgRect.setAttribute("width", width);
+        bgRect.setAttribute("height", height);
+        bgRect.setAttribute("id", "export-background");
+
+        // Színezés
+        if (bgStyle.includes("gradient")) {
+            let defs = svgClone.querySelector('defs');
+            if (!defs) {
+                defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                svgClone.insertBefore(defs, styleElement.nextSibling);
+            }
+
+            const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+            if (colors && colors.length >= 2) {
+                const gradId = "bg-gradient-export-" + Date.now();
+                const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+                gradient.setAttribute("id", gradId);
+                gradient.setAttribute("x1", "0%"); gradient.setAttribute("y1", "0%");
+                gradient.setAttribute("x2", "100%"); gradient.setAttribute("y2", "100%");
+
+                const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                stop1.setAttribute("offset", "0%");
+                stop1.setAttribute("stop-color", colors[0]);
+                
+                const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                stop2.setAttribute("offset", "100%");
+                stop2.setAttribute("stop-color", colors[colors.length - 1]);
+
+                gradient.appendChild(stop1);
+                gradient.appendChild(stop2);
+                defs.appendChild(gradient);
+
+                bgRect.setAttribute("fill", `url(#${gradId})`);
+            } else {
+                bgRect.setAttribute("fill", "#000000");
+            }
+        } else {
+            bgRect.setAttribute("fill", bgStyle);
+        }
+
+        // Rect beszúrása a tartalom alá
+        let insertPoint = svgClone.firstChild;
+        while(insertPoint && (insertPoint.tagName === 'defs' || insertPoint.tagName === 'style')) {
+            insertPoint = insertPoint.nextSibling;
+        }
+        if (insertPoint) svgClone.insertBefore(bgRect, insertPoint);
+        else svgClone.appendChild(bgRect);
+
+        // 5. EXPORTÁLÁS
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(svgClone);
+
+        // Névtér javítás
+        if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+            source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+            source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        }
+
+        if (format === 'svg') {
+            const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            const link = document.createElement("a");
+            link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            document.body.style.cursor = 'default';
+        } else {
+            // PNG Export
+            const scaleFactor = 3; 
+            const canvas = document.createElement("canvas");
+            canvas.width = width * scaleFactor;
+            canvas.height = height * scaleFactor;
+            const ctx = canvas.getContext("2d");
+            
+            // Biztonsági háttér
+            ctx.fillStyle = bgStyle.includes('gradient') ? "#000000" : bgStyle;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const img = new Image();
+            const svgBlob = new Blob([source], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const link = document.createElement('a');
+                const ext = format === 'jpeg' ? 'jpg' : format;
+                link.download = `csillagterkep_${Date.now()}.${ext}`;
+                link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                document.body.style.cursor = 'default';
+            };
+            img.onerror = function(e) {
+                console.error("Hiba:", e);
+                alert("Hiba történt a kép generálásakor.");
+                document.body.style.cursor = 'default';
+            };
+            img.src = url;
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("Exportálási hiba: " + e.message);
+        document.body.style.cursor = 'default';
+    }
+}
+
+
+// // --- JAVÍTOTT EXPORTÁLÁS (SVG Gradiens Támogatással) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
+
+//     try {
+//         // 1. Méretek lekérése
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
+
+//         // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+
+//         // --- A: VEKTOROS EXPORT (SVG) ---
+//         if (format === 'svg') {
+//             const svgClone = designerSVG.cloneNode(true);
+            
+//             svgClone.setAttribute("width", width);
+//             svgClone.setAttribute("height", height);
+//             svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+            
+//             // HÁTTÉR TÉGLALAP LÉTREHOZÁSA
+//             const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//             bgRect.setAttribute("x", x);
+//             bgRect.setAttribute("y", y);
+//             bgRect.setAttribute("width", width);
+//             bgRect.setAttribute("height", height);
+//             bgRect.setAttribute("id", "export-background");
+
+//             // --- GRADIENS KEZELÉS (A JAVÍTÁS LÉNYEGE) ---
+//             if (bgStyle.includes("gradient")) {
+//                 // 1. Megkeressük vagy létrehozzuk a <defs> szekciót
+//                 let defs = svgClone.querySelector('defs');
+//                 if (!defs) {
+//                     defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                     svgClone.insertBefore(defs, svgClone.firstChild);
+//                 }
+
+//                 // 2. Kinyerjük a színeket a stringből (pl. #0B1026 és #1a2542)
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+                
+//                 if (colors && colors.length >= 2) {
+//                     // 3. Létrehozunk egy SVG LinearGradient elemet
+//                     const gradId = "bg-gradient-" + Date.now(); // Egyedi ID
+//                     const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                     gradient.setAttribute("id", gradId);
+                    
+//                     // Átlós irány (kb. 135deg-nek felel meg: bal-fent -> jobb-lent)
+//                     gradient.setAttribute("x1", "0%");
+//                     gradient.setAttribute("y1", "0%");
+//                     gradient.setAttribute("x2", "100%");
+//                     gradient.setAttribute("y2", "100%");
+
+//                     // Kezdő szín (Stop 1)
+//                     const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop1.setAttribute("offset", "0%");
+//                     stop1.setAttribute("stop-color", colors[0]);
+                    
+//                     // Vég szín (Stop 2)
+//                     const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop2.setAttribute("offset", "100%");
+//                     stop2.setAttribute("stop-color", colors[colors.length - 1]); // Az utolsó szín
+
+//                     gradient.appendChild(stop1);
+//                     gradient.appendChild(stop2);
+//                     defs.appendChild(gradient);
+
+//                     // 4. Hivatkozunk rá a téglalapon
+//                     bgRect.setAttribute("fill", `url(#${gradId})`);
+//                 } else {
+//                     // Fallback: Ha nem sikerült színt lopni, legyen fekete
+//                     bgRect.setAttribute("fill", "#000000");
+//                 }
+//             } else {
+//                 // Ha egyszínű (nem gradiens), mehet direktbe
+//                 bgRect.setAttribute("fill", bgStyle);
+//             }
+            
+//             // Beszúrjuk a hátteret legelsőnek
+//             svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+//             // Serializálás és Letöltés
+//             const serializer = new XMLSerializer();
+//             let source = serializer.serializeToString(svgClone);
+
+//             // Névtér javítások
+//             if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//             }
+//             if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//             }
+
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+            
+//         } 
+//         // --- B: RASTERES EXPORT (PNG / JPEG) ---
+//         else {
+//             const svgData = new XMLSerializer().serializeToString(designerSVG);
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
+            
+//             const ctx = canvas.getContext("2d");
+            
+//             // Háttér festése Canvas-on (itt működik a gradiens logika, amit már megcsináltunk korábban)
+//             if (bgStyle.includes('gradient')) {
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//                 if (colors && colors.length >= 2) {
+//                     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+//                     gradient.addColorStop(0, colors[0]);
+//                     gradient.addColorStop(1, colors[colors.length - 1]);
+//                     ctx.fillStyle = gradient;
+//                 } else {
+//                     ctx.fillStyle = "#0a0e27";
+//                 }
+//             } else {
+//                 ctx.fillStyle = bgStyle;
+//             }
+            
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//             const img = new Image();
+//             const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
+
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+//                 URL.revokeObjectURL(url);
+//             };
 //             img.src = url;
 //         }
 
@@ -1200,165 +2907,201 @@ window.alignCelestialMap = function(position) {
 //     }
 // }
 
+// // --- JAVÍTOTT EXPORTÁLÁS (CSS Injektálás + Gradiens Támogatás + Nagy Felbontás) ---
+// async function exportCanvas(format) {
+//     if (!getDOMElements()) {
+//         alert("Hiba: A tervező elem nem található.");
+//         return;
+//     }
 
-// --- JAVÍTOTT EXPORTÁLÁS (SVG Gradiens Támogatással) ---
-async function exportCanvas(format) {
-    if (!getDOMElements()) {
-        alert("Hiba: A tervező elem nem található.");
-        return;
-    }
+//     // Homokóra kurzor
+//     document.body.style.cursor = 'wait';
 
-    try {
-        // 1. Méretek lekérése
-        const vb = designerSVG.viewBox.baseVal;
-        const width = vb.width;
-        const height = vb.height;
-        const x = vb.x;
-        const y = vb.y;
+//     try {
+//         // 1. Méretek lekérése
+//         const vb = designerSVG.viewBox.baseVal;
+//         const width = vb.width;
+//         const height = vb.height;
+//         const x = vb.x;
+//         const y = vb.y;
 
-        // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
-        const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
+//         // Háttérstílus lekérése (ez lehet hex szín vagy linear-gradient string)
+//         const bgStyle = designerSVG.style.background || designerSVG.style.backgroundColor || "#0a0e27";
 
-        // --- A: VEKTOROS EXPORT (SVG) ---
-        if (format === 'svg') {
-            const svgClone = designerSVG.cloneNode(true);
+//         // 2. CSS STÍLUSOK ÖSSZEGYŰJTÉSE (EZ A HIÁNYZÓ LÁNCSZEM A CSILLAGOKHOZ!)
+//         let usedStyles = "";
+//         const sheets = document.styleSheets;
+//         for (let i = 0; i < sheets.length; i++) {
+//             try {
+//                 const rules = sheets[i].cssRules;
+//                 if (rules) {
+//                     for (let j = 0; j < rules.length; j++) {
+//                         usedStyles += rules[j].cssText + "\n";
+//                     }
+//                 }
+//             } catch (e) {
+//                 // CORS hiba esetén átugorjuk
+//             }
+//         }
+
+//         // 3. SVG KLÓNOZÁSA ÉS STÍLUSOK INJEKTÁLÁSA
+//         // Ez közös lépés mindkét formátumnál!
+//         const svgClone = designerSVG.cloneNode(true);
+        
+//         // Méretek fixálása
+//         svgClone.setAttribute("width", width);
+//         svgClone.setAttribute("height", height);
+//         svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+//         // Stílus elem beszúrása
+//         const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+//         styleElement.textContent = usedStyles;
+//         svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+//         // --- A: VEKTOROS EXPORT (SVG) ---
+//         if (format === 'svg') {
             
-            svgClone.setAttribute("width", width);
-            svgClone.setAttribute("height", height);
-            svgClone.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
-            
-            // HÁTTÉR TÉGLALAP LÉTREHOZÁSA
-            const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            bgRect.setAttribute("x", x);
-            bgRect.setAttribute("y", y);
-            bgRect.setAttribute("width", width);
-            bgRect.setAttribute("height", height);
-            bgRect.setAttribute("id", "export-background");
+//             // HÁTTÉR TÉGLALAP LÉTREHOZÁSA (Csak SVG-hez kell beleégetni)
+//             const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+//             bgRect.setAttribute("x", x);
+//             bgRect.setAttribute("y", y);
+//             bgRect.setAttribute("width", width);
+//             bgRect.setAttribute("height", height);
+//             bgRect.setAttribute("id", "export-background");
 
-            // --- GRADIENS KEZELÉS (A JAVÍTÁS LÉNYEGE) ---
-            if (bgStyle.includes("gradient")) {
-                // 1. Megkeressük vagy létrehozzuk a <defs> szekciót
-                let defs = svgClone.querySelector('defs');
-                if (!defs) {
-                    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-                    svgClone.insertBefore(defs, svgClone.firstChild);
-                }
+//             // --- GRADIENS KEZELÉS (VISSZATETTÜK!) ---
+//             if (bgStyle.includes("gradient")) {
+//                 let defs = svgClone.querySelector('defs');
+//                 if (!defs) {
+//                     defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+//                     svgClone.insertBefore(defs, svgClone.firstChild);
+//                 }
 
-                // 2. Kinyerjük a színeket a stringből (pl. #0B1026 és #1a2542)
-                const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//                 // Színek kinyerése a stringből
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
                 
-                if (colors && colors.length >= 2) {
-                    // 3. Létrehozunk egy SVG LinearGradient elemet
-                    const gradId = "bg-gradient-" + Date.now(); // Egyedi ID
-                    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-                    gradient.setAttribute("id", gradId);
+//                 if (colors && colors.length >= 2) {
+//                     const gradId = "bg-gradient-" + Date.now();
+//                     const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+//                     gradient.setAttribute("id", gradId);
                     
-                    // Átlós irány (kb. 135deg-nek felel meg: bal-fent -> jobb-lent)
-                    gradient.setAttribute("x1", "0%");
-                    gradient.setAttribute("y1", "0%");
-                    gradient.setAttribute("x2", "100%");
-                    gradient.setAttribute("y2", "100%");
+//                     // Átlós irány (135deg)
+//                     gradient.setAttribute("x1", "0%");
+//                     gradient.setAttribute("y1", "0%");
+//                     gradient.setAttribute("x2", "100%");
+//                     gradient.setAttribute("y2", "100%");
 
-                    // Kezdő szín (Stop 1)
-                    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-                    stop1.setAttribute("offset", "0%");
-                    stop1.setAttribute("stop-color", colors[0]);
+//                     const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop1.setAttribute("offset", "0%");
+//                     stop1.setAttribute("stop-color", colors[0]);
                     
-                    // Vég szín (Stop 2)
-                    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-                    stop2.setAttribute("offset", "100%");
-                    stop2.setAttribute("stop-color", colors[colors.length - 1]); // Az utolsó szín
+//                     const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+//                     stop2.setAttribute("offset", "100%");
+//                     stop2.setAttribute("stop-color", colors[colors.length - 1]);
 
-                    gradient.appendChild(stop1);
-                    gradient.appendChild(stop2);
-                    defs.appendChild(gradient);
+//                     gradient.appendChild(stop1);
+//                     gradient.appendChild(stop2);
+//                     defs.appendChild(gradient);
 
-                    // 4. Hivatkozunk rá a téglalapon
-                    bgRect.setAttribute("fill", `url(#${gradId})`);
-                } else {
-                    // Fallback: Ha nem sikerült színt lopni, legyen fekete
-                    bgRect.setAttribute("fill", "#000000");
-                }
-            } else {
-                // Ha egyszínű (nem gradiens), mehet direktbe
-                bgRect.setAttribute("fill", bgStyle);
-            }
+//                     bgRect.setAttribute("fill", `url(#${gradId})`);
+//                 } else {
+//                     bgRect.setAttribute("fill", "#000000"); // Fallback
+//                 }
+//             } else {
+//                 // Sima szín
+//                 bgRect.setAttribute("fill", bgStyle);
+//             }
             
-            // Beszúrjuk a hátteret legelsőnek
-            svgClone.insertBefore(bgRect, svgClone.firstChild);
+//             // Háttér beszúrása a legelső helyre (a stílus után)
+//             if(svgClone.firstChild) {
+//                  svgClone.insertBefore(bgRect, svgClone.firstChild.nextSibling);
+//             } else {
+//                  svgClone.appendChild(bgRect);
+//             }
 
-            // Serializálás és Letöltés
-            const serializer = new XMLSerializer();
-            let source = serializer.serializeToString(svgClone);
+//             // Serializálás és Letöltés
+//             const serializer = new XMLSerializer();
+//             let source = serializer.serializeToString(svgClone);
 
-            // Névtér javítások
-            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
-                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-            }
-            if(!source.match(/^<svg[^>]+xmlns:xlink/)){
-                source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
-            }
+//             // Névtér javítások
+//             if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+//             }
+//             if(!source.match(/^<svg[^>]+xmlns:xlink/)){
+//                 source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+//             }
 
-            const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-            const link = document.createElement("a");
-            link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+//             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+//             const link = document.createElement("a");
+//             link.download = `csillagterkep_vektoros_${Date.now()}.svg`;
+//             link.href = url;
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
             
-        } 
-        // --- B: RASTERES EXPORT (PNG / JPEG) ---
-        else {
-            const svgData = new XMLSerializer().serializeToString(designerSVG);
-            const scaleFactor = 3; 
-            const canvas = document.createElement("canvas");
-            canvas.width = width * scaleFactor;
-            canvas.height = height * scaleFactor;
+//         } 
+//         // --- B: RASTERES EXPORT (PNG / JPEG) ---
+//         else {
+//             // Itt a Klónozott SVG-t használjuk forrásnak (mert abban van a CSS!),
+//             // DE nem teszünk bele háttér téglalapot, mert azt a Canvasra festjük.
             
-            const ctx = canvas.getContext("2d");
+//             const svgData = new XMLSerializer().serializeToString(svgClone);
+//             const scaleFactor = 3; 
+//             const canvas = document.createElement("canvas");
+//             canvas.width = width * scaleFactor;
+//             canvas.height = height * scaleFactor;
             
-            // Háttér festése Canvas-on (itt működik a gradiens logika, amit már megcsináltunk korábban)
-            if (bgStyle.includes('gradient')) {
-                const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
-                if (colors && colors.length >= 2) {
-                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    gradient.addColorStop(0, colors[0]);
-                    gradient.addColorStop(1, colors[colors.length - 1]);
-                    ctx.fillStyle = gradient;
-                } else {
-                    ctx.fillStyle = "#0a0e27";
-                }
-            } else {
-                ctx.fillStyle = bgStyle;
-            }
+//             const ctx = canvas.getContext("2d");
             
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+//             // Háttér festése Canvas-on (Itt működik a gradiens logika!)
+//             if (bgStyle.includes('gradient')) {
+//                 const colors = bgStyle.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+//                 if (colors && colors.length >= 2) {
+//                     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+//                     gradient.addColorStop(0, colors[0]);
+//                     gradient.addColorStop(1, colors[colors.length - 1]);
+//                     ctx.fillStyle = gradient;
+//                 } else {
+//                     ctx.fillStyle = "#0a0e27";
+//                 }
+//             } else {
+//                 ctx.fillStyle = bgStyle;
+//             }
+            
+//             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const img = new Image();
-            const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
-            const url = URL.createObjectURL(svgBlob);
+//             const img = new Image();
+//             const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+//             const url = URL.createObjectURL(svgBlob);
 
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+//             img.onload = function() {
+//                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 
-                const link = document.createElement('a');
-                const ext = format === 'jpeg' ? 'jpg' : format;
-                link.download = `csillagterkep_${Date.now()}.${ext}`;
-                link.href = canvas.toDataURL(`image/${format}`, 0.95); 
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            };
-            img.src = url;
-        }
+//                 const link = document.createElement('a');
+//                 const ext = format === 'jpeg' ? 'jpg' : format;
+//                 link.download = `csillagterkep_${Date.now()}.${ext}`;
+//                 link.href = canvas.toDataURL(`image/${format}`, 0.95); 
+//                 document.body.appendChild(link);
+//                 link.click();
+//                 document.body.removeChild(link);
+//                 URL.revokeObjectURL(url);
+//                 document.body.style.cursor = 'default';
+//             };
+            
+//             img.onerror = function(e) {
+//                 console.error("Hiba a kép generálásakor:", e);
+//                 alert("Hiba történt a kép generálásakor.");
+//                 document.body.style.cursor = 'default';
+//             };
+//             img.src = url;
+//         }
 
-    } catch (e) {
-        console.error(e);
-        alert("Exportálási hiba: " + e.message);
-    }
-}
+//     } catch (e) {
+//         console.error(e);
+//         alert("Exportálási hiba: " + e.message);
+//         document.body.style.cursor = 'default';
+//     }
+// }
 
 // --- Szöveg kezelés és DOM események (Ezek többnyire változatlanok, csak a DOM elemek frissítve) ---
 
@@ -1730,20 +3473,40 @@ let zoneData = {
 //     };
 // }
 // Helper
+// function createDefaultBlock(isNewLine) {
+//     return {
+//         id: Date.now() + Math.random(),
+//         isNewLine: isNewLine,
+//         content: isNewLine ? "Új szöveg" : " folytatás...",
+//         font: "Space Grotesk",
+//         size: 32,
+//         weight: "normal",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle"
+//     };
+// }
+// --- UI KEZELÉS ---
+// // --- HELPER: Blokk létrehozása ---
+// function createDefaultBlock(isNewLine) {
+//     return {
+//         id: Date.now() + Math.random(),
+//         isNewLine: isNewLine,
+//         content: isNewLine ? "Új szöveg" : " folytatás...",
+//         font: "Space Grotesk",
+//         size: 32,
+//         weight: "normal",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle"
+//     };
+// }
 function createDefaultBlock(isNewLine) {
     return {
-        id: Date.now() + Math.random(),
-        isNewLine: isNewLine,
-        content: isNewLine ? "Új szöveg" : " folytatás...",
-        font: "Space Grotesk",
-        size: 32,
-        weight: "normal",
-        style: "normal",
-        color: "#e8edf5",
-        alignH: "middle"
+        id: Date.now() + Math.random(), isNewLine: isNewLine, content: isNewLine ? "Új szöveg" : " folytatás...",
+        font: "Space Grotesk", size: 32, weight: "normal", style: "normal", color: "#e8edf5", alignH: "middle"
     };
 }
-// --- UI KEZELÉS ---
 
 // // Új blokk hozzáadása az adatokhoz és a UI frissítése
 // window.addNewBlock = function(zone, isNewLine) {
@@ -4543,35 +6306,128 @@ window.applyDesignerTheme = function(key, variant = 'normal') {
     }
 }
 
-// --- MÁSOLÁS (Canvas -> SVG Image) ---
+// // --- MÁSOLÁS (Canvas -> SVG Image) ---
+// window.copyMapToDesigner = function() {
+//     console.log("copyMapToDesigner futtatása...");
+//     const sourceContainer = document.getElementById('celestial-map');
+//     const sourceCanvas = sourceContainer ? sourceContainer.querySelector('canvas') : null;
+    
+//     if (!sourceCanvas || sourceCanvas.width === 0) {
+//         console.warn("Forrás canvas üres vagy nem található!"); 
+//         return;
+//     }
+
+//     const targetLayer = document.getElementById('celestial-map-layer');
+//     if (!targetLayer) return;
+
+//     // Nagyobb felbontású kép kinyerése (ha lehetséges)
+//     const dataURL = sourceCanvas.toDataURL('image/png');
+
+//     targetLayer.innerHTML = ''; 
+//     const svgImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
+//     svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataURL);
+//     svgImage.setAttribute('href', dataURL); // Kompatibilitás
+//     svgImage.setAttribute('width', sourceCanvas.width);
+//     svgImage.setAttribute('height', sourceCanvas.height);
+//     svgImage.setAttribute('x', 0); // Biztos, ami biztos
+//     svgImage.setAttribute('y', 0);
+//     svgImage.classList.add('celestial-map-image');
+
+//     targetLayer.appendChild(svgImage);
+//     // EZT A SORT ADJUK HOZZÁ:
+//     // Azonnal alkalmazzuk a maszkot, ha van kiválasztva
+//     if (typeof applyMaskToDesigner === 'function') {
+//         applyMaskToDesigner();
+//     }
+//     console.log("Térkép sikeresen átmásolva.");
+
+// }
+// // --- MÁSOLÁS (Canvas -> SVG Image) ---
+// window.copyMapToDesigner = function() {
+//     console.log("copyMapToDesigner futtatása...");
+//     const sourceContainer = document.getElementById('celestial-map');
+//     const sourceCanvas = sourceContainer ? sourceContainer.querySelector('canvas') : null;
+    
+//     if (!sourceCanvas || sourceCanvas.width === 0) {
+//         console.warn("Forrás canvas üres vagy nem található!"); 
+//         return;
+//     }
+
+//     const targetLayer = document.getElementById('celestial-map-layer');
+//     if (!targetLayer) return;
+
+//     const dataURL = sourceCanvas.toDataURL('image/png');
+
+//     targetLayer.innerHTML = ''; 
+//     const svgImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
+//     svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataURL);
+//     svgImage.setAttribute('href', dataURL);
+//     svgImage.setAttribute('width', sourceCanvas.width);
+//     svgImage.setAttribute('height', sourceCanvas.height);
+//     svgImage.setAttribute('x', 0); // Biztos, ami biztos
+//     svgImage.setAttribute('y', 0);
+    
+//     // Fontos osztály a méréshez és a maszkoláshoz!
+//     svgImage.classList.add('celestial-map-image');
+
+//     targetLayer.appendChild(svgImage);
+    
+//     console.log("Térkép sikeresen átmásolva.");
+
+//     // --- EZT A RÉSZT KELL BIZTOSRA BEÍRNI: ---
+//     // Azonnal alkalmazzuk a maszkot, ha van kiválasztva
+//     if (typeof window.applyMaskToDesigner === 'function') {
+//         window.applyMaskToDesigner();
+//     }
+// }
+// --- MÁSOLÁS (Canvas -> SVG Image) + AUTO FIT ---
 window.copyMapToDesigner = function() {
     console.log("copyMapToDesigner futtatása...");
     const sourceContainer = document.getElementById('celestial-map');
     const sourceCanvas = sourceContainer ? sourceContainer.querySelector('canvas') : null;
     
     if (!sourceCanvas || sourceCanvas.width === 0) {
-        console.warn("Forrás canvas üres vagy nem található!"); 
-        return;
+        console.warn("Forrás canvas hiba!"); return;
     }
 
     const targetLayer = document.getElementById('celestial-map-layer');
     if (!targetLayer) return;
 
-    // Nagyobb felbontású kép kinyerése (ha lehetséges)
     const dataURL = sourceCanvas.toDataURL('image/png');
 
     targetLayer.innerHTML = ''; 
     const svgImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
     svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataURL);
-    svgImage.setAttribute('href', dataURL); // Kompatibilitás
+    svgImage.setAttribute('href', dataURL);
+    
+    // Kezdeti méretek (ezeket mindjárt felülírjuk)
     svgImage.setAttribute('width', sourceCanvas.width);
     svgImage.setAttribute('height', sourceCanvas.height);
+    svgImage.setAttribute('x', 0);
+    svgImage.setAttribute('y', 0);
     svgImage.classList.add('celestial-map-image');
 
     targetLayer.appendChild(svgImage);
-    console.log("Térkép sikeresen átmásolva.");
-}
 
+    // // --- AUTO FIT & CENTER (Ez oldja meg a kis méretet) ---
+    // // Ha még nincs beállítva szélesség, vagy gyanúsan kicsi, akkor MAX-ra állítjuk
+    // if (!window.currentMapTargetWidthCM || window.currentMapTargetWidthCM < 5) {
+    //     console.log("Automatikus MAX méret beállítása...");
+    //     if (typeof window.fitMapToCanvas === 'function') {
+    //         window.fitMapToCanvas(); // Ez beállítja a max szélességet és középre rakja
+    //     }
+    // } else {
+    //     // Ha van beállított méret, akkor csak frissítjük a pozíciót
+    //     if (typeof window.refreshMapTransform === 'function') {
+    //         window.refreshMapTransform();
+    //     }
+    // }
+
+    // Maszk újraalkalmazása
+    if (typeof window.applyMaskToDesigner === 'function') {
+        window.applyMaskToDesigner();
+    }
+}
 // --- ÚJ: LAYOUT KEZELÉS (Split View) ---
 window.changeLayout = function(mode) {
     console.log("Layout váltás:", mode);
@@ -5332,7 +7188,7 @@ window.setMapWidth = function(cmValue) {
     // const canvasHeightInput = document.getElementById('canvas-height');
     // let maxWidth = Math.min(parseFloat(canvasWidthInput.value) - 1, parseFloat(canvasHeightInput.value) - 1); //parseFloat(canvasWidthInput.value) || 21;
 
-    if (val > maxW -2) {
+    if (val > maxW ) {
         val = maxW;
         document.getElementById('map-width-cm-input').value = val; // Input visszaírás
     }
@@ -5341,78 +7197,329 @@ window.setMapWidth = function(cmValue) {
     window.refreshMapTransform();
 }
 
-// 2. Vászon méretezése (INPUT)
+// // 2. Vászon méretezése (INPUT)
+// const originalUpdateCanvasSize = window.updateCanvasSize;
+// window.updateCanvasSize = function() {
+//     const widthInput = document.getElementById('canvas-width');
+//     const heightInput = document.getElementById('canvas-height');
+//     let widthCm = parseFloat(widthInput.value) || 21;
+//     let heightCm = parseFloat(heightInput.value) || 30;
+
+//     // // SZABÁLY: Ha a vásznat kisebbre vesszük, mint a térkép, a térkép is menjen össze
+//     // if (currentMapTargetWidthCM && currentMapTargetWidthCM > widthCm) {
+//     //     currentMapTargetWidthCM = widthCm;
+//     //     document.getElementById('map-width-cm-input').value = widthCm;
+//     // }
+
+//     // // Logikai szélesség duplázása ha osztott nézet
+//     // let logicalWidthCm = (layoutState.mode !== 'single') ? widthCm * 2 : widthCm;
+
+//     // // ViewBox számítás (Fix magassághoz igazítva, pl. 1272px)
+//     // const baseHeight = 1272;
+//     // const aspectRatio = logicalWidthCm / heightCm;
+//     // const newWidth = baseHeight * aspectRatio;
+
+//     // const designerSVG = document.getElementById('designer-svg');
+//     // designerSVG.setAttribute('viewBox', `0 0 ${newWidth} ${baseHeight}`);
+    
+//     // const bgRect = document.getElementById('designer-background-rect');
+//     // if(bgRect) {
+//     //     bgRect.setAttribute('width', newWidth);
+//     //     bgRect.setAttribute('height', baseHeight);
+//     // }
+
+//     // setTimeout(window.refreshMapTransform, 50);
+//     // 2. Összes szélesség (lapok száma alapján)
+//     const pageCount = layoutState.elements.length;
+//     const totalWidthCm = widthCm * pageCount;
+
+//     // 3. ViewBox számítása
+//     // Fix magasság (1272px) alapján számoljuk a szélességet
+//     const baseHeight = 1272;
+//     //             viewBoxWidth = 2700; 
+//     const aspectRatio = totalWidthCm / heightCm;
+//     // 3. BELSŐ FELBONTÁS (ViewBox) - A MINŐSÉGÉRT
+//     // Itt a trükk: Nem fix magasságot veszünk, hanem a HOSSZABB oldalt fixáljuk nagyra.
+//     const EXPORT_BASE_SIZE = 2500; // Ekkora lesz minimum a nagyobbik oldal pixelben
+
+//     let viewBoxWidth, viewBoxHeight;
+
+//     if (aspectRatio >= 1) { 
+//         // Fekvő vagy négyzet (Szélesebb mint magas) -> A szélesség legyen a bázis
+//         viewBoxWidth = EXPORT_BASE_SIZE;
+//         viewBoxHeight = EXPORT_BASE_SIZE / aspectRatio;
+//     } else {
+//         // Álló (Magasabb mint széles) -> A magasság legyen a bázis
+//         viewBoxHeight = EXPORT_BASE_SIZE;
+//         viewBoxWidth = EXPORT_BASE_SIZE * aspectRatio;
+//     }
+
+//     const newWidth = baseHeight * aspectRatio;
+
+//     // // 4. Alkalmazás
+//     // const designerSVG = document.getElementById('designer-svg');
+//     // designerSVG.setAttribute('viewBox', `0 0 ${newWidth} ${baseHeight}`);
+    
+//     // // Háttér rect
+//     // const bgRect = document.getElementById('designer-background-rect');
+//     // if(bgRect) {
+//     //     bgRect.setAttribute('width', newWidth);
+//     //     bgRect.setAttribute('height', baseHeight);
+//     // }
+//     // SVG beállítása a nagy felbontásra
+//     const designerSVG = document.getElementById('designer-svg');
+//     designerSVG.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
+    
+//     // Háttér téglalap igazítása
+//     const bgRect = document.getElementById('designer-background-rect');
+//     if(bgRect) {
+//         bgRect.setAttribute('width', viewBoxWidth);
+//         bgRect.setAttribute('height', viewBoxHeight);
+//     }
+//     // FONTOS: A külső wrapper aspect-ratio-jának beállítása!
+//     // Így mindig kitölti a rendelkezésre álló helyet (max 95%)
+//     // const wrapper = document.getElementById('canvas-wrapper');
+//     // 4. MEGJELENÍTÉS (FIT TO SCREEN) - HOGY KITÖLTSE A HELYET
+//     // Ez csak a képernyőn való megjelenést vezérli (CSS pixel), nem az exportot!
+//     const container = document.getElementById('designer-canvas-area');
+//     const wrapper = document.getElementById('canvas-wrapper');
+//     // if(wrapper) {
+//     //     wrapper.style.aspectRatio = `${newWidth} / ${baseHeight}`;
+//     // }
+//     if (container && wrapper) {
+//         // Lekérjük a rendelkezésre álló helyet (paddingokkal csökkentve)
+//         const style = window.getComputedStyle(container);
+//         const availableW = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+//         const availableH = container.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+
+//         // Kiszámoljuk, mekkora lehet a papír, hogy beférjen
+//         // "Letterboxing" logika:
+//         // Ha a hely szélesebb arányú, mint a papír -> a magasság a limit
+//         // Ha a hely magasabb arányú, mint a papír -> a szélesség a limit
+        
+//         const containerRatio = availableW / availableH;
+        
+//         let finalDisplayW, finalDisplayH;
+
+//         if (aspectRatio > containerRatio) {
+//             // A papír "szélesebb", mint a hely -> A SZÉLESSÉG a limit (szélétől szélig ér)
+//             finalDisplayW = availableW;
+//             finalDisplayH = availableW / aspectRatio;
+//         } else {
+//             // A papír "magasabb", mint a hely -> A MAGASSÁG a limit (tetejétől aljáig ér)
+//             finalDisplayH = availableH;
+//             finalDisplayW = availableH * aspectRatio;
+//         }
+
+//         // Kényszerítjük a méreteket a wrapperre
+//         wrapper.style.width = `${finalDisplayW}px`;
+//         wrapper.style.height = `${finalDisplayH}px`;
+//         // Fontos: felülírjuk az aspect-ratio CSS szabályt, mert a fix pixel pontosabb
+//         wrapper.style.aspectRatio = 'unset';
+//     }
+//     // const mapWidthCmInput = document.getElementById('map-width-cm-input');
+//     // if (widthCm <= parseFloat(mapWidthCmInput.value) || heightCm <= parseFloat(mapWidthCmInput.value)) {
+//     //     fitMapToCanvas()
+//     // }
+//     const mapWidthCmInput = document.getElementById('map-width-cm-input');
+//     // if (mapWidthCmInput && widthCm <= parseFloat(mapWidthCmInput.value)) {
+//     if (heightCm <= parseFloat(mapWidthCmInput.value) || widthCm <= parseFloat(mapWidthCmInput.value)) {
+//         if(window.fitMapToCanvas) window.fitMapToCanvas();
+//     }
+//     // 5. Tartalom frissítése
+//     setTimeout(window.refreshMapTransform, 50);
+// }
+
+// --- JAVÍTOTT MÉRETEZÉS (AUTO-QUALITY + FIT TO SCREEN) ---
 const originalUpdateCanvasSize = window.updateCanvasSize;
+
 window.updateCanvasSize = function() {
+    // 1. Felhasználói inputok (CM)
     const widthInput = document.getElementById('canvas-width');
     const heightInput = document.getElementById('canvas-height');
     let widthCm = parseFloat(widthInput.value) || 21;
     let heightCm = parseFloat(heightInput.value) || 30;
 
-    // // SZABÁLY: Ha a vásznat kisebbre vesszük, mint a térkép, a térkép is menjen össze
-    // if (currentMapTargetWidthCM && currentMapTargetWidthCM > widthCm) {
-    //     currentMapTargetWidthCM = widthCm;
-    //     document.getElementById('map-width-cm-input').value = widthCm;
-    // }
-
-    // // Logikai szélesség duplázása ha osztott nézet
-    // let logicalWidthCm = (layoutState.mode !== 'single') ? widthCm * 2 : widthCm;
-
-    // // ViewBox számítás (Fix magassághoz igazítva, pl. 1272px)
-    // const baseHeight = 1272;
-    // const aspectRatio = logicalWidthCm / heightCm;
-    // const newWidth = baseHeight * aspectRatio;
-
-    // const designerSVG = document.getElementById('designer-svg');
-    // designerSVG.setAttribute('viewBox', `0 0 ${newWidth} ${baseHeight}`);
-    
-    // const bgRect = document.getElementById('designer-background-rect');
-    // if(bgRect) {
-    //     bgRect.setAttribute('width', newWidth);
-    //     bgRect.setAttribute('height', baseHeight);
-    // }
-
-    // setTimeout(window.refreshMapTransform, 50);
-    // 2. Összes szélesség (lapok száma alapján)
-    const pageCount = layoutState.elements.length;
+    // Ha több oldal van (pl. kinyitott könyv), a logikai szélesség nő
+    const pageCount = (typeof layoutState !== 'undefined' && layoutState.elements) ? layoutState.elements.length : 1;
     const totalWidthCm = widthCm * pageCount;
 
-    // 3. ViewBox számítása
-    // Fix magasság (1272px) alapján számoljuk a szélességet
-    const baseHeight = 1272;
-//             viewBoxWidth = 2700; 
+    // 2. Képarány kiszámítása
     const aspectRatio = totalWidthCm / heightCm;
-    const newWidth = baseHeight * aspectRatio;
 
-    // 4. Alkalmazás
-    const designerSVG = document.getElementById('designer-svg');
-    designerSVG.setAttribute('viewBox', `0 0 ${newWidth} ${baseHeight}`);
+    // 3. BELSŐ FELBONTÁS (ViewBox) - A MINŐSÉGÉRT
+    // Itt a trükk: Nem fix magasságot veszünk, hanem a HOSSZABB oldalt fixáljuk nagyra.
+    const EXPORT_BASE_SIZE = 5000; // Ekkora lesz minimum a nagyobbik oldal pixelben
     
-    // Háttér rect
+    let viewBoxWidth, viewBoxHeight;
+
+    if (aspectRatio >= 1) { 
+        // Fekvő vagy négyzet (Szélesebb mint magas) -> A szélesség legyen a bázis
+        viewBoxWidth = EXPORT_BASE_SIZE;
+        viewBoxHeight = EXPORT_BASE_SIZE / aspectRatio;
+    } else {
+        // Álló (Magasabb mint széles) -> A magasság legyen a bázis
+        viewBoxHeight = EXPORT_BASE_SIZE;
+        viewBoxWidth = EXPORT_BASE_SIZE * aspectRatio;
+    }
+
+    // SVG beállítása a nagy felbontásra
+    const designerSVG = document.getElementById('designer-svg');
+    if (designerSVG) {
+        designerSVG.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
+    }
+    
+    // Háttér téglalap igazítása
     const bgRect = document.getElementById('designer-background-rect');
     if(bgRect) {
-        bgRect.setAttribute('width', newWidth);
-        bgRect.setAttribute('height', baseHeight);
+        // JAVÍTÁS: Biztosítjuk, hogy a 0,0 ponttól induljon
+        bgRect.setAttribute('x', 0);
+        bgRect.setAttribute('y', 0);
+        bgRect.setAttribute('width', viewBoxWidth);
+        bgRect.setAttribute('height', viewBoxHeight);
     }
-    // FONTOS: A külső wrapper aspect-ratio-jának beállítása!
-    // Így mindig kitölti a rendelkezésre álló helyet (max 95%)
-    const wrapper = document.getElementById('canvas-wrapper');
-    if(wrapper) {
-        wrapper.style.aspectRatio = `${newWidth} / ${baseHeight}`;
-    }
-    // const mapWidthCmInput = document.getElementById('map-width-cm-input');
-    // if (widthCm <= parseFloat(mapWidthCmInput.value) || heightCm <= parseFloat(mapWidthCmInput.value)) {
-    //     fitMapToCanvas()
-    // }
-    const mapWidthCmInput = document.getElementById('map-width-cm-input');
-    // if (mapWidthCmInput && widthCm <= parseFloat(mapWidthCmInput.value)) {
-    if (heightCm <= parseFloat(mapWidthCmInput.value) || widthCm <= parseFloat(mapWidthCmInput.value)) {
-        if(window.fitMapToCanvas) window.fitMapToCanvas();
-    }
-    // 5. Tartalom frissítése
-    setTimeout(window.refreshMapTransform, 50);
-}
 
+    // 4. MEGJELENÍTÉS (FIT TO SCREEN) - HOGY KITÖLTSE A HELYET A KÉPERNYŐN
+    // Ez csak a képernyőn való megjelenést vezérli (CSS pixel), nem az exportot!
+    const container = document.getElementById('designer-canvas-area');
+    const wrapper = document.getElementById('canvas-wrapper');
+
+    if (container && wrapper) {
+        // Lekérjük a rendelkezésre álló helyet (paddingokkal csökkentve)
+        const style = window.getComputedStyle(container);
+        const availableW = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const availableH = container.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+
+        // Kiszámoljuk, mekkora lehet a papír, hogy beférjen ("Letterboxing" logika)
+        const containerRatio = availableW / availableH;
+        
+        let finalDisplayW, finalDisplayH;
+
+        if (aspectRatio > containerRatio) {
+            // A papír "szélesebb", mint a hely -> A SZÉLESSÉG a limit (szélétől szélig ér)
+            finalDisplayW = availableW;
+            finalDisplayH = availableW / aspectRatio;
+        } else {
+            // A papír "magasabb", mint a hely -> A MAGASSÁG a limit (tetejétől aljáig ér)
+            finalDisplayH = availableH;
+            finalDisplayW = availableH * aspectRatio;
+        }
+
+        // Kényszerítjük a méreteket a wrapperre
+        wrapper.style.width = `${finalDisplayW}px`;
+        wrapper.style.height = `${finalDisplayH}px`;
+        // Fontos: felülírjuk az aspect-ratio CSS szabályt, mert a fix pixel pontosabb
+        wrapper.style.aspectRatio = 'unset';
+    }
+
+    // Ha a vászon kisebb lett, mint a térkép beállított mérete, igazítsuk hozzá a térképet is
+    const mapWidthCmInput = document.getElementById('map-width-cm-input');
+    if (mapWidthCmInput) {
+        if (heightCm <= parseFloat(mapWidthCmInput.value) || widthCm <= parseFloat(mapWidthCmInput.value)) {
+            if(window.fitMapToCanvas) window.fitMapToCanvas();
+        }
+    }
+
+    // 5. Tartalom frissítése (hogy a Celestial.js is tudja az új méreteket)
+    setTimeout(function() {
+        if (window.refreshMapTransform) window.refreshMapTransform();
+    }, 50);
+}
+// Ablak átméretezéskor is fusson le, hogy reszponzív maradjon
+window.addEventListener('resize', function() {
+    // Debounce (ne villogjon minden pixelre)
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(window.updateCanvasSize, 100);
+});
+// Állapot tároló
+let resizeLockState = {
+    locked: false,
+    ratio: 21/30,  // Szélesség / Magasság
+    lastW: 21,
+    lastH: 30
+};
+
+// 1. Kapcsoló kezelése
+window.toggleResizeLock = function(checkbox) {
+    resizeLockState.locked = checkbox.checked;
+    
+    // Amikor bekapcsoljuk, mentsük el a jelenlegi arányokat
+    if (resizeLockState.locked) {
+        const w = parseFloat(document.getElementById('canvas-width').value) || 21;
+        const h = parseFloat(document.getElementById('canvas-height').value) || 30;
+        resizeLockState.lastW = w;
+        resizeLockState.lastH = h;
+        resizeLockState.ratio = w / h;
+        console.log(`Képarány rögzítve: ${w}x${h} (Ratio: ${resizeLockState.ratio.toFixed(2)})`);
+    }
+}
+// 2. Input változás kezelése (Szélesség/Magasság)
+window.handleCanvasParamChange = function(type, val) {
+    const numVal = parseFloat(val);
+    if (!numVal || numVal <= 0) return; // Érvénytelen értékre nem csinálunk semmit
+
+    const wInput = document.getElementById('canvas-width');
+    const hInput = document.getElementById('canvas-height');
+    const mapInput = document.getElementById('map-width-cm-input');
+
+    if (resizeLockState.locked) {
+        if (type === 'width') {
+            // HA A SZÉLESSÉG VÁLTOZOTT:
+            
+            // 1. Kiszámoljuk az új magasságot az arány alapján
+            // Ratio = W / H  =>  H = W / Ratio
+            const newH = numVal / resizeLockState.ratio;
+            hInput.value = newH.toFixed(1);
+
+            // 2. Skálázzuk a TÉRKÉP méretét is (hogy arányos maradjon a papírral)
+            // Kiszámoljuk, hányszorosára nőtt a papír (scaleFactor)
+            const scaleFactor = numVal / resizeLockState.lastW;
+            
+            // Lekérjük a térkép jelenlegi méretét
+            const currentMapW = parseFloat(mapInput.value) || 20;
+            const newMapW = currentMapW * scaleFactor;
+            
+            // Beállítjuk az új térképméretet
+            mapInput.value = newMapW.toFixed(1);
+            if (window.currentMapTargetWidthCM !== undefined) {
+                window.currentMapTargetWidthCM = newMapW;
+            }
+
+            // Frissítjük az állapotot
+            resizeLockState.lastW = numVal;
+            resizeLockState.lastH = newH;
+
+        } else if (type === 'height') {
+            // HA A MAGASSÁG VÁLTOZOTT:
+            
+            // 1. Kiszámoljuk az új szélességet
+            // W = H * Ratio
+            const newW = numVal * resizeLockState.ratio;
+            wInput.value = newW.toFixed(1);
+
+            // 2. Skálázzuk a TÉRKÉP méretét (itt is a szélesség változását vesszük alapul)
+            const scaleFactor = newW / resizeLockState.lastW;
+            
+            const currentMapW = parseFloat(mapInput.value) || 20;
+            const newMapW = currentMapW * scaleFactor;
+            
+            mapInput.value = newMapW.toFixed(1);
+            if (window.currentMapTargetWidthCM !== undefined) {
+                window.currentMapTargetWidthCM = newMapW;
+            }
+
+            resizeLockState.lastW = newW;
+            resizeLockState.lastH = numVal;
+        }
+    } else {
+        // Ha nincs lezárva, csak frissítjük a tárolt értékeket a következő záráshoz
+        if (type === 'width') resizeLockState.lastW = numVal;
+        if (type === 'height') resizeLockState.lastH = numVal;
+    }
+
+    // Végül hívjuk meg a vizuális frissítést
+    window.updateCanvasSize();
+}
 // // 3. FŐ TRANSZFORMÁCIÓS FÜGGVÉNY (POZÍCIONÁLÁS)
 // window.refreshMapTransform = function() {
 //     if (!getDOMElements()) return;
@@ -6647,22 +8754,77 @@ function addNewBlockToStore(context, zone, isNewLine) {
 //         currentY += h;
 //     });
 // }
-// Renderelő segédfüggvény
+// // Renderelő segédfüggvény
+// function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, margin) {
+//     console.log("window.renderComplexZone zoneDataObj", zoneDataObj); 
+//     console.log("window.renderComplexZone alignType", alignType); 
+//     if (!zoneDataObj || !zoneDataObj.blocks) return;
+//     const blocks = zoneDataObj.blocks;
+//     if (blocks.length === 0) return;
+
+//     let textGroups = [];
+//     let currentTextEl = null;
+
+//     blocks.forEach(block => {
+//         if (block.isNewLine) {
+//             currentTextEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+//             let x = 0;
+//             const zoneW = endX - startX;
+//             if (block.alignH === 'start') x = startX + margin;
+//             else if (block.alignH === 'middle') x = startX + (zoneW / 2);
+//             else if (block.alignH === 'end') x = endX - margin;
+            
+//             currentTextEl.setAttribute('x', x);
+//             currentTextEl.setAttribute('text-anchor', block.alignH);
+//             textGroups.push(currentTextEl);
+//             document.getElementById('text-layer').appendChild(currentTextEl);
+//         }
+
+//         if (currentTextEl) {
+//             const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+//             tspan.textContent = block.content;
+//             tspan.setAttribute('font-family', block.font);
+//             tspan.setAttribute('font-size', block.size);
+//             tspan.setAttribute('font-weight', block.weight);
+//             tspan.setAttribute('font-style', block.style);
+//             tspan.setAttribute('fill', block.color);
+//             currentTextEl.appendChild(tspan);
+//         }
+//         console.log("window.renderComplexZone block.content", block.content); 
+//     });
+
+//     // Magasság és Y
+//     let totalHeight = 0;
+//     textGroups.forEach(textEl => {
+//         const bbox = textEl.getBBox();
+//         textEl.dataset.height = bbox.height;
+//         textEl.dataset.bboxY = bbox.y;
+//         totalHeight += bbox.height;
+//     });
+
+//     const zoneH = endY - startY;
+//     let currentY = 0;
+
+//     if (zoneDataObj.alignV === 'top') currentY = startY + margin;
+//     else if (zoneDataObj.alignV === 'center') currentY = startY + (zoneH - totalHeight) / 2;
+//     else if (zoneDataObj.alignV === 'bottom') currentY = endY - totalHeight - margin;
+
+//     textGroups.forEach(textEl => {
+//         const h = parseFloat(textEl.dataset.height);
+//         const bboxY = parseFloat(textEl.dataset.bboxY);
+//         textEl.setAttribute('y', currentY - bboxY);
+//         currentY += h;
+//     });
+//         console.log("window.renderComplexZone textGroups", textGroups); 
+// }
 function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, margin) {
-    console.log("window.renderComplexZone zoneDataObj", zoneDataObj); 
-    console.log("window.renderComplexZone alignType", alignType); 
-    if (!zoneDataObj || !zoneDataObj.blocks) return;
-    const blocks = zoneDataObj.blocks;
-    if (blocks.length === 0) return;
+    if (!zoneDataObj || !zoneDataObj.blocks || zoneDataObj.blocks.length === 0) return;
+    let textGroups = [], currentTextEl = null;
 
-    let textGroups = [];
-    let currentTextEl = null;
-
-    blocks.forEach(block => {
+    zoneDataObj.blocks.forEach(block => {
         if (block.isNewLine) {
             currentTextEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            let x = 0;
-            const zoneW = endX - startX;
+            let x = 0; const zoneW = endX - startX;
             if (block.alignH === 'start') x = startX + margin;
             else if (block.alignH === 'middle') x = startX + (zoneW / 2);
             else if (block.alignH === 'end') x = endX - margin;
@@ -6672,7 +8834,6 @@ function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, m
             textGroups.push(currentTextEl);
             document.getElementById('text-layer').appendChild(currentTextEl);
         }
-
         if (currentTextEl) {
             const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
             tspan.textContent = block.content;
@@ -6683,10 +8844,8 @@ function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, m
             tspan.setAttribute('fill', block.color);
             currentTextEl.appendChild(tspan);
         }
-        console.log("window.renderComplexZone block.content", block.content); 
     });
 
-    // Magasság és Y
     let totalHeight = 0;
     textGroups.forEach(textEl => {
         const bbox = textEl.getBBox();
@@ -6697,7 +8856,6 @@ function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, m
 
     const zoneH = endY - startY;
     let currentY = 0;
-
     if (zoneDataObj.alignV === 'top') currentY = startY + margin;
     else if (zoneDataObj.alignV === 'center') currentY = startY + (zoneH - totalHeight) / 2;
     else if (zoneDataObj.alignV === 'bottom') currentY = endY - totalHeight - margin;
@@ -6708,7 +8866,6 @@ function renderComplexZone(zoneDataObj, alignType, startY, endY, startX, endX, m
         textEl.setAttribute('y', currentY - bboxY);
         currentY += h;
     });
-        console.log("window.renderComplexZone textGroups", textGroups); 
 }
 // // --- UI LOGIKA (FÜLEK ÉS KONTEXTUS VÁLTÁS) ---
 // window.switchTextContext = function(context) {
@@ -7007,7 +9164,34 @@ window.toggleCommonZone = function(zone, isChecked) {
 //         if (key !== 'content') renderZoneUI(zone);
 //     }
 // }
-
+// --- ÚJ: Content Update + Preview Frissítés ---
+window.updateBlockContentAndPreview = function(zone, id, newValue) {
+    const data = zoneDataStore[currentTextContext][zone];
+    const block = data.blocks.find(b => b.id === id);
+    if (block) {
+        block.content = newValue;
+        
+        // 1. Térkép frissítése (nem rendereljük újra a UI-t, hogy ne vesszen el a fókusz!)
+        window.renderFixedTexts();
+        
+        // 2. Select Opciók Frissítése (Live Preview)
+        const select = document.getElementById(`font-select-${id}`);
+        if (select) {
+            const fonts = ["Space Grotesk", "Playfair Display", "Montserrat", "Great Vibes", "Cinzel"];
+            let previewText = newValue.length > 20 ? newValue.substring(0, 20) + "..." : newValue;
+            if (!previewText.trim()) previewText = "Minta";
+            
+            // Megjegyezzük, mi volt kiválasztva
+            const currentFont = select.value;
+            
+            select.innerHTML = fonts.map(fontName => {
+                return `<option value="${fontName}" style="font-family: '${fontName}'; font-size: 16px;" ${fontName === currentFont ? 'selected' : ''}>
+                    ${previewText} (${fontName})
+                </option>`;
+            }).join('');
+        }
+    }
+}
 // ADAT FRISSÍTŐK
 window.addNewBlock = function(zone, isNewLine) {
     addNewBlockToStore(currentTextContext, zone, isNewLine);
@@ -7029,7 +9213,6 @@ window.updateBlockData = function(zone, id, key, value) {
         if (key !== 'content') renderZoneUI(zone); 
     }
 }
-
 // // UI Renderelő is a store-ból dolgozzon
 // function renderZoneUI(zone) {
 //     const container = document.getElementById(`${zone}-blocks-container`);
@@ -7204,6 +9387,350 @@ window.updateBlockData = function(zone, id, key, value) {
 //     });
 // }
 
+// function renderZoneUI(zone) {
+//     const container = document.getElementById(`${zone}-blocks-container`);
+//     container.innerHTML = '';
+    
+//     if (!zoneDataStore[currentTextContext]) zoneDataStore[currentTextContext] = { top: {alignV:'center', blocks:[]}, bottom: {alignV:'center', blocks:[]} };
+//     const data = zoneDataStore[currentTextContext][zone];
+
+//     // --- 1. Rész: Vezérlő Gombok (Sablonok és Adatok) ---
+//     const controlsDiv = document.createElement('div');
+//     controlsDiv.style.marginBottom = "15px";
+//     controlsDiv.style.background = "rgba(0,0,0,0.2)";
+//     controlsDiv.style.padding = "10px";
+//     controlsDiv.style.borderRadius = "8px";
+
+//     // Adat Kapcsolók (Checkbox-szerű gombok)
+//     const hasLoc = data.blocks.some(b => b.tag === 'location');
+//     const hasDate = data.blocks.some(b => b.tag === 'date');
+//     const hasCoords = data.blocks.some(b => b.tag === 'coords');
+
+//     const btnStyle = (active) => `
+//         flex:1; padding:6px; font-size:11px; border:1px solid #444; border-radius:4px; cursor:pointer;
+//         background: ${active ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)'};
+//         color: ${active ? 'white' : '#aaa'};
+//     `;
+
+//     controlsDiv.innerHTML = `
+//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Gyors Adatok:</div>
+//         <div style="display:flex; gap:5px; margin-bottom:10px;">
+//             <button onclick="toggleDataBlock('${zone}', 'location')" style="${btnStyle(hasLoc)}">📍 Helyszín</button>
+//             <button onclick="toggleDataBlock('${zone}', 'date')" style="${btnStyle(hasDate)}">📅 Dátum</button>
+//             <button onclick="toggleDataBlock('${zone}', 'coords')" style="${btnStyle(hasCoords)}">🌐 Koord.</button>
+//         </div>
+        
+//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Szöveg Sablonok:</div>
+//         <select onchange="applyTextTemplate('${zone}', this.value); this.value='';" style="width:100%; padding:6px; background:#111; color:white; border:1px solid #444; border-radius:4px;">
+//             <option value="">-- Válassz egy témát --</option>
+//             ${Object.keys(TEXT_TEMPLATES).map(cat => `
+//                 <optgroup label="${cat}">
+//                     ${TEXT_TEMPLATES[cat].map(t => `<option value="${t}">${t}</option>`).join('')}
+//                 </optgroup>
+//             `).join('')}
+//         </select>
+//     `;
+    
+//     container.appendChild(controlsDiv);
+    
+//     const alignSelect = document.getElementById(`${zone}-zone-align-v`);
+//     if(alignSelect) alignSelect.value = data.alignV;
+
+//     const fonts = ["Space Grotesk", "Playfair Display", "Montserrat", "Great Vibes", "Cinzel"];
+
+//     data.blocks.forEach((block) => {
+//         const div = document.createElement('div');
+//         div.className = `block-card ${block.isNewLine ? 'newline' : 'inline'}`;
+        
+//         let fontOptionsHTML = fonts.map(fontName => {
+//             const isSelected = block.font === fontName ? 'selected' : '';
+//             return `<option value="${fontName}" style="font-family: '${fontName}'; font-size: 16px;" ${isSelected}>${fontName}</option>`;
+//         }).join('');
+
+//         // div.innerHTML = `
+//         //     <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
+//         //          <button onclick="openSymbolPicker(event, '${zone}', ${block.id})" class="symbol-opener" style="border:none;background:none;cursor:pointer;color:#4a9eff;font-size:16px;">♥</button>
+//         //         <button onclick="removeBlock('${zone}', ${block.id})" style="color:red;border:none;background:none;cursor:pointer;">×</button>
+//         //     </div>
+//         //     <div style="font-size:11px; margin-bottom:5px; color:#aaa;">${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'}</div>
+            
+//         //     <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
+//         //         style="width:100%; font-family:'${block.font}'; margin-bottom:5px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
+            
+//         //     <div class="grid-2-cols" style="gap:5px;">
+//         //         <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Méret">
+//         //         <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:30px;">
+//         //     </div>
+//         //     <div class="grid-2-cols" style="gap:5px; margin-top:5px;">
+//         //         <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
+//         //         ${block.isNewLine ? `
+//         //         <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
+//         //             <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
+//         //             <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
+//         //             <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
+//         //         </select>` : ''}
+//         //     </div>
+//         // `;
+//         // div.innerHTML = `
+//         //     <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
+//         //         <button onclick="removeBlock('${zone}', ${block.id})" style="color:red;border:none;background:none;cursor:pointer;">×</button>
+//         //     </div>
+//         //     <div style="font-size:11px; margin-bottom:5px; color:#aaa;">${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'}</div>
+            
+//         //     <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
+//         //         style="width:100%; font-family:'${block.font}'; margin-bottom:5px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
+            
+//         //     <div class="grid-2-cols" style="gap:5px;">
+//         //         <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Méret">
+//         //         <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:30px;">
+//         //     </div>
+//         //     <div class="grid-2-cols" style="gap:5px; margin-top:5px;">
+//         //         <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
+//         //         ${block.isNewLine ? `
+//         //         <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
+//         //             <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
+//         //             <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
+//         //             <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
+//         //         </select>` : ''}
+//         //     </div>
+//         //     <div class="grid-2-cols" style="gap:0px; margin-top:0px;">
+
+//         //          <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="padding:0px;">♥ Jel</button>
+//         //          <button onclick="removeBlock('${zone}', ${block.id})" class="delete-btn" style="padding:0px;color:red;border:none;background:none;cursor:pointer;">× Törlés</button>
+//         //     </div>
+//         // `;
+//         div.innerHTML = `
+//             <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
+//                 <button onclick="removeBlock('${zone}', ${block.id})" style="color:red;border:none;background:none;cursor:pointer;">×</button>
+//             </div>
+//             <div style="font-size:11px; margin-bottom:5px; color:#aaa;">
+//                 ${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'} 
+//                 ${block.tag ? `<span style="color:var(--accent-blue); margin-left:5px;">[${block.tag}]</span>` : ''}
+//             </div>
+            
+//             <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
+//                 style="width:100%; font-family:'${block.font}'; margin-bottom:5px; font-size: 25px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
+            
+//             <div class="grid-2-cols" style="gap:5px;">
+//                 <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Méret">
+//                 <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:30px;">
+//             </div>
+//             <div class="grid-2-cols" style="gap:5px; margin-top:5px;">
+//                 <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
+//                 ${block.isNewLine ? `
+//                 <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
+//                     <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
+//                     <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
+//                     <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
+//                 </select>` : ''}
+//             </div>
+//             <div class="grid-2-cols" style="gap:0px; margin-top:0px;">
+//                  <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="padding:0px;">♥ Jel</button>
+//             </div>
+//         `;
+                                        
+//         container.appendChild(div);
+//     });
+// }
+
+
+// // --- ÚJ: SEGÉDFÜGGVÉNY A CENTIMÉTER SZÁMÍTÁSHOZ ---
+// function calculateCM(pxSize) {
+//     const designerSVG = document.getElementById('designer-svg');
+//     const widthInput = document.getElementById('canvas-width');
+    
+//     if (!designerSVG || !widthInput) return "0.0 cm";
+
+//     // 1. Megnézzük a ViewBox szélességét (ez a belső pixel méret)
+//     const viewBox = designerSVG.viewBox.baseVal;
+//     if (!viewBox || viewBox.width === 0) return "— cm";
+
+//     // 2. Megnézzük a fizikai szélességet (amit a felhasználó beírt cm-ben)
+//     const widthCm = parseFloat(widthInput.value) || 21;
+    
+//     // Ha több oldal van, a szélesség többszöröződik
+//     const pageCount = (typeof layoutState !== 'undefined' && layoutState.elements) ? layoutState.elements.length : 1;
+//     const totalWidthCm = widthCm * pageCount;
+
+//     // 3. Aránypár: (pxSize / viewBoxWidth) * totalWidthCm
+//     const cmValue = (pxSize / viewBox.width) * totalWidthCm;
+    
+//     return cmValue.toFixed(2) + " cm";
+// }
+// --- CM SZÁMÍTÁS ---
+function calculateCM(pxSize) {
+    const designerSVG = document.getElementById('designer-svg');
+    const widthInput = document.getElementById('canvas-width');
+    if (!designerSVG || !widthInput) return "0.0 cm";
+    const viewBox = designerSVG.viewBox.baseVal;
+    if (!viewBox || viewBox.width === 0) return "— cm";
+    const widthCm = parseFloat(widthInput.value) || 21;
+    const pageCount = (typeof layoutState !== 'undefined' && layoutState.elements) ? layoutState.elements.length : 1;
+    const totalWidthCm = widthCm * pageCount;
+    return ((pxSize / viewBox.width) * totalWidthCm).toFixed(2) + " cm";
+}
+
+// // --- ÚJ: BESZÚRÁS BÁRHOVÁ (Insert) ---
+// window.insertBlockAt = function(zone, index, isNewLine) {
+//     if (!zoneDataStore[currentTextContext]) return;
+//     const blocks = zoneDataStore[currentTextContext][zone].blocks;
+    
+//     // Új blokk létrehozása
+//     const newBlock = createDefaultBlock(isNewLine);
+    
+//     // Beszúrás a megadott indexre (splice)
+//     // index + 1, mert az aktuális UTÁN akarjuk (kivéve ha -1, akkor az elejére)
+//     if (index === -1) {
+//         blocks.unshift(newBlock); // Elejére
+//     } else {
+//         blocks.splice(index + 1, 0, newBlock); // Megadott után
+//     }
+
+//     renderZoneUI(zone);
+//     window.renderFixedTexts();
+// }
+// --- BESZÚRÁS ---
+window.insertBlockAt = function(zone, index, isNewLine) {
+    if (!zoneDataStore[currentTextContext]) return;
+    const blocks = zoneDataStore[currentTextContext][zone].blocks;
+    const newBlock = createDefaultBlock(isNewLine);
+    if (index === -1) blocks.unshift(newBlock);
+    else blocks.splice(index + 1, 0, newBlock);
+    renderZoneUI(zone);
+    window.renderFixedTexts();
+}
+
+// // --- UI RENDERELÉS (Teljesen újraírva a kérések alapján) ---
+// function renderZoneUI(zone) {
+//     const container = document.getElementById(`${zone}-blocks-container`);
+//     container.innerHTML = '';
+    
+//     if (!zoneDataStore[currentTextContext]) zoneDataStore[currentTextContext] = { top: {alignV:'center', blocks:[]}, bottom: {alignV:'center', blocks:[]} };
+//     const data = zoneDataStore[currentTextContext][zone];
+    
+//     // 1. Vezérlő Gombok (Sablonok és Adatok) - MARAD A RÉGI
+//     const controlsDiv = document.createElement('div');
+//     controlsDiv.style.marginBottom = "15px";
+//     controlsDiv.style.background = "rgba(0,0,0,0.2)";
+//     controlsDiv.style.padding = "10px";
+//     controlsDiv.style.borderRadius = "8px";
+
+//     const hasLoc = data.blocks.some(b => b.tag === 'location');
+//     const hasDate = data.blocks.some(b => b.tag === 'date');
+//     const hasCoords = data.blocks.some(b => b.tag === 'coords');
+
+//     const btnStyle = (active) => `
+//         flex:1; padding:6px; font-size:11px; border:1px solid #444; border-radius:4px; cursor:pointer;
+//         background: ${active ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)'};
+//         color: ${active ? 'white' : '#aaa'};
+//     `;
+
+//     controlsDiv.innerHTML = `
+//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Gyors Adatok:</div>
+//         <div style="display:flex; gap:5px; margin-bottom:10px;">
+//             <button onclick="toggleDataBlock('${zone}', 'location')" style="${btnStyle(hasLoc)}">📍 Helyszín</button>
+//             <button onclick="toggleDataBlock('${zone}', 'date')" style="${btnStyle(hasDate)}">📅 Dátum</button>
+//             <button onclick="toggleDataBlock('${zone}', 'coords')" style="${btnStyle(hasCoords)}">🌐 Koord.</button>
+//         </div>
+//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Szöveg Sablonok:</div>
+//         <select onchange="applyTextTemplate('${zone}', this.value); this.value='';" style="width:100%; padding:6px; background:#111; color:white; border:1px solid #444; border-radius:4px;">
+//             <option value="">-- Válassz egy témát --</option>
+//             ${Object.keys(TEXT_TEMPLATES).map(cat => `
+//                 <optgroup label="${cat}">
+//                     ${TEXT_TEMPLATES[cat].map(t => `<option value="${t}">${t}</option>`).join('')}
+//                 </optgroup>
+//             `).join('')}
+//         </select>
+//     `;
+//     container.appendChild(controlsDiv);
+
+//     // --- ÚJ: BESZÚRÁS A LEGELEJÉRE GOMB ---
+//     const topInsertDiv = document.createElement('div');
+//     topInsertDiv.style.marginBottom = "10px";
+//     topInsertDiv.style.textAlign = "center";
+//     topInsertDiv.innerHTML = `
+//         <button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn secondary" style="width:100%; padding: 5px; font-size: 11px; border-style: dashed;">
+//             ⬆ Beszúrás a legelejére
+//         </button>
+//     `;
+//     container.appendChild(topInsertDiv);
+
+
+//     // --- 2. BLOKKOK LISTÁZÁSA (ÚJ DESIGN) ---
+//     const alignSelect = document.getElementById(`${zone}-zone-align-v`);
+//     if(alignSelect) alignSelect.value = data.alignV;
+
+//     const fonts = ["Space Grotesk", "Playfair Display", "Montserrat", "Great Vibes", "Cinzel"];
+
+//     data.blocks.forEach((block, index) => {
+//         const div = document.createElement('div');
+//         div.className = `block-card ${block.isNewLine ? 'newline' : 'inline'}`;
+        
+//         // Font választó generálása (Preview a textareából)
+//         let previewText = block.content.length > 20 ? block.content.substring(0, 20) + "..." : block.content;
+//         if (!previewText.trim()) previewText = "Minta szöveg";
+
+//         let fontOptionsHTML = fonts.map(fontName => {
+//             const isSelected = block.font === fontName ? 'selected' : '';
+//             // Itt a trükk: kiírjuk a tartalmat, zárójelben a font nevét
+//             return `<option value="${fontName}" style="font-family: '${fontName}'; font-size: 16px;" ${isSelected}>
+//                 ${previewText} (${fontName})
+//             </option>`;
+//         }).join('');
+
+//         // CM számítás
+//         const sizeInCm = calculateCM(block.size);
+
+//         div.innerHTML = `
+//             <div style="font-size:11px; margin-bottom:5px; color:#aaa; display:flex; justify-content:space-between;">
+//                 <span>${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'} ${block.tag ? `<span style="color:var(--accent-blue);">[${block.tag}]</span>` : ''}</span>
+//             </div>
+            
+//             <div class="setting-group" style="margin-bottom:8px;">
+//                 <label style="font-size:10px; margin-bottom:2px;">Szöveg:</label>
+//                 <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
+//                     style="width:100%; font-family:'${block.font}'; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
+//             </div>
+            
+//             <div class="grid-2-cols" style="gap:10px; margin-bottom:8px;">
+//                 <div>
+//                     <label style="font-size:10px; margin-bottom:2px;">Betűméret: <span style="color:var(--accent-blue); float:right;">${sizeInCm}</span></label>
+//                     <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Pixel méret">
+//                 </div>
+//                 <div>
+//                     <label style="font-size:10px; margin-bottom:2px;">Betűszín:</label>
+//                     <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:38px;">
+//                 </div>
+//             </div>
+
+//             <div class="grid-2-cols" style="gap:10px; margin-bottom:12px;">
+//                 <div>
+//                     <label style="font-size:10px; margin-bottom:2px;">Betűtípus:</label>
+//                     <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
+//                 </div>
+//                 ${block.isNewLine ? `
+//                 <div>
+//                     <label style="font-size:10px; margin-bottom:2px;">Rendezés:</label>
+//                     <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
+//                         <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
+//                         <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
+//                         <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
+//                     </select>
+//                 </div>` : '<div></div>'}
+//             </div>
+
+//             <div style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 8px;">
+//                 <button onclick="insertBlockAt('${zone}', ${index}, true)" class="add-btn primary" style="flex:1; padding:6px; font-size:11px;" title="Új sor beszúrása ez alá">⏎ Új sor</button>
+//                 <button onclick="insertBlockAt('${zone}', ${index}, false)" class="add-btn secondary" style="flex:1; padding:6px; font-size:11px;" title="Folytatás ugyanabban a sorban">➕ Inline</button>
+//                 <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="width:auto; padding:6px 10px; font-size:12px;" title="Szimbólum beszúrása">♥</button>
+//                 <button onclick="removeBlock('${zone}', ${block.id})" class="add-btn" style="width:auto; padding:6px 10px; background:#ff4444; color:white;" title="Sor törlése">🗑</button>
+//             </div>
+//         `;
+//         container.appendChild(div);
+//     });
+// }
+
+// --- UI RENDERELÉS ---
 function renderZoneUI(zone) {
     const container = document.getElementById(`${zone}-blocks-container`);
     container.innerHTML = '';
@@ -7211,78 +9738,120 @@ function renderZoneUI(zone) {
     if (!zoneDataStore[currentTextContext]) zoneDataStore[currentTextContext] = { top: {alignV:'center', blocks:[]}, bottom: {alignV:'center', blocks:[]} };
     const data = zoneDataStore[currentTextContext][zone];
     
+    // Vezérlő Gombok
+    const controlsDiv = document.createElement('div');
+    controlsDiv.style.marginBottom = "15px"; controlsDiv.style.background = "rgba(0,0,0,0.2)";
+    controlsDiv.style.padding = "10px"; controlsDiv.style.borderRadius = "8px";
+
+    const hasLoc = data.blocks.some(b => b.tag === 'location');
+    const hasDate = data.blocks.some(b => b.tag === 'date');
+    const hasCoords = data.blocks.some(b => b.tag === 'coords');
+    const btnStyle = (active) => `flex:1; padding:6px; font-size:11px; border:1px solid #444; border-radius:4px; cursor:pointer; background: ${active ? 'var(--accent-blue)' : 'rgba(255,255,255,0.05)'}; color: ${active ? 'white' : '#aaa'};`;
+
+    controlsDiv.innerHTML = `
+        <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Gyors Adatok:</div>
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <button onclick="toggleDataBlock('${zone}', 'location')" style="${btnStyle(hasLoc)}">📍 Helyszín</button>
+            <button onclick="toggleDataBlock('${zone}', 'date')" style="${btnStyle(hasDate)}">📅 Dátum</button>
+            <button onclick="toggleDataBlock('${zone}', 'coords')" style="${btnStyle(hasCoords)}">🌐 Koord.</button>
+        </div>
+        <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Szöveg Sablonok:</div>
+        <select onchange="applyTextTemplate('${zone}', this.value); this.value='';" style="width:100%; padding:6px; background:#111; color:white; border:1px solid #444; border-radius:4px;">
+            <option value="">-- Válassz egy témát --</option>
+            ${Object.keys(TEXT_TEMPLATES).map(cat => `<optgroup label="${cat}">${TEXT_TEMPLATES[cat].map(t => `<option value="${t}">${t}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+    `;
+    container.appendChild(controlsDiv);
+
+    // Ha nincs blokk, mutassunk egy nagy indító gombot
+    if (data.blocks.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.textAlign = "center";
+        emptyDiv.style.padding = "20px";
+        emptyDiv.innerHTML = `<button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn primary" style="width:100%;">➕ Első sor hozzáadása</button>`;
+        container.appendChild(emptyDiv);
+        return; // Nem renderelünk mást
+    }
+
+    // Beszúrás a legelejére (csak ha van már blokk)
+    const topInsertDiv = document.createElement('div');
+    topInsertDiv.style.marginBottom = "10px"; topInsertDiv.style.textAlign = "center";
+    topInsertDiv.innerHTML = `<button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn secondary" style="width:100%; padding: 5px; font-size: 11px; border-style: dashed;">⬆ Beszúrás a legelejére</button>`;
+    container.appendChild(topInsertDiv);
+
     const alignSelect = document.getElementById(`${zone}-zone-align-v`);
     if(alignSelect) alignSelect.value = data.alignV;
 
     const fonts = ["Space Grotesk", "Playfair Display", "Montserrat", "Great Vibes", "Cinzel"];
 
-    data.blocks.forEach((block) => {
+    // Blokkok listázása
+    data.blocks.forEach((block, index) => {
         const div = document.createElement('div');
         div.className = `block-card ${block.isNewLine ? 'newline' : 'inline'}`;
         
+        let previewText = block.content.length > 20 ? block.content.substring(0, 20) + "..." : block.content;
+        if (!previewText.trim()) previewText = "Minta";
+
         let fontOptionsHTML = fonts.map(fontName => {
             const isSelected = block.font === fontName ? 'selected' : '';
-            return `<option value="${fontName}" style="font-family: '${fontName}'; font-size: 16px;" ${isSelected}>${fontName}</option>`;
+            return `<option value="${fontName}" style="font-family: '${fontName}'; font-size: 16px;" ${isSelected}>${previewText} (${fontName})</option>`;
         }).join('');
 
-        // div.innerHTML = `
-        //     <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
-        //          <button onclick="openSymbolPicker(event, '${zone}', ${block.id})" class="symbol-opener" style="border:none;background:none;cursor:pointer;color:#4a9eff;font-size:16px;">♥</button>
-        //         <button onclick="removeBlock('${zone}', ${block.id})" style="color:red;border:none;background:none;cursor:pointer;">×</button>
-        //     </div>
-        //     <div style="font-size:11px; margin-bottom:5px; color:#aaa;">${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'}</div>
-            
-        //     <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
-        //         style="width:100%; font-family:'${block.font}'; margin-bottom:5px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
-            
-        //     <div class="grid-2-cols" style="gap:5px;">
-        //         <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Méret">
-        //         <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:30px;">
-        //     </div>
-        //     <div class="grid-2-cols" style="gap:5px; margin-top:5px;">
-        //         <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
-        //         ${block.isNewLine ? `
-        //         <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
-        //             <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
-        //             <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
-        //             <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
-        //         </select>` : ''}
-        //     </div>
-        // `;
-        div.innerHTML = `
-            <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
-                <button onclick="removeBlock('${zone}', ${block.id})" style="color:red;border:none;background:none;cursor:pointer;">×</button>
-            </div>
-            <div style="font-size:11px; margin-bottom:5px; color:#aaa;">${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'}</div>
-            
-            <textarea id="textarea-${block.id}" rows="2" oninput="updateBlockData('${zone}', ${block.id}, 'content', this.value)" 
-                style="width:100%; font-family:'${block.font}'; margin-bottom:5px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
-            
-            <div class="grid-2-cols" style="gap:5px;">
-                <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Méret">
-                <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:30px;">
-            </div>
-            <div class="grid-2-cols" style="gap:5px; margin-top:5px;">
-                <select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)">${fontOptionsHTML}</select>
-                ${block.isNewLine ? `
-                <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
-                    <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
-                    <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
-                    <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
-                </select>` : ''}
-            </div>
-            <div class="grid-2-cols" style="gap:0px; margin-top:0px;">
+        const sizeInCm = calculateCM(block.size);
 
-                 <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="padding:0px;">♥ Jel</button>
-                 <button onclick="removeBlock('${zone}', ${block.id})" class="delete-btn" style="padding:0px;color:red;border:none;background:none;cursor:pointer;">× Törlés</button>
+        div.innerHTML = `
+            <div style="font-size:11px; margin-bottom:5px; color:#aaa; display:flex; justify-content:space-between;">
+                <span>${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'} ${block.tag ? `<span style="color:var(--accent-blue);">[${block.tag}]</span>` : ''}</span>
+            </div>
+            
+            <div class="setting-group" style="margin-bottom:8px;">
+                <label style="font-size:10px; margin-bottom:2px;">Szöveg:</label>
+                <textarea id="textarea-${block.id}" rows="2" 
+                    oninput="updateBlockContentAndPreview('${zone}', ${block.id}, this.value)" 
+                    style="width:100%; font-family:'${block.font}'; font-size: 24px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea>
+            </div>
+            
+            <div class="grid-2-cols" style="gap:10px; margin-bottom:8px;">
+                <div>
+                    <label style="font-size:10px; margin-bottom:2px;">Betűméret: <span style="color:var(--accent-blue); float:right;">${sizeInCm}</span></label>
+                    <input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)" title="Pixel méret">
+                </div>
+                <div>
+                    <label style="font-size:10px; margin-bottom:2px;">Betűszín:</label>
+                    <input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:38px;">
+                </div>
+            </div>
+            <div class="grid-2-cols" style="gap:10px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:10px; margin-bottom:2px;">Betűtípus:</label>
+                    <select id="font-select-${block.id}" 
+                            style="font-family: '${block.font}'; font-size: 14px;" 
+                            onchange="this.style.fontFamily = this.value; updateBlockData('${zone}', ${block.id}, 'font', this.value)">
+                        ${fontOptionsHTML}
+                    </select>
+                </div>
+
+                ${block.isNewLine ? `
+                <div>
+                    <label style="font-size:10px; margin-bottom:2px;">Rendezés:</label>
+                    <select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)">
+                        <option value="start" ${block.alignH==='start'?'selected':''}>Balra</option>
+                        <option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option>
+                        <option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option>
+                    </select>
+                </div>` : '<div></div>'}
+            </div>
+
+            <div class="block-actions" style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 8px;">
+                <button onclick="insertBlockAt('${zone}', ${index}, true)" class="add-btn primary" style="flex:1; padding:6px; font-size:11px;" title="Új sor beszúrása ez alá">⏎ Új sor</button>
+                <button onclick="insertBlockAt('${zone}', ${index}, false)" class="add-btn secondary" style="flex:1; padding:6px; font-size:11px;" title="Folytatás ugyanabban a sorban">➕ Inline</button>
+                <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="width:auto; padding:6px 10px; font-size:12px;" title="Szimbólum beszúrása">♥</button>
+                <button onclick="removeBlock('${zone}', ${block.id})" class="add-btn" style="width:auto; padding:6px 10px; background:#ff4444; color:white;" title="Sor törlése">🗑</button>
             </div>
         `;
-
-                                        
         container.appendChild(div);
     });
 }
-
 
 /* * fragment5_jo.js - JAVÍTOTT (Több kép, Kör Cropper, Méretezés, Igazítás) */
 
@@ -7329,13 +9898,81 @@ let zoneDataStore = {
 let zoneFlags = { topCommon: false, bottomCommon: false };
 let currentTextContext = 'map';
 let activePhotoId = null; // Melyik képet szerkesztjük épp (pozícionálás)
+
+// // --- SEGÉDFÜGGVÉNY: ADATOK LEKÉRÉSE A TÉRKÉPRŐL ---
+// function getMapMetaData() {
+//     // Dátum formázása
+//     let dateStr = "Dátum";
+//     if (typeof Celestial !== 'undefined' && Celestial.date) {
+//         const d = Celestial.date();
+//         // Magyar formátum: ÉÉÉÉ. HH. NN.
+//         dateStr = d.getFullYear() + ". " + 
+//                   (d.getMonth() + 1).toString().padStart(2, '0') + ". " + 
+//                   d.getDate().toString().padStart(2, '0') + ".";
+        
+//         // Ha van óra/perc beállítva, azt is hozzáadhatjuk opcionálisan
+//         // dateStr += " " + d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
+//     }
+
+//     // Helyszín lekérése (Input mezőből, ha van)
+//     let locStr = "Budapest"; // Alapértelmezett
+//     const locInput = document.getElementById('location'); // Feltételezzük, hogy van ilyen ID a főoldalon
+//     if (locInput && locInput.value) {
+//         locStr = locInput.value;
+//     } else {
+//         // Ha nincs input, de van geopos a configban
+//         // Itt nehéz városnevet kinyerni API nélkül, marad a koordináta vagy placeholder
+//     }
+
+//     // Koordináták lekérése
+//     let coordStr = "47.4979° N, 19.0402° E";
+//     if (typeof Celestial !== 'undefined') {
+//         const origin = Celestial.origin ? Celestial.origin(Celestial.date()).spherical() : null;
+//         // Celestial.settings().location -> [lat, lon]
+//         const loc = Celestial.settings().location; 
+//         if (loc) {
+//             const lat = Math.abs(loc[0]).toFixed(4) + "° " + (loc[0] >= 0 ? "N" : "S");
+//             const lon = Math.abs(loc[1]).toFixed(4) + "° " + (loc[1] >= 0 ? "E" : "W");
+//             coordStr = `${lat}, ${lon}`;
+//         }
+//     }
+
+//     return { location: locStr, date: dateStr, coords: coordStr };
+// }
+
+// --- SEGÉDFÜGGVÉNY: ADATOK LEKÉRÉSE ---
+function getMapMetaData() {
+    let dateStr = "Dátum";
+    if (typeof Celestial !== 'undefined' && Celestial.date) {
+        const d = Celestial.date();
+        dateStr = d.getFullYear() + ". " + (d.getMonth() + 1).toString().padStart(2, '0') + ". " + d.getDate().toString().padStart(2, '0') + ".";
+    }
+    let locStr = document.getElementById('city') ? document.getElementById('city').value : "Budapest";
+    if (!locStr) locStr = "Helyszín";
+    
+    let coordStr = "47.4979° N, 19.0402° E";
+    if (typeof Celestial !== 'undefined' && Celestial.settings) {
+        const loc = Celestial.settings().location; 
+        if (loc) {
+            const lat = Math.abs(loc[0]).toFixed(4) + "° " + (loc[0] >= 0 ? "N" : "S");
+            const lon = Math.abs(loc[1]).toFixed(4) + "° " + (loc[1] >= 0 ? "E" : "W");
+            coordStr = `${lat}, ${lon}`;
+        }
+    }
+    return { location: locStr, date: dateStr, coords: coordStr };
+}
+
+
 // INIT
 $(document).ready(function() {
     // if(zoneData.top.blocks.length === 0) addNewBlock('top', true);
     // if(zoneData.bottom.blocks.length === 0) addNewBlock('bottom', true);// Alapértelmezett blokkok a Map-hez
-    if(zoneDataStore.map.top.blocks.length === 0) addNewBlockToStore('map', 'top', true);
-    if(zoneDataStore.map.bottom.blocks.length === 0) addNewBlockToStore('map', 'bottom', true);
-    
+    // if(zoneDataStore.map.top.blocks.length === 0) addNewBlockToStore('map', 'top', true);
+    // if(zoneDataStore.map.bottom.blocks.length === 0) addNewBlockToStore('map', 'bottom', true);
+    // Csak akkor állítunk be alapértelmezést, ha üres a store (pl. első betöltés)
+    if(zoneDataStore.map.top.blocks.length === 0 && zoneDataStore.map.bottom.blocks.length === 0) {
+        initDefaultTexts();
+    }
     // Győződjünk meg róla, hogy a picker a body-ban van (betöltéskor is)
     const picker = $('#symbol-picker');
     if (picker.length && picker.parent().prop("tagName") !== "BODY") {
@@ -7347,16 +9984,110 @@ $(document).ready(function() {
     // Frissítés
     // setTimeout(window.renderFixedTexts, 500); // Késleltetés a biztonság kedvéért
     // setTimeout(window.renderFixedTexts, 500);
+    // $("#tabs").on("tabsactivate", function(event, ui) {
+    //     console.log("tabs tabsactivate");
+    //     console.log("tabs tabsactivate myCelestialConf", myCelestialConf);
+    //     if (ui.newPanel[0].id === 'fragment-6') {
+    //         document.getElementById('full-screen-designer').style.display = 'block';
+    //         document.getElementById('main-layout').style.display = 'none';
+    //         // // BIZTONSÁGI MASZKOLÁS: Késleltetve is meghívjuk, ha a másolás lassú lenne
+    //         // setTimeout(function() {
+    //         //     // Másolás indítása
+    //         //     if(window.copyMapToDesigner){
+    //         //     alert("1"); window.copyMapToDesigner();
+    //         //     }
+    //         // }, 100);
+    //         // // BIZTONSÁGI MASZKOLÁS: Késleltetve is meghívjuk, ha a másolás lassú lenne
+    //         // setTimeout(function() {
+    //         //     alert("2")
+    //         //     if(window.applyMaskToDesigner) window.applyMaskToDesigner();
+    //         // }, 200);
+    //         // 1. MÁSOLÁS (100ms)
+    //         setTimeout(function() {
+    //             if(window.copyMapToDesigner){
+    //                 window.copyMapToDesigner();
+    //             }
+    //         }, 300);
+
+    //         // 2. MASZKOLÁS ÉS IGAZÍTÁS (200ms)
+    //         setTimeout(function() {
+    //             // Maszk felrakása
+    //             if(window.applyMaskToDesigner) window.applyMaskToDesigner();
+                
+    //             // FONTOS: Ez teszi helyre a méretet a USER beállításai alapján!
+    //             // Nem írja felül a számokat, csak frissíti a nézetet.
+    //             if(window.refreshMapTransform) window.refreshMapTransform();
+                
+    //         }, 500);
+    //         $("#copy-svg").trigger("click");
+    //         $("#tabs_r").tabs("option", "active", 0);
+    //         // setTimeout(updateCanvasSize, 50);
+    //     } else {
+    //         document.getElementById('full-screen-designer').style.display = 'none';
+    //         document.getElementById('main-layout').style.display = 'flex';
+    //     }
+    // });
+    // Ez a változó jegyzi meg, hogy voltunk-e már a tervezőben
+    let isDesignerFirstRun = true; 
+
     $("#tabs").on("tabsactivate", function(event, ui) {
         console.log("tabs tabsactivate");
-        console.log("tabs tabsactivate myCelestialConf", myCelestialConf);
-        if (ui.newPanel[0].id === 'fragment-6') {
+        
+        if (ui.newPanel[0].id === 'fragment-6') { // Ha a Tervező fülre váltunk
             document.getElementById('full-screen-designer').style.display = 'block';
             document.getElementById('main-layout').style.display = 'none';
+
+            // --- 1. ELSŐ BELÉPÉS DETEKTÁLÁSA ---
+            if (isDesignerFirstRun) {
+                console.log("Első belépés a tervezőbe: Automatikus MAX méretezés...");
+                
+                // Lekérjük a vászon jelenlegi méreteit
+                const wInput = document.getElementById('canvas-width');
+                const hInput = document.getElementById('canvas-height');
+                
+                if (wInput && hInput) {
+                    const w = parseFloat(wInput.value);
+                    const h = parseFloat(hInput.value);
+                    
+                    // A kisebbik oldal lesz a maximum szélesség (hogy biztosan kiférjen)
+                    const maxWidth = Math.min(w, h);
+                    
+                    // 1. Beírjuk az input mezőbe
+                    const mapInput = document.getElementById('map-width-cm-input');
+                    if(mapInput) mapInput.value = maxWidth;
+                    
+                    // 2. Beállítjuk a belső változót
+                    if(window.setMapWidth) window.setMapWidth(maxWidth);
+                }
+                
+                // Kikapcsoljuk a jelzőt, többet ez nem fut le
+                isDesignerFirstRun = false;
+            }
+
+            // --- 2. MÁSOLÁS ÉS MEGJELENÍTÉS ---
+            
+            // Másolás indítása (100ms)
+            setTimeout(function() {
+                if(window.copyMapToDesigner){
+                    window.copyMapToDesigner();
+                }
+            }, 300);
+
+            // Maszkolás és Igazítás (200ms)
+            setTimeout(function() {
+                // Maszk felrakása
+                if(window.applyMaskToDesigner) window.applyMaskToDesigner();
+                
+                // Helyreigazítás (Ez már az új, MAX mérettel fog dolgozni az első alkalommal)
+                if(window.refreshMapTransform) window.refreshMapTransform();
+                
+            }, 500);
+
             $("#copy-svg").trigger("click");
             $("#tabs_r").tabs("option", "active", 0);
-            // setTimeout(updateCanvasSize, 50);
+
         } else {
+            // Vissza a szerkesztőbe
             document.getElementById('full-screen-designer').style.display = 'none';
             document.getElementById('main-layout').style.display = 'flex';
         }
@@ -7462,7 +10193,8 @@ $(document).ready(function() {
                     // mapProj.translate([currentTranslate[0], (mapHeight / 3) * 8.5]);
                     // mapProj.translate([currentTranslate[0], mapHeight * 4]);
                     // mapProj.translate([currentTranslate[0], currentTranslate[1]]);
-                    mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    // mapProj.translate([currentTranslate[0], mapHeight * 1.5]);
+                    mapProj.translate([currentTranslate[0], currentTranslate[1] * 1.15]);
                     
                     // 6. Újrarajzolás a tökéletes pozícióban
                     Celestial.redraw();
@@ -7525,4 +10257,190 @@ $(document).ready(function() {
     $("#designer-tabs").on("tabsactivate", function(event, ui) {
        // Ha kell valami speciális
     });
+    // --- FAL SZÍNÉNEK SZIMULÁLÁSA ---
+    // Ez csak a tervező hátterét állítja, nem kerül bele a letöltésbe!
+    window.updateWallColor = function(color) {
+        const designerArea = document.getElementById('designer-canvas-area');
+        if (designerArea) {
+            designerArea.style.backgroundColor = color;
+        }
+    }
 });
+// // --- ÚJ: ALAPÉRTELMEZETT SZÖVEGEK BETÖLTÉSE ---
+// function initDefaultTexts() {
+//     const meta = getMapMetaData();
+
+//     // 1. FELSŐ ZÓNA: Valentin napi szerelmes szöveg (80px)
+//     zoneDataStore.map.top.blocks = []; // Törlés
+//     zoneDataStore.map.top.blocks.push({
+//         id: Date.now() + 1,
+//         isNewLine: true,
+//         content: "A nap, amikor csillagaink találkoztak", // Szerelmes sablon
+//         font: "Great Vibes", // Szép kézírásos font
+//         size: 80, // Kérésre: 80px
+//         weight: "normal",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle"
+//     });
+
+//     // 2. ALSÓ ZÓNA: 3 sor adat (Helyszín, Dátum, Koordináta)
+//     zoneDataStore.map.bottom.blocks = []; // Törlés
+    
+//     // Sor 1: Helyszín (50px)
+//     zoneDataStore.map.bottom.blocks.push({
+//         id: Date.now() + 2,
+//         isNewLine: true,
+//         content: meta.location,
+//         font: "Space Grotesk",
+//         size: 50, // Kérésre: 50px
+//         weight: "bold",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle",
+//         tag: "location" // Jelölő a kapcsolóhoz
+//     });
+
+//     // Sor 2: Dátum
+//     zoneDataStore.map.bottom.blocks.push({
+//         id: Date.now() + 3,
+//         isNewLine: true,
+//         content: meta.date,
+//         font: "Space Grotesk",
+//         size: 32,
+//         weight: "normal",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle",
+//         tag: "date"
+//     });
+
+//     // Sor 3: Koordináták
+//     zoneDataStore.map.bottom.blocks.push({
+//         id: Date.now() + 4,
+//         isNewLine: true,
+//         content: meta.coords,
+//         font: "Montserrat",
+//         size: 24,
+//         weight: "300", // Vékony
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle",
+//         tag: "coords"
+//     });
+// }
+// // --- ÚJ: ADAT KAPCSOLÓK KEZELÉSE ---
+// // Be/Kikapcsolja a speciális sorokat (Location, Date, Coords)
+// window.toggleDataBlock = function(zone, tag) {
+//     const data = getCurrentZoneData(zone);
+//     if (!data) return;
+
+//     // Megnézzük, van-e már ilyen tag-el rendelkező blokk
+//     const existingIndex = data.blocks.findIndex(b => b.tag === tag);
+
+//     if (existingIndex !== -1) {
+//         // Ha van, TÖRÖLJÜK (Kikapcsolás)
+//         data.blocks.splice(existingIndex, 1);
+//     } else {
+//         // Ha nincs, HOZZÁADJUK (Bekapcsolás)
+//         const meta = getMapMetaData();
+//         let content = "";
+//         let size = 32;
+//         let font = "Space Grotesk";
+//         let weight = "normal";
+
+//         if (tag === 'location') { content = meta.location; size = 50; weight = "bold"; }
+//         if (tag === 'date') { content = meta.date; size = 32; }
+//         if (tag === 'coords') { content = meta.coords; size = 24; font = "Montserrat"; weight = "300"; }
+
+//         data.blocks.push({
+//             id: Date.now() + Math.random(),
+//             isNewLine: true,
+//             content: content,
+//             font: font,
+//             size: size,
+//             weight: weight,
+//             style: "normal",
+//             color: "#e8edf5",
+//             alignH: "middle",
+//             tag: tag // Fontos a jelöléshez
+//         });
+//     }
+    
+//     // UI és Térkép frissítése
+//     renderZoneUI(zone);
+//     window.renderFixedTexts();
+// }
+// // --- ÚJ: SABLON ALKALMAZÁSA ---
+// window.applyTextTemplate = function(zone, text) {
+//     if (!text) return;
+//     const data = getCurrentZoneData(zone);
+    
+//     // Hozzáadunk egy új blokkot a kiválasztott szöveggel
+//     // Vagy cseréljük az elsőt? Inkább adjunk hozzá újat, az a biztos.
+//     // De ha az a kérés, hogy "legyen alapértelmezett", akkor lehet, hogy cserélni kéne?
+//     // Felhasználóbarátabb, ha csak beszúrja.
+    
+//     data.blocks.push({
+//         id: Date.now() + Math.random(),
+//         isNewLine: true,
+//         content: text,
+//         font: "Great Vibes", // Alapértelmezett szép font a sablonokhoz
+//         size: (zone === 'top' ? 80 : 50),
+//         weight: "normal",
+//         style: "normal",
+//         color: "#e8edf5",
+//         alignH: "middle"
+//     });
+
+//     renderZoneUI(zone);
+//     window.renderFixedTexts();
+// }
+// --- ALAPÉRTELMEZETT SZÖVEGEK ---
+function initDefaultTexts() {
+    const meta = getMapMetaData();
+    zoneDataStore.map.top.blocks = [{
+        id: Date.now() + 1, isNewLine: true, content: "A nap, amikor csillagaink találkoztak", 
+        font: "Great Vibes", size: 80, weight: "normal", style: "normal", color: "#e8edf5", alignH: "middle"
+    }];
+    zoneDataStore.map.bottom.blocks = [
+        { id: Date.now() + 2, isNewLine: true, content: meta.location, font: "Space Grotesk", size: 50, weight: "bold", style: "normal", color: "#e8edf5", alignH: "middle", tag: "location" },
+        { id: Date.now() + 3, isNewLine: true, content: meta.date, font: "Space Grotesk", size: 32, weight: "normal", style: "normal", color: "#e8edf5", alignH: "middle", tag: "date" },
+        { id: Date.now() + 4, isNewLine: true, content: meta.coords, font: "Montserrat", size: 24, weight: "300", style: "normal", color: "#e8edf5", alignH: "middle", tag: "coords" }
+    ];
+}
+
+// --- FUNKCIÓK: Adatok és Sablonok ---
+window.toggleDataBlock = function(zone, tag) {
+    const data = getCurrentZoneData(zone);
+    if (!data) return;
+    const existingIndex = data.blocks.findIndex(b => b.tag === tag);
+
+    if (existingIndex !== -1) {
+        data.blocks.splice(existingIndex, 1);
+    } else {
+        const meta = getMapMetaData();
+        let content = "", size = 32, font = "Space Grotesk", weight = "normal";
+        if (tag === 'location') { content = meta.location; size = 50; weight = "bold"; }
+        if (tag === 'date') { content = meta.date; size = 32; }
+        if (tag === 'coords') { content = meta.coords; size = 24; font = "Montserrat"; weight = "300"; }
+
+        data.blocks.push({
+            id: Date.now() + Math.random(), isNewLine: true, content: content, font: font, size: size,
+            weight: weight, style: "normal", color: "#e8edf5", alignH: "middle", tag: tag
+        });
+    }
+    renderZoneUI(zone);
+    window.renderFixedTexts();
+}
+
+window.applyTextTemplate = function(zone, text) {
+    if (!text) return;
+    const data = getCurrentZoneData(zone);
+    data.blocks.push({
+        id: Date.now() + Math.random(), isNewLine: true, content: text, font: "Great Vibes", size: (zone === 'top' ? 80 : 50),
+        weight: "normal", style: "normal", color: "#e8edf5", alignH: "middle"
+    });
+    renderZoneUI(zone);
+    window.renderFixedTexts();
+}

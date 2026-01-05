@@ -5767,7 +5767,28 @@ var Moon = {
 function exportSVG(fname) {
   var doc = d3.select("body").append("div").attr("id", "d3-celestial-svg").attr("style", "display: none"),
       svg = d3.select("#d3-celestial-svg").append("svg"),
-      m = Celestial.metrics(),
+
+      // 1. LEKÉRJÜK AZ EREDETI METRIKÁKAT
+      rawM = Celestial.metrics(),
+      
+      // 2. DEFINIÁLJUK A CÉL FELBONTÁST (pl. 3500px széles)
+      // Ez lesz a generált SVG fizikai mérete
+      TARGET_WIDTH = 3500, 
+      
+      // 3. KISZÁMOLJUK A SZORZÓT
+      // Hányszorosa a cél a jelenlegi képernyőméretnek?
+      mult = TARGET_WIDTH / rawM.width,
+
+      // 4. LÉTREHOZZUK A SKÁLÁZOTT METRIKÁKAT
+      // Felülírjuk az m objektumot a felszorzott értékekkel
+      m = {
+          width: TARGET_WIDTH,
+          height: rawM.height * mult,
+          margin: [rawM.margin[0] * mult, rawM.margin[1] * mult],
+          scale: rawM.scale * mult // A vetület skáláját is növelni kell!
+      },
+
+      // m = Celestial.metrics(),
       cfg = settings.set(),
       path = cfg.datapath,
       proj = projections[cfg.projection],
@@ -5775,18 +5796,34 @@ function exportSVG(fname) {
       center = [-rotation[0], -rotation[1]],
       scale0 = proj.scale * m.width/1024,
       
-      // JAVÍTÁS: Átvesszük a látható térkép eltolását
-      trans = (typeof mapProjection !== 'undefined' && mapProjection) 
+      // JAVÍTÁS: Átvesszük a látható térkép eltolását, DE FELSZOROZVA A MULTIPLIERREL!
+      originalTrans = (typeof mapProjection !== 'undefined' && mapProjection) 
               ? mapProjection.translate() 
-              : [m.width/2, m.height/2],
+              : [rawM.width/2, rawM.height/2],
+
+      // JAVÍTÁS: Átvesszük a látható térkép eltolását
+      // trans = (typeof mapProjection !== 'undefined' && mapProjection) 
+              // ? mapProjection.translate() 
+              // : [m.width/2, m.height/2],
+      // A translate koordinátákat is fel kell szorozni!
+      trans = [originalTrans[0] * mult, originalTrans[1] * mult],
 
       projection = Celestial.projection(cfg.projection).rotate(rotation).translate(trans).scale([m.scale]),
       adapt = cfg.adaptable ? Math.sqrt(m.scale/scale0) : 1,
       culture = (cfg.culture !== "" && cfg.culture !== "iau") ? cfg.culture : "",
       circle, id;
 
+  // // --- SKÁLA SZÁMÍTÁSA EXPORTÁLÁSHOZ ---
+  // var exportScaleRatio = m.width / REFERENCE_WIDTH;
   // --- SKÁLA SZÁMÍTÁSA EXPORTÁLÁSHOZ ---
-  var exportScaleRatio = m.width / REFERENCE_WIDTH;
+  // Fontos: Itt a REFERENCE_WIDTH-et is a megnövelt mérethez kell viszonyítani, 
+  // vagy egyszerűen a 'mult' változót használjuk a vonalvastagságok növelésére.
+  // Az eredeti logika: exportScaleRatio = m.width / REFERENCE_WIDTH;
+  // Mivel az m.width most 3500, a REFERENCE_WIDTH (1440) maradt, az arány nőni fog, 
+  // így a vonalak is vastagabbak lesznek (helyesen, hogy látszódjanak nagyban).
+  var exportScaleRatio = m.width / 1440;
+  // ... INNENTŐL A KÓD VÁLTOZATLAN ...
+  // svg.selectAll("*").remove();
 
   svg.selectAll("*").remove();
 
@@ -5941,7 +5978,7 @@ function exportSVG(fname) {
     }
     return res + "} ";
   }
-  
+
   // --- INNENTŐL A FÜGGVÉNY MARADÉK RÉSZE VÁLTOZATLAN ---
 
   var graticule = d3.geo.graticule().minorStep([15,10]);
