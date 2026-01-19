@@ -25,6 +25,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/save-svg-as-png/1.4.17/saveSvgAsPng.min.js"></script>
     <script src="fragment5_jo_uj_.js"></script> 
+    <!-- <script src="fragment5_jo_alap.js"></script> -->
+    <!-- <script src="fragment5_jo_copy_apply_refresh_imaget_ad_kisebb_cst_meret_jobb_felbontas.js"></script>  -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -651,6 +654,7 @@
                         <li><a href="#fragment_r-3">Kép hozzáadása</a></li>
                         <li><a href="#fragment_r-4">Sablonok</a></li>
                         <li><a href="#fragment_r-5">Csillagtérkép szerkesztő</a></li>
+                        <li><a href="#fragment_r-6">OkosPont +</li>
                     </ul>
                     <!-- <div id="fragment_r-1">
                         <div class="designer-controls">
@@ -1528,6 +1532,193 @@
                     </div>
                     <div id="fragment_r-5">
                     </div>
+                    <!-- <div id="fragment_r-6">
+                        <style>
+                            /* Okospont specifikus stílusok */
+                            .smart-point-container { padding: 10px; }
+                            .sp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+                            .sp-list-item {
+                                background: rgba(0,0,0,0.2); border: 1px solid #444; border-left: 4px solid var(--accent-blue);
+                                border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+                            }
+                            .sp-list-item.editing { background: rgba(74, 158, 255, 0.1); border-color: var(--accent-blue); }
+                            .sp-icon { font-size: 16px; margin-right: 10px; width: 20px; text-align: center; }
+                            .sp-info { flex-grow: 1; }
+                            .sp-title { font-weight: bold; font-size: 13px; color: #fff; }
+                            .sp-meta { font-size: 11px; color: #aaa; }
+                            .sp-actions { display: flex; gap: 5px; }
+                            .sp-type-btn { text-align: left; margin-bottom: 5px; width: 100%; display: flex; align-items: center; gap: 8px;}
+                            .sp-type-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+                            
+                            /* Animáció a lenyíláshoz */
+                            .collapse-content { display: none; overflow: hidden; transition: all 0.3s ease; }
+                            .collapse-content.show { display: block; }
+                        </style>
+
+                        <div class="designer-controls">
+                            <div class="section">
+                                <div class="sp-header">
+                                    <h3 class="small" style="margin:0;">Adj hozzá Okospontot</h3>
+                                    <button class="add-btn secondary" style="padding: 5px 10px;" onclick="$('#smartpoint-section-content').slideToggle()">▼</button>
+                                </div>
+                                
+                                <div id="smartpoint-section-content">
+                                    <button id="btnAddSmartpoint" class="add-btn accent" style="width:100%; margin-bottom: 15px;" onclick="startAddSmartpoint()">
+                                        <span style="margin-right:5px;">+</span> Új Okospont hozzáadása
+                                    </button>
+
+                                    <  ! - - Típus választó - - >
+                                    <div id="sp-type-selector" style="display: none; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                                        <label style="margin-bottom: 10px; display: block; font-weight: bold; color: var(--accent-blue);">1. Válassz típust:</label>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('audio', this)">🎵 Hangfájl</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('video', this)">🎥 Videó</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('image', this)">🖼️ Kép</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('youtube', this)">▶️ YouTube</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('spotify', this)">🎧 Spotify</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('url', this)">🔗 URL / Link</button>
+                                    </div>
+
+                                    <  ! - - Tartalom megadása - - >
+                                    <div id="sp-content-input" style="display: none; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                                        <label style="margin-bottom: 10px; display: block; font-weight: bold; color: var(--accent-blue);">2. Tartalom:</label>
+                                        
+                                        <div id="sp-input-url-group" style="display:none;">
+                                            <input type="text" id="sp-input-url" placeholder="https://..." style="width: 100%; margin-bottom: 10px;">
+                                        </div>
+                                        <div id="sp-input-file-group" style="display:none;">
+                                            <input type="file" id="sp-input-file" style="width: 100%; margin-bottom: 10px; color: #aaa;">
+                                        </div>
+
+                                        <div class="grid-2-cols">
+                                            <button class="add-btn primary" onclick="saveSmartpoint()">Mentés & Lerakás</button>
+                                            <button class="add-btn secondary" onclick="cancelSmartpoint()">Mégse</button>
+                                        </div>
+                                    </div>
+
+                                    <  ! - - Lista - - >
+                                    <div id="smartpoints-list">
+                                        <div style="text-align: center; color: #888; font-style: italic; padding: 10px;">Még nincs okospont.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+                    <div id="fragment_r-6">
+                        <style>
+                            /* Okospont specifikus stílusok */
+                            .smart-point-container { padding: 10px; }
+                            .sp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+                            .sp-list-item {
+                                background: rgba(0,0,0,0.2); border: 1px solid #444; border-left: 4px solid var(--accent-blue);
+                                border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+                                transition: all 0.2s ease;
+                            }
+                            .sp-list-item:hover { background: rgba(0,0,0,0.3); }
+                            .sp-list-item.editing { background: rgba(74, 158, 255, 0.1); border-color: var(--accent-blue); }
+                            .sp-list-item.selected-move { border: 2px dashed #ffeb3b; background: rgba(255, 235, 59, 0.1); }
+                            
+                            .sp-icon { font-size: 16px; margin-right: 10px; width: 20px; text-align: center; }
+                            .sp-info { flex-grow: 1; }
+                            .sp-title { font-weight: bold; font-size: 13px; color: #fff; }
+                            .sp-meta { font-size: 11px; color: #aaa; }
+                            .sp-actions { display: flex; gap: 5px; }
+                            
+                            .sp-type-btn { text-align: left; margin-bottom: 5px; width: 100%; display: flex; align-items: center; gap: 8px;}
+                            .sp-type-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+                            
+                            /* Egyedi Alert Stílus */
+                            #custom-sp-alert {
+                                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                z-index: 10000; padding: 20px; border-radius: 8px;
+                                background-color: var(--secondary-bg); border: 1px solid var(--accent-blue);
+                                color: var(--text-primary); box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+                                display: none; text-align: center; min-width: 300px;
+                            }
+                            #custom-sp-alert.success { border-color: #4caf50; }
+                            #custom-sp-alert p { margin-bottom: 15px; font-weight: bold; }
+                            
+                            /* Animáció a lenyíláshoz */
+                            .collapse-content { display: none; overflow: hidden; transition: all 0.3s ease; }
+                            .collapse-content.show { display: block; }
+                        </style>
+    
+                        <div class="designer-controls">
+                            <div class="section">
+                                <div class="sp-header">
+                                    <h3 class="small" style="margin:0;">Adj hozzá Okospontot</h3>
+                                    <button class="add-btn secondary" style="padding: 5px 10px;" onclick="$('#smartpoint-section-content').slideToggle()">▼</button>
+                                </div>
+                                
+                                <!-- Egyedi Alert Doboz -->
+                                <div id="custom-sp-alert" class="shadow">
+                                    <p id="sp-alert-text">Üzenet szövege</p>
+                                    <button onclick="$('#custom-sp-alert').fadeOut(200)" class="add-btn secondary" style="padding: 5px 15px; font-size: 12px;">Bezárás</button>
+                                </div>
+                                
+                                <div id="smartpoint-section-content">
+                                    
+                                    <!-- Fő vezérlők -->
+                                    <div style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                        <button id="btnAddSmartpoint" class="add-btn accent" style="width:100%;" onclick="startAddSmartpoint()">
+                                            <span style="margin-right:5px;">+</span> Új Okospont hozzáadása
+                                        </button>
+                                        
+                                        <div style="display: flex; gap: 8px;">
+                                            <button id="btnToggleSmartpoints" class="add-btn secondary" style="flex: 1; font-size: 11px;" onclick="toggleSmartpointsVisibility()">
+                                                👁️ Elrejtés
+                                            </button>
+                                            <button id="btnMoveSmartpoints" class="add-btn secondary" style="flex: 1; font-size: 11px;" onclick="toggleSmartpointsMoveMode()">
+                                                ✥ Áthelyezés
+                                            </button>
+                                        </div>
+                                    </div>
+    
+                                    <!-- Típus választó -->
+                                    <div id="sp-type-selector" style="display: none; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                                        <label style="margin-bottom: 10px; display: block; font-weight: bold; color: var(--accent-blue);">1. Válassz típust:</label>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('audio', this)">🎵 Hangfájl</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('video', this)">🎥 Videó</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('image', this)">🖼️ Kép</button>
+                                        <!-- <button class="add-btn secondary sp-type-btn" onclick="selectSPType('youtube', this)">▶️ YouTube</button> -->
+                                        <!-- <button class="add-btn secondary sp-type-btn" onclick="selectSPType('youtube', this)"><i class="fab fa-youtube me-2" style=" color: red;"></i> YouTube URL</button> -->
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('youtube', this)"><i class="fab fa-youtube me-2" style=" color: red;"></i><i class="fa-brands fa-youtube" style="color: #ff0000;"></i><i class="bi bi-youtube"></i> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path fill="#ff0000" d="M581.7 188.1C575.5 164.4 556.9 145.8 533.4 139.5C490.9 128 320.1 128 320.1 128C320.1 128 149.3 128 106.7 139.5C83.2 145.8 64.7 164.4 58.4 188.1C47 231 47 320.4 47 320.4C47 320.4 47 409.8 58.4 452.7C64.7 476.3 83.2 494.2 106.7 500.5C149.3 512 320.1 512 320.1 512C320.1 512 490.9 512 533.5 500.5C557 494.2 575.5 476.3 581.8 452.7C593.2 409.8 593.2 320.4 593.2 320.4C593.2 320.4 593.2 231 581.8 188.1zM264.2 401.6L264.2 239.2L406.9 320.4L264.2 401.6z"/></svg> YouTube URL &#xF62B;</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('spotify', this)"><i class="fab fa-spotify" style="color: #1DB954"></i> Spotify</button>
+                                        <button class="add-btn secondary sp-type-btn" onclick="selectSPType('url', this)">🔗 URL / Link</button>
+                                    </div>
+    
+                                    <!-- Tartalom megadása -->
+                                    <div id="sp-content-input" style="display: none; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
+                                        <label style="margin-bottom: 10px; display: block; font-weight: bold; color: var(--accent-blue);">2. Tartalom:</label>
+                                        
+                                        <div id="sp-input-url-group" style="display:none;">
+                                            <input type="text" id="sp-input-url" placeholder="https://..." style="width: 100%; margin-bottom: 10px;">
+                                        </div>
+                                        <div id="sp-input-file-group" style="display:none;">
+                                            <input type="file" id="sp-input-file" style="width: 100%; margin-bottom: 10px; color: #aaa;">
+                                        </div>
+    
+                                        <div class="grid-2-cols">
+                                            <button class="add-btn primary" onclick="saveSmartpoint()">Mentés</button>
+                                            <button class="add-btn secondary" onclick="cancelSmartpoint()">Mégse</button>
+                                        </div>
+                                    </div>
+    
+                                    <!-- Lista -->
+                                    <div id="smartpoints-list">
+                                        <div style="text-align: center; color: #888; font-style: italic; padding: 10px;">Még nincs okospont.</div>
+                                    </div>
+                                    
+                                    <!-- Koordináta Export Info (Rejtett, de a kódban elérhető) -->
+                                    <div style="margin-top: 20px; border-top: 1px solid #444; padding-top: 10px;">
+                                        <p style="font-size: 10px; color: #666;">
+                                            * Az okospontok helyzete (CM-ben a középponttól) mentésre kerül a konfigurációba. 
+                                            Nyomtatáskor nem látszanak.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -1747,7 +1938,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                         <!-- ÚJ SZEKCIÓ: Egyedi Kiemelések -->
                         <div class="collapsible-header" data-target="highlight-settings">
                             <h2>♋︎ Csillagképek Kiemelése</h2>

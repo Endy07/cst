@@ -15,6 +15,14 @@ const HEART_PATHS = {
     'round': "M 500 850 C 200 600 20 400 20 250 C 20 100 180 20 350 20 C 450 20 500 80 500 80 C 500 80 550 20 650 20 C 820 20 980 100 980 250 C 980 400 800 600 500 850 Z",
     'modern': "M 500 900 L 150 550 C 50 450 50 300 150 200 C 250 100 400 100 500 200 C 600 100 750 100 850 200 C 950 300 950 450 850 550 L 500 900 Z"
 };
+// --- FONT LISTA (A letöltéshez szükséges, ha még nincs definiálva a fájlban) ---
+const availableFonts = [
+    "Space Grotesk", "Montserrat", "Roboto", "Open Sans",
+    "Merriweather", "Playfair Display", "Raleway", "Great Vibes", 
+    "Dancing Script", "Cinzel", "Allura", "Sacramento",
+    "MedievalSharp", "Uncial Antiqua", "Tangerine", "Special Elite",
+    "Quicksand", "Parisienne"
+];
 
 let designerSVG, textLayer, mapLayer, transformGroup;
 let activeSymbolZone = null;
@@ -244,10 +252,20 @@ function debounce(func, wait) {
     };
 }
 
-// --- 4. RENDERELÉS ÉS TRANSZFORMÁCIÓ (JAVÍTOTT VERZIÓ) ---
+// --- JAVÍTOTT refreshMapTransform (OKOSPONTOK RAJZOLÁSÁVAL) ---
 window.refreshMapTransform = function() {
     if (!getDOMElements()) return;
     if(!myCelestialConf.userData) initUserData();
+
+    // Biztosítjuk, hogy legyen smartpoints tömb
+    if (!myCelestialConf.userData.smartpoints) {
+        myCelestialConf.userData.smartpoints = [];
+    }
+
+    // Láthatóság alapértelmezett értéke
+    if (typeof myCelestialConf.userData.uiState.showSmartpoints === 'undefined') {
+        myCelestialConf.userData.uiState.showSmartpoints = true;
+    }
 
     const layoutDir = myCelestialConf.userData.canvas.layoutDirection || 'row';
     const paperVB = designerSVG.getAttribute('viewBox').split(' ').map(Number);
@@ -278,11 +296,11 @@ window.refreshMapTransform = function() {
         designerSVG.insertBefore(defs, designerSVG.firstChild);
     }
 
+    // Blur filter helper (változatlan)
     const ensureBlurFilter = (idSuffix, blurAmount) => {
         if (blurAmount < 0) blurAmount = 0;
         const filterId = `blur-filter-${idSuffix}`;
         let filter = defs.querySelector(`#${filterId}`);
-        
         if (!filter) {
             filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
             filter.setAttribute("id", filterId);
@@ -293,16 +311,14 @@ window.refreshMapTransform = function() {
             filter.appendChild(blur);
             defs.appendChild(filter);
         }
-        
         const blurNode = filter.querySelector("feGaussianBlur");
-        if (blurNode) {
-            blurNode.setAttribute("stdDeviation", blurAmount);
-        }
+        if (blurNode) blurNode.setAttribute("stdDeviation", blurAmount);
         return (blurAmount > 0) ? `url(#${filterId})` : null;
     };
 
     const pxPerCm = slotW / (myCelestialConf.userData.canvas.width || 21);
 
+    // Elemek kirajzolása (Változatlan logika, csak a végén jön az extra)
     elements.forEach((el, index) => {
         let slotStartX, slotStartY, slotCenterX, slotCenterY;
         if (layoutDir === 'column') {
@@ -321,21 +337,18 @@ window.refreshMapTransform = function() {
         g.setAttribute('id', `element-group-${el.id}`);
         g.setAttribute('class', `designer-element type-${el.type}`);
 
-        const mt = (el.marginTop || 0) * pxPerCm;
-        const mb = (el.marginBottom || 0) * pxPerCm;
-        const pSize = 1000; 
-        
-        // Méretezés (widthCM prioritás)
+        // Méretezés
         let targetSize;
-        if (el.widthCM && el.widthCM > 0) {
-             targetSize = el.widthCM * pxPerCm;
-        } else {
-             targetSize = Math.min(slotW, slotH) * (el.scale || 1.0);
-        }
+        if (el.widthCM && el.widthCM > 0) targetSize = el.widthCM * pxPerCm;
+        else targetSize = Math.min(slotW, slotH) * (el.scale || 1.0);
         
+        const pSize = 1000; 
         const finalScale = targetSize / pSize;
         let realSize = targetSize;
         
+        const mt = (el.marginTop || 0) * pxPerCm;
+        const mb = (el.marginBottom || 0) * pxPerCm;
+
         let transX = slotCenterX - (realSize / 2);
         let transY = slotCenterY - (realSize / 2);
         
@@ -351,15 +364,34 @@ window.refreshMapTransform = function() {
         el.calculated = { x: transX, y: transY, scale: finalScale, widthPx: realSize, heightPx: realSize };
         el.contentBounds = { top: transY, bottom: transY + realSize };
 
+        // Eseménykezelő a kattintáshoz (Okospont lerakás)
         g.style.cursor = "pointer";
         g.onclick = function(e) {
             e.stopPropagation();
-            if (el.type === 'map') {
-                loadMapToEditor(el.id); 
+            if (myCelestialConf.userData.uiState.placingSmartpoint) {
+                // Koordináta számítás a csoporthoz képest
+                // Az e.clientX/Y globális, nekünk a transzformált SVG koord kell.
+                // Egyszerűsítés: Az element középpontjához képest számolunk CM-ben?
+                // Vagy globális SVG koordban tároljuk és CM-re váltjuk.
+                
+                const svgRect = designerSVG.getBoundingClientRect();
+                const pt = designerSVG.createSVGPoint();
+                pt.x = e.clientX;
+                pt.y = e.clientY;
+                // Transzformáljuk a kattintást az SVG koordináta-rendszerébe
+                const svgP = pt.matrixTransform(designerSVG.getScreenCTM().inverse());
+                
+                // Konvertálás CM-be (globális vászonhoz képest)
+                const xCM = svgP.x / pxPerCm;
+                const yCM = svgP.y / pxPerCm;
+                
+                window.finalizeSmartpointPlacement(xCM, yCM);
             } else {
-                window.highlightPhoto(el.id, this);
+                if (el.type === 'map') loadMapToEditor(el.id); 
+                else window.highlightPhoto(el.id, this);
             }
         };
+
 
         if (el.dataURL) {
             const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
@@ -442,13 +474,381 @@ window.refreshMapTransform = function() {
             rect.setAttribute('stroke-dasharray', '10,10');
             g.appendChild(rect);
         }
+
         
         renderLayer.appendChild(g);
     });
 
+    // --- OKOSPONTOK KIRAJZOLÁSA ---
+    // Csak akkor rajzoljuk ki, ha be van kapcsolva a láthatóság
+    if (myCelestialConf.userData.uiState.showSmartpoints) {
+        const smartpoints = myCelestialConf.userData.smartpoints || [];
+        smartpoints.forEach(sp => {
+            if (sp.x === null || sp.y === null) return;
+
+            const gSP = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            
+            // Pozíció CM-ből Pixelbe
+            const posX = sp.x * pxPerCm;
+            const posY = sp.y * pxPerCm;
+            
+            // Méret: 2 cm átmérő -> 1 cm sugár
+            const radiusPx = 1.0 * pxPerCm; 
+
+            // Kör alap
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", posX);
+            circle.setAttribute("cy", posY);
+            circle.setAttribute("r", radiusPx);
+            
+            // Szín: Ha épp ezt helyezzük át, legyen más színű
+            if (myCelestialConf.userData.uiState.movingSmartpointId === sp.id) {
+                circle.setAttribute("fill", "rgba(255, 215, 0, 0.8)"); // Arany szín áthelyezéskor
+                circle.setAttribute("stroke", "red");
+            } else {
+                circle.setAttribute("fill", "rgba(40, 114, 186, 0.8)"); // --color-accent
+                circle.setAttribute("stroke", "white");
+            }
+            
+            circle.setAttribute("stroke-width", radiusPx * 0.1); 
+            
+            // Ikon vagy szám
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", posX);
+            text.setAttribute("y", posY);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("dominant-baseline", "central");
+            text.setAttribute("fill", "white");
+            text.setAttribute("font-family", "Arial, sans-serif");
+            text.setAttribute("font-weight", "bold");
+            text.setAttribute("font-size", radiusPx); // A betűméret a sugár fele
+            
+            const icons = {
+                'audio': '🎵', 'video': '🎥', 'image': '🖼️', 
+                'youtube': '▶️', 'spotify': '🎧', 'url': '🔗'
+            };
+            text.textContent = icons[sp.type] || (smartpoints.indexOf(sp) + 1);
+
+            gSP.style.cursor = "pointer";
+            
+            // Kattintás az okospontra
+            gSP.onclick = (e) => {
+                e.stopPropagation();
+                // Ha áthelyezés módban vagyunk, akkor kiválasztjuk ezt a pontot
+                if (myCelestialConf.userData.uiState.isMovingSmartpoints) {
+                    startMoveSpecificSmartpoint(sp.id);
+                } else {
+                    // Egyébként szerkesztés (vagy törlés kérdés)
+                    if(confirm(`Szeretnéd szerkeszteni ezt az Okospontot? (${sp.type})`)) {
+                        window.editSmartpoint(sp.id);
+                    }
+                }
+            };
+
+            gSP.appendChild(circle);
+            gSP.appendChild(text);
+            renderLayer.appendChild(gSP); 
+        });
+    }
     window.renderFixedTexts();
 }
 
+
+// --- OKOSPONT KEZELŐ FÜGGVÉNYEK (ÚJ) ---
+
+let tempSPType = null;
+let editingSPId = null; // Ha szerkesztünk egy meglévőt
+
+
+window.startAddSmartpoint = function() {
+    editingSPId = null; // Új hozzáadása
+    document.getElementById('sp-type-selector').style.display = 'block';
+    document.getElementById('sp-content-input').style.display = 'none';
+    document.getElementById('btnAddSmartpoint').style.display = 'none';
+}
+
+window.selectSPType = function(type, btn) {
+    tempSPType = type;
+    
+    // Gomb aktív állapot
+    document.querySelectorAll('.sp-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Tartalom mező megjelenítése
+    document.getElementById('sp-content-input').style.display = 'block';
+    
+    const urlGroup = document.getElementById('sp-input-url-group');
+    const fileGroup = document.getElementById('sp-input-file-group');
+    
+    if (['audio', 'video', 'image'].includes(type)) {
+        urlGroup.style.display = 'none';
+        fileGroup.style.display = 'block';
+        
+        const accept = type === 'audio' ? 'audio/*' : type === 'video' ? 'video/*' : 'image/*';
+        document.getElementById('sp-input-file').accept = accept;
+    } else {
+        urlGroup.style.display = 'block';
+        fileGroup.style.display = 'none';
+        
+        const placeholders = {
+            'youtube': 'https://youtube.com/watch?v=...',
+            'spotify': 'https://open.spotify.com/track/...',
+            'url': 'https://...'
+        };
+        document.getElementById('sp-input-url').placeholder = placeholders[type] || 'https://...';
+    }
+}
+window.saveSmartpoint = function() {
+    if (!tempSPType) return;
+    
+    let content = '';
+    if (['audio', 'video', 'image'].includes(tempSPType)) {
+        const fileInp = document.getElementById('sp-input-file');
+        if (fileInp.files.length > 0) content = fileInp.files[0].name;
+        else { 
+            // Ha szerkesztünk és nem választott új fájlt, tartsuk meg a régit
+            if (editingSPId) {
+                const existing = myCelestialConf.userData.smartpoints.find(sp => sp.id === editingSPId);
+                if (existing) content = existing.content;
+            } else {
+                showCustomAlert("Válassz fájlt!"); return; 
+            }
+        }
+    } else {
+        content = document.getElementById('sp-input-url').value;
+        if (!content) { showCustomAlert("Adj meg URL-t!"); return; }
+    }
+    
+    if (editingSPId) {
+        // --- SZERKESZTÉS MENTÉSE ---
+        const sp = myCelestialConf.userData.smartpoints.find(s => s.id === editingSPId);
+        if (sp) {
+            sp.type = tempSPType;
+            sp.content = content;
+            showCustomAlert("Okospont sikeresen frissítve!", true);
+        }
+        editingSPId = null;
+        cancelSmartpoint(); // Reset UI
+        renderSmartpointsList();
+        window.refreshMapTransform(); // Ikon frissítése
+    } else {
+        // --- ÚJ LÉTREHOZÁSA (LERAKÁSRA VÁR) ---
+        if(!myCelestialConf.userData.uiState) initUserData();
+        
+        // Ellenőrizzük, hogy láthatóak-e, ha nem, kapcsoljuk be
+        if (!myCelestialConf.userData.uiState.showSmartpoints) {
+            toggleSmartpointsVisibility(); 
+        }
+
+        myCelestialConf.userData.uiState.placingSmartpoint = {
+            id: Date.now(),
+            type: tempSPType,
+            content: content,
+            x: null, y: null
+        };
+        
+        // UI Visszaállítás
+        cancelSmartpoint();
+        
+        // Üzenet
+        showCustomAlert("Kattints a vásznon oda, ahová az Okospontot szeretnéd tenni!");
+    }
+}
+
+window.editSmartpoint = function(id) {
+    const sp = myCelestialConf.userData.smartpoints.find(s => s.id === id);
+    if (!sp) return;
+
+    editingSPId = id;
+    
+    // UI előkészítése
+    document.getElementById('btnAddSmartpoint').style.display = 'none';
+    document.getElementById('sp-type-selector').style.display = 'block';
+    
+    // Típus kiválasztása szimulálva
+    const typeBtn = document.querySelector(`.sp-type-btn[onclick*="'${sp.type}'"]`);
+    if (typeBtn) selectSPType(sp.type, typeBtn);
+    
+    // Tartalom betöltése
+    if (['audio', 'video', 'image'].includes(sp.type)) {
+        // Fájlt nem tudunk visszaírni a file inputba, de jelezhetjük
+        // (Itt most egyszerűsítve hagyjuk üresen, a mentésnél kezeljük, ha üres marad)
+    } else {
+        document.getElementById('sp-input-url').value = sp.content;
+    }
+    
+    // Görgetés a szerkesztőhöz
+    // document.getElementById('sp-type-selector').scrollIntoView({behavior: 'smooth'});
+    // Görgetés
+    const container = document.getElementById('sp-type-selector');
+    if(container) container.scrollIntoView({behavior: 'smooth'});
+}
+window.cancelSmartpoint = function() {
+    document.getElementById('sp-type-selector').style.display = 'none';
+    document.getElementById('sp-content-input').style.display = 'none';
+    document.getElementById('btnAddSmartpoint').style.display = 'block';
+    document.getElementById('sp-input-url').value = '';
+    document.getElementById('sp-input-file').value = '';
+    document.querySelectorAll('.sp-type-btn').forEach(b => b.classList.remove('active'));
+    tempSPType = null;
+    editingSPId = null;
+}
+window.finalizeSmartpointPlacement = function(x, y) {
+    if(!myCelestialConf.userData.smartpoints) myCelestialConf.userData.smartpoints = [];
+
+    // 1. ESET: ÚJ PONT LERAKÁSA
+    if (myCelestialConf.userData.uiState.placingSmartpoint) {
+        const newSP = myCelestialConf.userData.uiState.placingSmartpoint;
+        newSP.x = x;
+        newSP.y = y;
+        
+        myCelestialConf.userData.smartpoints.push(newSP);
+        myCelestialConf.userData.uiState.placingSmartpoint = null;
+        
+        renderSmartpointsList();
+        showCustomAlert("Okospont sikeresen elhelyezve!", true);
+    } 
+    // 2. ESET: MEGLÉVŐ PONT ÁTHELYEZÉSE
+    else if (myCelestialConf.userData.uiState.movingSmartpointId) {
+        const id = myCelestialConf.userData.uiState.movingSmartpointId;
+        const sp = myCelestialConf.userData.smartpoints.find(s => s.id === id);
+        if (sp) {
+            sp.x = x;
+            sp.y = y;
+            showCustomAlert("Okospont áthelyezve!", true);
+        }
+        // Kilépés az áthelyezés módból ehhez a ponthoz
+        myCelestialConf.userData.uiState.movingSmartpointId = null;
+        myCelestialConf.userData.uiState.isMovingSmartpoints = false; // Teljes módból is kiléphetünk, vagy maradhatunk
+        
+        // Gomb visszaállítása
+        document.getElementById('btnMoveSmartpoints').style.background = "";
+        document.getElementById('btnMoveSmartpoints').innerText = "✥ Áthelyezés";
+    }
+    
+    window.refreshMapTransform(); // Újrarajzolás
+}
+
+
+window.deleteSmartpoint = function(id) {
+    if(confirm("Biztosan törlöd ezt az Okospontot?")) {
+        myCelestialConf.userData.smartpoints = myCelestialConf.userData.smartpoints.filter(sp => sp.id !== id);
+        renderSmartpointsList();
+        window.refreshMapTransform();
+    }
+}
+
+// --- MEGJELENÍTÉS ÉS ÁTHELYEZÉS VEZÉRLÉS ---
+
+window.toggleSmartpointsVisibility = function() {
+    const currentState = myCelestialConf.userData.uiState.showSmartpoints;
+    myCelestialConf.userData.uiState.showSmartpoints = !currentState;
+    
+    const btn = document.getElementById('btnToggleSmartpoints');
+    if (myCelestialConf.userData.uiState.showSmartpoints) {
+        btn.innerText = "👁️ Elrejtés";
+        btn.style.opacity = "1";
+    } else {
+        btn.innerText = "👁️ Megjelenítés";
+        btn.style.opacity = "0.6";
+    }
+    window.refreshMapTransform();
+}
+
+window.toggleSmartpointsMoveMode = function() {
+    const isMoving = myCelestialConf.userData.uiState.isMovingSmartpoints;
+    myCelestialConf.userData.uiState.isMovingSmartpoints = !isMoving;
+    
+    const btn = document.getElementById('btnMoveSmartpoints');
+    
+    if (myCelestialConf.userData.uiState.isMovingSmartpoints) {
+        // Bekapcsolás
+        btn.style.background = "#ffeb3b";
+        btn.style.color = "#000";
+        btn.innerText = "Válassz pontot...";
+        
+        // Ha nincsenek látható pontok, kapcsoljuk be őket
+        if (!myCelestialConf.userData.uiState.showSmartpoints) {
+            toggleSmartpointsVisibility();
+        }
+        
+        showCustomAlert("Kattints egy Okospontra a vásznon, amit át szeretnél helyezni!");
+    } else {
+        // Kikapcsolás
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.innerText = "✥ Áthelyezés";
+        myCelestialConf.userData.uiState.movingSmartpointId = null;
+        window.refreshMapTransform(); // Színek visszaállítása
+    }
+}
+
+window.startMoveSpecificSmartpoint = function(id) {
+    myCelestialConf.userData.uiState.movingSmartpointId = id;
+    showCustomAlert("Most kattints az új helyre a vásznon!");
+    window.refreshMapTransform(); // Frissítés, hogy a kiválasztott pont sárga legyen
+}
+
+// --- EGYEDI ALERT DOBOZ ---
+window.showCustomAlert = function(text, isSuccess = false) {
+    const alertBox = document.getElementById('custom-sp-alert');
+    const alertText = document.getElementById('sp-alert-text');
+    
+    alertText.innerText = text;
+    
+    if (isSuccess) {
+        alertBox.style.borderColor = "#4caf50";
+        alertBox.style.boxShadow = "0 5px 20px rgba(76, 175, 80, 0.3)";
+    } else {
+        alertBox.style.borderColor = "var(--accent-blue)";
+        alertBox.style.boxShadow = "0 5px 20px rgba(0,0,0,0.5)";
+    }
+    
+    $(alertBox).fadeIn(200);
+    
+    // Automatikus eltűnés 3 másodperc után, ha sikerüzenet
+    if (isSuccess) {
+        setTimeout(() => {
+            $(alertBox).fadeOut(500);
+        }, 3000);
+    }
+}
+
+window.renderSmartpointsList = function() {
+    const list = document.getElementById('smartpoints-list');
+    if (!list) return;
+    
+    const points = myCelestialConf.userData.smartpoints || [];
+    if (points.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: #888; font-style: italic; padding: 10px;">Még nincs okospont.</div>';
+        return;
+    }
+    
+    list.innerHTML = '';
+    points.forEach((sp, idx) => {
+        const icons = { 'audio': '🎵', 'video': '🎥', 'image': '🖼️', 'youtube': '▶️', 'spotify': '🎧', 'url': '🔗' };
+        
+        const div = document.createElement('div');
+        div.className = 'sp-list-item';
+        // Koordináta megjelenítése (ellenőrzéshez)
+        const coords = (sp.x !== null) ? `(X: ${sp.x.toFixed(1)} cm, Y: ${sp.y.toFixed(1)} cm)` : '(Nincs lerakva)';
+        
+        div.innerHTML = `
+            <div style="display:flex; align-items:center;">
+                <div class="sp-icon">${icons[sp.type]}</div>
+                <div>
+                    <div class="sp-title">Okospont ${idx + 1}</div>
+                    <div class="sp-meta">${sp.type} ${coords}</div>
+                </div>
+            </div>
+            <div class="sp-actions">
+                <button class="add-btn secondary" style="padding:5px 8px; font-size:12px;" onclick="editSmartpoint(${sp.id})" title="Szerkesztés">✎</button>
+                <button class="add-btn" style="padding:5px 8px; background:#ff4444; font-size:12px;" onclick="deleteSmartpoint(${sp.id})" title="Törlés">🗑</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
 // --- 5. ELEM HOZZÁADÁS ÉS SZERKESZTÉS ---
 window.addNewElement = function(type, dataURL, side, fileName) {
     if(!myCelestialConf.userData) initUserData();
@@ -539,220 +939,6 @@ window.toggleAddPanel = function(mode) {
     }
 }
 
-// // --- FOTÓ KIJELÖLÉS (TISZTÍTOTT) ---
-// window.highlightPhoto = function(id, element) {
-//     if(!myCelestialConf.userData) initUserData();
-    
-//     const el = myCelestialConf.userData.elements.find(e => e.id == id);
-//     if (!el) return;
-
-//     // UI State
-//     myCelestialConf.userData.uiState.selectedElementId = id;
-//     myCelestialConf.userData.uiState.activePhotoId = id;
-
-//     // UI MEGJELENÍTÉS
-//     document.getElementById('settings-group-map').style.display = 'none';
-//     document.getElementById('settings-group-photo').style.display = 'block';
-    
-//     // Törlés gomb
-//     const btnDel = document.getElementById('btn-delete-element-container');
-//     if (btnDel) btnDel.style.display = 'block';
-
-//     // Közös vezérlők (Border, Mask, Align) frissítése
-//     updateCommonControls(el);
-
-//     // --- MÉRETEZÉS BEÁLLÍTÁSA (CM) ---
-//     const titleEl = document.getElementById('photo-size-title');
-//     if(titleEl) titleEl.innerText = (el.subType === 'moon') ? 'HOLD MÉRETE' : 'KÉP MÉRETE';
-    
-//     const wInput = document.getElementById('photo-width-cm-input');
-//     if (wInput) wInput.value = el.widthCM || 20;
-
-//     // Hold panel kezelés
-//     const mep = document.getElementById('moon-edit-panel');
-//     if (el.subType === 'moon') {
-//         if(mep) {
-//             mep.style.display = 'block';
-//             let dateVal = el.moonDate || new Date().toISOString().split('T')[0];
-//             let timeVal = el.moonTime || "12:00";
-//             let latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//             let lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-
-//             const dateInp = document.getElementById('moon-edit-date');
-//             if(dateInp) {
-//                 dateInp.value = dateVal;
-//                 dateInp.onchange = updateActiveMoonSettings;
-//             }
-//             const timeInp = document.getElementById('moon-edit-time');
-//             if(timeInp) {
-//                 timeInp.value = timeVal;
-//                 timeInp.onchange = updateActiveMoonSettings;
-//             }
-//             const latInp = document.getElementById('moon-edit-lat');
-//             if(latInp) latInp.value = latVal;
-//             const lonInp = document.getElementById('moon-edit-lon');
-//             if(lonInp) lonInp.value = lonVal;
-            
-//             initMoonCitySearch();
-//         }
-//     } else {
-//         if(mep) mep.style.display = 'none';
-//     }
-
-//     switchTextContext(`photo_${id}`);
-//     updateElementSelectorUI();
-// }
-
-
-// // --- FOTÓ/HOLD KIJELÖLÉS (UI BETÖLTÉS JAVÍTVA) ---
-// window.highlightPhoto = function(id, element) {
-//     if(!myCelestialConf.userData) initUserData();
-    
-//     const el = myCelestialConf.userData.elements.find(e => e.id == id);
-//     if (!el) return;
-
-//     // UI State
-//     myCelestialConf.userData.uiState.selectedElementId = id;
-//     myCelestialConf.userData.uiState.activePhotoId = id;
-
-//     // UI MEGJELENÍTÉS
-//     document.getElementById('settings-group-map').style.display = 'none';
-//     document.getElementById('settings-group-photo').style.display = 'block';
-    
-//     const btnDel = document.getElementById('btn-delete-element-container');
-//     if (btnDel) btnDel.style.display = 'block';
-
-//     updateCommonControls(el);
-
-//     // Cím és Méret
-//     const titleEl = document.getElementById('photo-size-title');
-//     if(titleEl) titleEl.innerText = (el.subType === 'moon') ? 'HOLD MÉRETE' : 'KÉP MÉRETE';
-    
-//     const wInput = document.getElementById('photo-width-cm-input');
-//     if (wInput) wInput.value = el.widthCM || 20;
-
-//     // Hold panel kezelés
-//     const mep = document.getElementById('moon-edit-panel');
-//     if (el.subType === 'moon') {
-//         if(mep) {
-//             mep.style.display = 'block';
-//             let dateVal = el.moonDate || new Date().toISOString().split('T')[0];
-//             let timeVal = el.moonTime || "12:00";
-//             let latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//             let lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-//             let cityVal = el.moonLocationName || "";
-
-//             // Inputok feltöltése és eseménykezelők (hogy frissüljön a kép, ha változtatsz)
-//             const dateInp = document.getElementById('moon-edit-date');
-//             if(dateInp) {
-//                 dateInp.value = dateVal;
-//                 dateInp.onchange = () => updateActiveMoonSettings(null); // Paraméter nélkül hívjuk
-//             }
-//             const timeInp = document.getElementById('moon-edit-time');
-//             if(timeInp) {
-//                 timeInp.value = timeVal;
-//                 timeInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-//             const latInp = document.getElementById('moon-edit-lat');
-//             if(latInp) {
-//                 latInp.value = latVal;
-//                 latInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-//             const lonInp = document.getElementById('moon-edit-lon');
-//             if(lonInp) {
-//                 lonInp.value = lonVal;
-//                 lonInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-            
-//             // Városkereső mező feltöltése a mentett névvel
-//             const cityInp = document.getElementById('moon-city-search');
-//             if(cityInp) cityInp.value = cityVal;
-            
-//             // Autocomplete inicializálása
-//             initMoonCitySearch();
-//         }
-//     } else {
-//         if(mep) mep.style.display = 'none';
-//     }
-
-//     switchTextContext(`photo_${id}`);
-//     updateElementSelectorUI();
-// }
-// // --- 3. MÓDOSÍTÁS: Kijelöléskor adatok betöltése ---
-// window.highlightPhoto = function(id, element) {
-//     if(!myCelestialConf.userData) initUserData();
-    
-//     const el = myCelestialConf.userData.elements.find(e => e.id == id);
-//     if (!el) return;
-
-//     // UI State
-//     myCelestialConf.userData.uiState.selectedElementId = id;
-//     myCelestialConf.userData.uiState.activePhotoId = id;
-
-//     // UI MEGJELENÍTÉS
-//     document.getElementById('settings-group-map').style.display = 'none';
-//     document.getElementById('settings-group-photo').style.display = 'block';
-    
-//     const btnDel = document.getElementById('btn-delete-element-container');
-//     if (btnDel) btnDel.style.display = 'block';
-
-//     updateCommonControls(el);
-
-//     // Cím és Méret
-//     const titleEl = document.getElementById('photo-size-title');
-//     if(titleEl) titleEl.innerText = (el.subType === 'moon') ? 'HOLD MÉRETE' : 'KÉP MÉRETE';
-    
-//     const wInput = document.getElementById('photo-width-cm-input');
-//     if (wInput) wInput.value = el.widthCM || 20;
-
-//     // Hold panel kezelés
-//     const mep = document.getElementById('moon-edit-panel');
-//     if (el.subType === 'moon') {
-//         if(mep) {
-//             mep.style.display = 'block';
-//             let dateVal = el.moonDate || new Date().toISOString().split('T')[0];
-//             let timeVal = el.moonTime || "12:00";
-//             let latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//             let lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-//             let cityVal = el.moonLocationName || "";
-
-//             // Inputok feltöltése és eseménykezelők (hogy frissüljön a kép, ha változtatsz)
-//             // Fontos: névtelen függvényt használunk, hogy a 'this' kontextus vagy az event objektum ne zavarja meg a paraméterezést
-//             const dateInp = document.getElementById('moon-edit-date');
-//             if(dateInp) {
-//                 dateInp.value = dateVal;
-//                 dateInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-//             const timeInp = document.getElementById('moon-edit-time');
-//             if(timeInp) {
-//                 timeInp.value = timeVal;
-//                 timeInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-//             const latInp = document.getElementById('moon-edit-lat');
-//             if(latInp) {
-//                 latInp.value = latVal;
-//                 latInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-//             const lonInp = document.getElementById('moon-edit-lon');
-//             if(lonInp) {
-//                 lonInp.value = lonVal;
-//                 lonInp.onchange = () => updateActiveMoonSettings(null);
-//             }
-            
-//             // Városkereső mező feltöltése a mentett névvel
-//             const cityInp = document.getElementById('moon-city-search');
-//             if(cityInp) cityInp.value = cityVal;
-            
-//             // Autocomplete inicializálása (FONTOS, hogy itt is meghívjuk)
-//             initMoonCitySearch();
-//         }
-//     } else {
-//         if(mep) mep.style.display = 'none';
-//     }
-
-//     switchTextContext(`photo_${id}`);
-//     updateElementSelectorUI();
-// }
 
 // --- 3. MÓDOSÍTÁS: Kijelöléskor adatok betöltése ---
 window.highlightPhoto = function(id, element) {
@@ -1225,25 +1411,6 @@ window.updatePhotoMaskUI = function(activeType, prefix = 'p-mask-btn') {
     if(activeBtn) activeBtn.style.border = '2px solid #4a9eff';
 }
 
-// function initMoonCitySearch() {
-//     const input = document.getElementById('moon-city-search');
-//     if (!input || input.dataset.initialized) return;
-    
-//     if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-//         const autocomplete = new google.maps.places.Autocomplete(input, { types: ['(cities)'] });
-//         autocomplete.addListener('place_changed', () => {
-//             const place = autocomplete.getPlace();
-//             if (place.geometry) {
-//                 const lat = place.geometry.location.lat();
-//                 const lon = place.geometry.location.lng();
-//                 document.getElementById('moon-edit-lat').value = lat.toFixed(4);
-//                 document.getElementById('moon-edit-lon').value = lon.toFixed(4);
-//                 updateActiveMoonSettings();
-//             }
-//         });
-//         input.dataset.initialized = "true";
-//     }
-// }
 
 // --- SZÖVEGEK ---
 window.switchTextContext = function(context) {
@@ -1350,9 +1517,6 @@ function renderPhotoContextSelector(currentContext) {
             parent.insertBefore(container, parent.firstChild);
         } else return;
     }
-    // container.style.display = 'block';
-    
-    // const allElements = myCelestialConf.userData.elements;
 
     // --- JAVÍTOTT MEGJELENÍTÉS: Csak ha több mint 1 elem van ---
     const allElements = myCelestialConf.userData.elements;
@@ -1630,162 +1794,6 @@ function calculateCM(pxSize) {
     return ((pxSize / viewBox.width) * (widthCm * pageCount)).toFixed(2) + " cm";
 }
 
-// function renderZoneUI(zone) {
-//     if(!myCelestialConf.userData) initUserData();
-//     const currentTextContext = myCelestialConf.userData.uiState.currentTextContext;
-//     const zoneFlags = myCelestialConf.userData.uiState.zoneFlags;
-//     const container = document.getElementById(`${zone}-blocks-container`);
-//     container.innerHTML = '';
-    
-//     const isCommonContext = (currentTextContext === 'common');
-//     const isZoneCommonActive = (zone === 'top' && zoneFlags.topCommon) || (zone === 'bottom' && zoneFlags.bottomCommon);
-//     const wrapperId = zone === 'top' ? 'top-text-settings' : 'bottom-text-settings';
-//     const wrapper = document.getElementById(wrapperId);
-//     const settingsGroup = wrapper ? wrapper.querySelector('.setting-group') : null;
-
-//     if (!isCommonContext && isZoneCommonActive) {
-//         if(settingsGroup) settingsGroup.style.display = 'none';
-//         container.innerHTML = `<div style="text-align: center; padding: 20px; color: #aaa; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top:10px;"><p>⚠️ A Közös ${zone === 'top' ? 'Felső' : 'Alsó'} Szövegdoboz aktív.</p><button onclick="switchTextContext('common')" class="add-btn primary" style="margin-top:10px; width:auto; font-size:12px;">Ugrás a Közös szerkesztőhöz ➡</button></div>`;
-//         return;
-//     }
-//     if (isCommonContext && !isZoneCommonActive) {
-//         if(settingsGroup) settingsGroup.style.display = 'none';
-//         container.innerHTML = `<div style="text-align: center; padding: 20px; color: #aaa; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top:10px;"><p>Ez a zóna nincs bekapcsolva közös használatra.</p></div>`;
-//         return;
-//     }
-//     if(settingsGroup) settingsGroup.style.display = 'block';
-
-//     if (!myCelestialConf.userData.zones[currentTextContext]) myCelestialConf.userData.zones[currentTextContext] = { top: {alignV:'center', blocks:[]}, bottom: {alignV:'center', blocks:[]} };
-//     const data = myCelestialConf.userData.zones[currentTextContext][zone];
-    
-
-    
-    
-
-//     // const controlsDiv = document.createElement('div');
-//     // controlsDiv.style.cssText = "margin-bottom:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;";
-//     // controlsDiv.innerHTML = `
-//     //     <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Gyors Adatok:</div>
-//     //     <div style="display:flex; gap:5px; margin-bottom:10px;">
-//     //         <button onclick="toggleDataBlock('${zone}', 'location')" style="flex:1; padding:6px; background:rgba(255,255,255,0.05); border:1px solid #444; color:#aaa;">📍 Helyszín</button>
-//     //         <button onclick="toggleDataBlock('${zone}', 'date')" style="flex:1; padding:6px; background:rgba(255,255,255,0.05); border:1px solid #444; color:#aaa;">📅 Dátum</button>
-//     //         <button onclick="toggleDataBlock('${zone}', 'coords')" style="flex:1; padding:6px; background:rgba(255,255,255,0.05); border:1px solid #444; color:#aaa;">🌐 Koord.</button>
-//     //     </div>
-//     //     <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Szöveg Sablonok:</div>
-//     //     <select onchange="applyTextTemplate('${zone}', this.value); this.value='';" style="width:100%; padding:6px; background:#111; color:white; border:1px solid #444; border-radius:4px;">
-//     //         <option value="">-- Válassz egy témát --</option>
-//     //         ${Object.keys(TEXT_TEMPLATES).map(cat => `<optgroup label="${cat}">${TEXT_TEMPLATES[cat].map(t => `<option value="${t}">${t}</option>`).join('')}</optgroup>`).join('')}
-//     //     </select>
-//     // `;
-//     // container.appendChild(controlsDiv);
-
-//     // if (data.blocks.length === 0) {
-//     //     container.innerHTML += `<div style="text-align: center; padding: 20px;"><button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn primary" style="width:100%;">➕ Első sor hozzáadása</button></div>`;
-//     //     return; 
-//     // }
-
-//     // --- GYORS ADATOK AKTÍV ÁLLAPOTÁNAK ELLENŐRZÉSE ---
-//     const hasLocation = data.blocks.some(b => b.tag === 'location');
-//     const hasDate = data.blocks.some(b => b.tag === 'date');
-//     const hasCoords = data.blocks.some(b => b.tag === 'coords');
-
-//     const btnStyleBase = "flex:1; padding:6px; border:1px solid #444; color:#aaa; transition: all 0.2s;";
-//     const btnStyleActive = "flex:1; padding:6px; border:1px solid var(--accent-blue); background: var(--accent-blue); color:white; font-weight:bold; transition: all 0.2s;";
-
-//     const controlsDiv = document.createElement('div');
-//     controlsDiv.style.cssText = "margin-bottom:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;";
-//     controlsDiv.innerHTML = `
-//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Gyors Adatok:</div>
-//         <div style="display:flex; gap:5px; margin-bottom:10px;">
-//             <button onclick="toggleDataBlock('${zone}', 'location')" style="${hasLocation ? btnStyleActive : btnStyleBase} background:rgba(255,255,255,0.05);">📍 Helyszín</button>
-//             <button onclick="toggleDataBlock('${zone}', 'date')" style="${hasDate ? btnStyleActive : btnStyleBase} background:rgba(255,255,255,0.05);">📅 Dátum</button>
-//             <button onclick="toggleDataBlock('${zone}', 'coords')" style="${hasCoords ? btnStyleActive : btnStyleBase} background:rgba(255,255,255,0.05);">🌐 Koord.</button>
-//         </div>
-//         <div style="font-size:12px; color:#aaa; margin-bottom:5px;">Szöveg Sablonok:</div>
-//         <select onchange="applyTextTemplate('${zone}', this.value); this.value='';" style="width:100%; padding:6px; background:#111; color:white; border:1px solid #444; border-radius:4px;">
-//             <option value="">-- Válassz egy témát --</option>
-//             ${Object.keys(TEXT_TEMPLATES).map(cat => `<optgroup label="${cat}">${TEXT_TEMPLATES[cat].map(t => `<option value="${t}">${t}</option>`).join('')}</optgroup>`).join('')}
-//         </select>
-//     `;
-//     container.appendChild(controlsDiv);
-
-//     if (data.blocks.length === 0) {
-//         container.innerHTML += `<div style="text-align: center; padding: 20px;"><button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn primary" style="width:100%;">➕ Első sor hozzáadása</button></div>`;
-//         return; 
-//     }
-
-
-//     // --- JAVÍTOTT MEGJELENÍTÉS: Csak ha több mint 1 elem van ---
-//     const allElements = myCelestialConf.userData.elements;
-//     if (allElements.length <= 1) {
-//         container.style.display = 'none';
-//         return; // Nem rendereljük tovább
-//     } else {
-//         container.style.display = 'block';
-//     }
-//     // --------------------------------------------------------
-    
-//     let options = "";
-    
-//     allElements.forEach((el, idx) => {
-//         let contextKey;
-//         if (el.type === 'map') {
-//             contextKey = (el.id === 'main-map' || !el.id) ? 'map' : `map_${el.id}`;
-//         } else {
-//             contextKey = `photo_${el.id}`;
-//         }
-        
-//         const isSel = contextKey === currentContext ? 'selected' : '';
-//         let label = (el.type === 'map') ? "✨ Csillagtérkép" : ((el.subType === 'moon') ? "🌔 Holdfázis" : "📷 Kép");
-        
-//         let posText = "";
-//         const layoutDir = myCelestialConf.userData.canvas.layoutDirection || 'row';
-//         if (allElements.length > 1) {
-//             if (layoutDir === 'row') {
-//                 if (idx === 0) posText = " (Bal)"; else if (idx === allElements.length - 1) posText = " (Jobb)"; else posText = ` (${idx + 1}.)`;
-//             } else {
-//                 if (idx === 0) posText = " (Fent)"; else if (idx === allElements.length - 1) posText = " (Lent)"; else posText = ` (${idx + 1}.)`;
-//             }
-//         }
-        
-//         options += `<option value="${contextKey}" ${isSel}>${label}${posText}</option>`;
-//     });
-
-//     container.innerHTML = `
-//         <div class="setting-group" style="margin-bottom:0;">
-//             <label style="font-size:12px; color:#aaa; font-weight:bold; margin-bottom:5px; display:block;">Szerkesztett Szöveg Oldala:</label>
-//             <select onchange="window.switchTextContext(this.value)" style="width:100%; padding:8px; background:rgba(0,0,0,0.3); color:white; border:1px solid #444; border-radius:4px; font-weight:bold;">${options}</select>
-//         </div>
-//     `;
-
-
-//     container.innerHTML += `<div style="margin-bottom:10px; text-align:center;"><button onclick="insertBlockAt('${zone}', -1, true)" class="add-btn secondary" style="width:100%; padding: 5px; font-size: 11px; border-style: dashed;">⬆ Beszúrás a legelejére</button></div>`;
-//     const alignSelect = document.getElementById(`${zone}-zone-align-v`);
-//     if(alignSelect) alignSelect.value = data.alignV;
-
-//     data.blocks.forEach((block, index) => {
-//         const div = document.createElement('div');
-//         div.className = `block-card ${block.isNewLine ? 'newline' : 'inline'}`;
-//         const fonts = ["Space Grotesk", "Playfair Display", "Montserrat", "Great Vibes", "Cinzel"];
-//         let fontOptions = fonts.map(f => `<option value="${f}" style="font-family:'${f}'" ${block.font === f ? 'selected' : ''}>${f}</option>`).join('');
-//         let marginHTML = (block.isNewLine && block.alignH !== 'middle') ? `<div style="margin-top:8px;"><label style="font-size:10px; color:#4a9eff;">${block.alignH==='start'?'Bal':'Jobb'} margó (cm):</label><input type="number" value="${block.marginSide||0}" step="0.1" oninput="updateBlockData('${zone}', ${block.id}, 'marginSide', this.value)" style="width:100%;"></div>` : '';
-
-//         div.innerHTML = `
-//             <div style="font-size:11px; margin-bottom:5px; color:#aaa; display:flex; justify-content:space-between;"><span>${block.isNewLine ? '⏎ ÚJ SOR' : '➕ INLINE'} ${block.tag ? `<span style="color:var(--accent-blue);">[${block.tag}]</span>` : ''}</span></div>
-//             <div class="setting-group" style="margin-bottom:8px;"><textarea id="textarea-${block.id}" rows="2" oninput="updateBlockContentAndPreview('${zone}', ${block.id}, this.value)" style="width:100%; font-family:'${block.font}'; font-size: 24px; background:rgba(0,0,0,0.3); color:white; border:1px solid #555; padding:5px;">${block.content}</textarea></div>
-//             <div class="grid-2-cols" style="gap:10px; margin-bottom:8px;"><div><label style="font-size:10px;">Betűméret: <span style="color:var(--accent-blue); float:right;">${calculateCM(block.size)}</span></label><input type="number" value="${block.size}" oninput="updateBlockData('${zone}', ${block.id}, 'size', this.value)"></div><div><label style="font-size:10px;">Szín:</label><input type="color" value="${block.color}" oninput="updateBlockData('${zone}', ${block.id}, 'color', this.value)" style="height:38px;"></div></div>
-//             <div class="grid-2-cols" style="gap:10px; margin-bottom:12px;"><div><label style="font-size:10px;">Betűtípus:</label><select onchange="updateBlockData('${zone}', ${block.id}, 'font', this.value)" style="font-family:'${block.font}'">${fontOptions}</select></div>${block.isNewLine ? `<div><label style="font-size:10px;">Rendezés:</label><select onchange="updateBlockData('${zone}', ${block.id}, 'alignH', this.value)"><option value="start" ${block.alignH==='start'?'selected':''}>Balra</option><option value="middle" ${block.alignH==='middle'?'selected':''}>Közép</option><option value="end" ${block.alignH==='end'?'selected':''}>Jobbra</option></select></div>` : '<div></div>'}</div>
-//             ${marginHTML}
-//             <div class="block-actions" style="display: flex; gap: 5px; border-top: 1px solid #444; padding-top: 8px; margin-top:8px;">
-//                 <button onclick="insertBlockAt('${zone}', ${index}, true)" class="add-btn primary" style="flex:1; padding:6px; font-size:11px;">⏎ Új sor</button>
-//                 <button onclick="insertBlockAt('${zone}', ${index}, false)" class="add-btn secondary" style="flex:1; padding:6px; font-size:11px;">➕ Inline</button>
-//                 <button onclick="window.openSymbolPicker(event, '${zone}', ${block.id})" class="add-btn accent" style="width:auto; padding:6px;">♥</button>
-//                 <button onclick="removeBlock('${zone}', ${block.id})" class="add-btn" style="width:auto; padding:6px; background:#ff4444;">🗑</button>
-//             </div>
-//         `;
-//         container.appendChild(div);
-//     });
-// }
 function renderZoneUI(zone) {
     if(!myCelestialConf.userData) initUserData();
     const currentTextContext = myCelestialConf.userData.uiState.currentTextContext;
@@ -2336,87 +2344,6 @@ window.generateMoonImage = function(date, lat, lng, callback) {
     moonImg.onerror = function() { console.error("Hiba a Hold kép betöltésekor."); };
 }
 
-// window.addMoonElement = function(side) {
-//     const dateInput = document.getElementById('moon-date');
-//     const timeInput = document.getElementById('moon-time');
-    
-//     let dateStr = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
-//     let timeStr = timeInput ? timeInput.value : "12:00";
-    
-//     const date = new Date(dateStr + 'T' + timeStr + ':00Z');
-    
-//     // Alapértelmezett helyszín lekérése (vagy a térkép beállításából, vagy Budapest)
-//     let defaultLat = 47.4979;
-//     let defaultLng = 19.0402;
-//     let defaultCity = "Budapest"; 
-
-//     // if (window.myCelestialConf && window.myCelestialConf.geopos) {
-//     //     defaultLat = window.myCelestialConf.geopos[0];
-//     //     defaultLng = window.myCelestialConf.geopos[1];
-//     // }
-
-//     if (window.myCelestialConf) {
-//         if (window.myCelestialConf.geopos) {
-//             defaultLat = window.myCelestialConf.geopos[0];
-//             defaultLng = window.myCelestialConf.geopos[1];
-//         }
-//         if (window.myCelestialConf.Varos) {
-//             defaultCity = window.myCelestialConf.Varos;
-//         }
-//     }
-    
-//     generateMoonImage(date, defaultLat, defaultLng, function(dataURL, phaseData) {
-//         window.addNewElement('moon', dataURL, side, `Moon_${dateStr}_${timeStr}`);
-        
-//         if(!myCelestialConf.userData) initUserData();
-//         const elements = myCelestialConf.userData.elements;
-//         const newEl = (side === 'start' || side === 'left' || side === 'top') ? elements[0] : elements[elements.length - 1];
-        
-//         if (newEl) {
-//             newEl.borderWidth = 0; newEl.borderEnabled = false;
-//             newEl.moonDate = dateStr;
-//             newEl.moonTime = timeStr;
-//             newEl.moonLat = defaultLat;
-//             newEl.moonLng = defaultLng;
-//             newEl.moonLocationName = defaultCity; 
-
-//             const check = document.getElementById('moon-text-check');
-//             if (check && check.checked) {
-//                 const zoneId = `photo_${newEl.id}`;
-//                 if (!myCelestialConf.userData.zones[zoneId]) {
-//                      myCelestialConf.userData.zones[zoneId] = { top: {alignV:'center', blocks:[]}, bottom: {alignV:'center', blocks:[]} };
-//                 }
-//                 const zone = myCelestialConf.userData.zones[zoneId].top; 
-//                 let phaseName = getPhaseName(phaseData.cycle);
-
-//                 zone.blocks.push(
-//                     { id: Date.now()+1, isNewLine: true, tag: 'moon_phase', content: phaseName, font: "Playfair Display", size: 40, weight: "bold", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} },
-//                     { id: Date.now()+2, isNewLine: true, tag: 'moon_illum', content: `Megvilágítottság: ${phaseData.illumination.toFixed(1)}%`, font: "Montserrat", size: 24, weight: "normal", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} },
-//                     { id: Date.now()+3, isNewLine: true, tag: 'moon_age', content: `Hold kora: ${phaseData.age.toFixed(1)} nap`, font: "Space Grotesk", size: 24, weight: "normal", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} }
-//                 );
-
-//                 const zone_t = myCelestialConf.userData.zones[zoneId].bottom; 
-                
-//                 // Dátum formázása (pl. 2024. 05. 21.)
-//                 const d = new Date(dateStr);
-//                 const formattedDate = d.getFullYear() + ". " + (d.getMonth() + 1).toString().padStart(2, '0') + ". " + d.getDate().toString().padStart(2, '0') + ".";
-                
-//                 // Koordináta formázása
-//                 const latText = Math.abs(defaultLat).toFixed(4) + "° " + (defaultLat >= 0 ? "N" : "S");
-//                 const lngText = Math.abs(defaultLng).toFixed(4) + "° " + (defaultLng >= 0 ? "E" : "W");
-//                 const coordStr = `${latText}, ${lngText}`;
-
-//                 zone_t.blocks.push(
-//                     { id: Date.now()+1, isNewLine: true, tag: 'location', content: defaultCity, font: "Space Grotesk", size: 50, weight: "bold", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} },
-//                     { id: Date.now()+2, isNewLine: true, tag: 'date', content: formattedDate, font: "Space Grotesk", size: 32, weight: "normal", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} },
-//                     { id: Date.now()+3, isNewLine: true, tag: 'coords', content: coordStr, font: "Montserrat", size: 24, weight: "300", color: "#e8edf5", alignH: "middle", calculated: {x:0,y:0} }
-//                 );
-//                 window.renderFixedTexts();
-//             }
-//         }
-//     });
-// }
-
 // --- 1. MÓDOSÍTÁS: Fázis adatok hozzáadása a FELSŐ zónába ---
 window.addMoonElement = function(side) {
     const dateInput = document.getElementById('moon-date');
@@ -2505,35 +2432,6 @@ window.addMoonElement = function(side) {
     });
 }
 
-// // --- HOLD SZERKESZTŐ AUTOCOMPLETE (ÚJ) ---
-// function initMoonCitySearch() {
-//     const input = document.getElementById('moon-city-search');
-//     if (!input || input.dataset.initialized) return;
-    
-//     if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-//         const autocomplete = new google.maps.places.Autocomplete(input, { types: ['(cities)'] });
-        
-//         // Ha kiválasztanak egy várost
-//         autocomplete.addListener('place_changed', () => {
-//             const place = autocomplete.getPlace();
-//             if (place.geometry) {
-//                 const lat = place.geometry.location.lat();
-//                 const lon = place.geometry.location.lng();
-                
-//                 // Inputok frissítése
-//                 document.getElementById('moon-edit-lat').value = lat.toFixed(4);
-//                 document.getElementById('moon-edit-lon').value = lon.toFixed(4);
-                
-//                 // Beírjuk a nevet az inputba, hogy látszódjon
-//                 input.value = place.name;
-                
-//                 // Frissítés indítása a város nevével
-//                 updateActiveMoonSettings(place.name);
-//             }
-//         });
-//         input.dataset.initialized = "true";
-//     }
-// }
 function initMoonCitySearch() {
     const input = document.getElementById('moon-city-search');
     // Csak akkor fusson le, ha van input és még nincs rajta a 'pac-target-input' class (Google Maps jelzője)
@@ -2565,227 +2463,6 @@ function initMoonCitySearch() {
         input.dataset.initialized = "true";
     }
 }
-// window.updateActiveMoonSettings = function() {
-//     if(!myCelestialConf.userData) initUserData();
-//     const activeId = myCelestialConf.userData.uiState.activePhotoId;
-//     const el = myCelestialConf.userData.elements.find(e => e.id === activeId);
-    
-//     if (!el || el.subType !== 'moon') return;
-    
-//     const dateStr = document.getElementById('moon-edit-date').value;
-//     const timeStr = document.getElementById('moon-edit-time').value;
-//     let latVal = parseFloat(document.getElementById('moon-edit-lat').value);
-//     let lonVal = parseFloat(document.getElementById('moon-edit-lon').value);
-    
-//     if (isNaN(latVal)) latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//     if (isNaN(lonVal)) lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-    
-//     if(!dateStr || !timeStr) return;
-
-//     const fullDate = new Date(dateStr + 'T' + timeStr + ':00Z');
-    
-//     generateMoonImage(fullDate, latVal, lonVal, function(dataURL, phaseData) {
-//         el.dataURL = dataURL;
-//         el.fileName = `Moon_${dateStr}_${timeStr}`;
-//         el.moonDate = dateStr;
-//         el.moonTime = timeStr;
-//         el.moonLat = latVal;
-//         el.moonLng = lonVal;
-        
-//         window.refreshMapTransform(); 
-        
-//         const zoneId = `photo_${el.id}`;
-//         if (myCelestialConf.userData.zones[zoneId] && myCelestialConf.userData.zones[zoneId].bottom) {
-//             const blocks = myCelestialConf.userData.zones[zoneId].bottom.blocks;
-            
-//             let phaseName = getPhaseName(phaseData.cycle);
-//             const daysToNew = (1 - phaseData.cycle) * 29.53;
-//             const daysToFull = (phaseData.cycle < 0.5) ? (0.5 - phaseData.cycle) * 29.53 : (1.5 - phaseData.cycle) * 29.53;
-//             const nextNew = new Date(fullDate.getTime() + daysToNew * 86400000).toLocaleDateString('hu-HU');
-//             const nextFull = new Date(fullDate.getTime() + daysToFull * 86400000).toLocaleDateString('hu-HU');
-//             const zodiac = getZodiacSign(phaseData.cycle);
-
-//             blocks.forEach(block => {
-//                 if(block.tag === 'moon_phase') block.content = phaseName;
-//                 if(block.tag === 'moon_illum') block.content = `Megvilágítottság: ${phaseData.illumination.toFixed(1)}%`;
-//                 if(block.tag === 'moon_age') block.content = `Hold kora: ${phaseData.age.toFixed(1)} nap`;
-//                 if(block.tag === 'moon_nextnew') block.content = `Következő Újhold: ${nextNew}`;
-//                 if(block.tag === 'moon_nextfull') block.content = `Következő Telihold: ${nextFull}`;
-//                 if(block.tag === 'moon_zodiac') block.content = `Csillagjegy: ${zodiac}`;
-//             });
-//             window.renderFixedTexts();
-//         }
-//     });
-// }
-
-
-// // --- HOLD BEÁLLÍTÁSOK ÉS SZÖVEG FRISSÍTÉSE ---
-// window.updateActiveMoonSettings = function(newCityName) {
-//     if(!myCelestialConf.userData) initUserData();
-//     const activeId = myCelestialConf.userData.uiState.activePhotoId;
-//     const el = myCelestialConf.userData.elements.find(e => e.id === activeId);
-    
-//     if (!el || el.subType !== 'moon') return;
-    
-//     // Adatok kiolvasása a mezőkből
-//     const dateStr = document.getElementById('moon-edit-date').value;
-//     const timeStr = document.getElementById('moon-edit-time').value;
-//     let latVal = parseFloat(document.getElementById('moon-edit-lat').value);
-//     let lonVal = parseFloat(document.getElementById('moon-edit-lon').value);
-    
-//     // Városnév meghatározása
-//     let cityName = newCityName;
-//     if (!cityName) {
-//         // Ha nem jött paraméterben (pl. csak dátumot váltottunk), próbáljuk kiolvasni
-//         const cityInput = document.getElementById('moon-city-search');
-//         if (cityInput && cityInput.value && cityInput.value !== "") {
-//             cityName = cityInput.value;
-//         } else {
-//             cityName = el.moonLocationName || "Ismeretlen Hely";
-//         }
-//     }
-
-//     if (isNaN(latVal)) latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//     if (isNaN(lonVal)) lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-    
-//     if(!dateStr || !timeStr) return;
-
-//     const fullDate = new Date(dateStr + 'T' + timeStr + ':00Z');
-    
-//     // Kép újragenerálása az új adatokkal
-//     generateMoonImage(fullDate, latVal, lonVal, function(dataURL, phaseData) {
-//         // 1. Elem adatainak frissítése
-//         el.dataURL = dataURL;
-//         el.fileName = `Moon_${dateStr}_${timeStr}`;
-//         el.moonDate = dateStr;
-//         el.moonTime = timeStr;
-//         el.moonLat = latVal;
-//         el.moonLng = lonVal;
-//         el.moonLocationName = cityName; // Név mentése
-        
-//         window.refreshMapTransform(); 
-        
-//         // 2. Szöveg zóna (Hely, Dátum, Koord) automatikus frissítése
-//         const zoneId = `photo_${el.id}`;
-//         ['top', 'bottom'].forEach(zoneKey => {
-//             if (myCelestialConf.userData.zones[zoneId] && myCelestialConf.userData.zones[zoneId][zoneKey]) {
-//                 const blocks = myCelestialConf.userData.zones[zoneId][zoneKey].blocks;
-                
-//                 // Formázások
-//                 const d = new Date(dateStr);
-//                 const formattedDate = d.getFullYear() + ". " + (d.getMonth() + 1).toString().padStart(2, '0') + ". " + d.getDate().toString().padStart(2, '0') + ".";
-//                 const latText = Math.abs(latVal).toFixed(4) + "° " + (latVal >= 0 ? "N" : "S");
-//                 const lngText = Math.abs(lonVal).toFixed(4) + "° " + (lonVal >= 0 ? "E" : "W");
-//                 const coordStr = `${latText}, ${lngText}`;
-
-//                 // Megkeressük és frissítjük a megfelelő blokkokat
-//                 blocks.forEach(block => {
-//                     if(block.tag === 'location') block.content = cityName;
-//                     if(block.tag === 'date') block.content = formattedDate;
-//                     if(block.tag === 'coords') block.content = coordStr;
-//                 });
-//             }
-//         });
-        
-//         window.renderFixedTexts();
-        
-//         // Ha nyitva van a zóna szerkesztő panel, azt is újra kell rajzolni, hogy látszódjon az új szöveg
-//         const activeZone = document.getElementById('top-text-settings').classList.contains('collapsed') ? 'bottom' : 'top'; 
-//         // (Vagy egyszerűbb, ha mindkettőt frissítjük, ha van tartalmuk)
-//         if(document.getElementById('bottom-blocks-container').innerHTML !== "") renderZoneUI('bottom');
-//         if(document.getElementById('top-blocks-container').innerHTML !== "") renderZoneUI('top');
-//     });
-// }
-// // --- 2. MÓDOSÍTÁS: Hold beállítások és Szöveg frissítése ---
-// window.updateActiveMoonSettings = function(newCityName) {
-//     if(!myCelestialConf.userData) initUserData();
-//     const activeId = myCelestialConf.userData.uiState.activePhotoId;
-//     // ID keresés javítva: laza egyenlőség (==) fontos, mert az ID lehet string vagy number
-//     const el = myCelestialConf.userData.elements.find(e => e.id == activeId);
-    
-//     if (!el || el.subType !== 'moon') return;
-    
-//     // Adatok kiolvasása a mezőkből
-//     const dateStr = document.getElementById('moon-edit-date').value;
-//     const timeStr = document.getElementById('moon-edit-time').value;
-//     let latVal = parseFloat(document.getElementById('moon-edit-lat').value);
-//     let lonVal = parseFloat(document.getElementById('moon-edit-lon').value);
-    
-//     // Városnév meghatározása prioritással: 
-//     // 1. Paraméter (ha most választottuk ki)
-//     // 2. Input mező értéke
-//     // 3. Mentett érték
-//     // 4. Fallback
-//     let cityName = newCityName;
-//     if (!cityName) {
-//         const cityInput = document.getElementById('moon-city-search');
-//         if (cityInput && cityInput.value && cityInput.value !== "") {
-//             cityName = cityInput.value;
-//         } else {
-//             cityName = el.moonLocationName || "Ismeretlen Hely";
-//         }
-//     }
-
-//     // Ha a koordináták érvénytelenek (pl. üres mező), használjuk a mentett vagy default értékeket
-//     if (isNaN(latVal)) latVal = (el.moonLat !== undefined) ? el.moonLat : 47.4979;
-//     if (isNaN(lonVal)) lonVal = (el.moonLng !== undefined) ? el.moonLng : 19.0402;
-    
-//     if(!dateStr || !timeStr) return;
-
-//     const fullDate = new Date(dateStr + 'T' + timeStr + ':00Z');
-    
-//     // Kép újragenerálása az új adatokkal
-//     generateMoonImage(fullDate, latVal, lonVal, function(dataURL, phaseData) {
-//         // 1. Elem adatainak mentése
-//         el.dataURL = dataURL;
-//         el.fileName = `Moon_${dateStr}_${timeStr}`;
-//         el.moonDate = dateStr;
-//         el.moonTime = timeStr;
-//         el.moonLat = latVal;
-//         el.moonLng = lonVal;
-//         el.moonLocationName = cityName; // Név mentése
-        
-//         window.refreshMapTransform(); 
-        
-//         // 2. Szöveg zóna (Hely, Dátum, Koord) automatikus frissítése
-//         const zoneId = `photo_${el.id}`;
-//         // Ellenőrizzük mindkét zónát (top és bottom), hogy hol vannak a blokkok
-//         ['top', 'bottom'].forEach(zoneKey => {
-//             if (myCelestialConf.userData.zones[zoneId] && myCelestialConf.userData.zones[zoneId][zoneKey]) {
-//                 const blocks = myCelestialConf.userData.zones[zoneId][zoneKey].blocks;
-                
-//                 // Formázások
-//                 const d = new Date(dateStr);
-//                 const formattedDate = d.getFullYear() + ". " + (d.getMonth() + 1).toString().padStart(2, '0') + ". " + d.getDate().toString().padStart(2, '0') + ".";
-//                 const latText = Math.abs(latVal).toFixed(4) + "° " + (latVal >= 0 ? "N" : "S");
-//                 const lngText = Math.abs(lonVal).toFixed(4) + "° " + (lonVal >= 0 ? "E" : "W");
-//                 const coordStr = `${latText}, ${lngText}`;
-
-//                 // Megkeressük és frissítjük a megfelelő blokkokat a TAG alapján
-//                 blocks.forEach(block => {
-//                     if(block.tag === 'location') {
-//                         block.content = cityName;
-//                         // Ha épp szerkesztjük ezt a blokkot, a textarea-t is frissíteni kell
-//                         const ta = document.getElementById(`textarea-${block.id}`);
-//                         if(ta) ta.value = cityName;
-//                     }
-//                     if(block.tag === 'date') {
-//                         block.content = formattedDate;
-//                         const ta = document.getElementById(`textarea-${block.id}`);
-//                         if(ta) ta.value = formattedDate;
-//                     }
-//                     if(block.tag === 'coords') {
-//                         block.content = coordStr;
-//                         const ta = document.getElementById(`textarea-${block.id}`);
-//                         if(ta) ta.value = coordStr;
-//                     }
-//                 });
-//             }
-//         });
-        
-//         window.renderFixedTexts();
-//     });
-// }
 // --- 2. MÓDOSÍTÁS: Frissítéskor minden adat újraszámolása ---
 window.updateActiveMoonSettings = function(newCityName) {
     if(!myCelestialConf.userData) initUserData();
