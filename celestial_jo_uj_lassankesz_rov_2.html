@@ -2339,7 +2339,8 @@ input:checked + .slider:before {
         });
 
         // --- 1. EGYESÍTETT TÉMA ADATBÁZIS (Config + Háttér) ---
-        const mapThemes = {
+        // FONTOS: window.mapThemes, hogy a fragment5 JS is elérje!
+        window.mapThemes = {
             "midnight": {
                 name: "Midnight Blue",
                 // Ez a background megy a #map-wrap-re és a Designer-re is:
@@ -3872,12 +3873,11 @@ function createThemeCard(container, key, theme, variant) {
         });
         
     $(document).ready(function() {
-      
-      // initThemeSelectors();
+
+      initThemeSelectors();
       setTimeout(() => {
           saveUserState(); // Mentsük el az alapállapotot
       }, 1000);
-      // initThemeSelectors();
       // --- 1. PROJEKCIÓ DEFINIÁLÁSA (SZÍV ALAK JAVÍTVA) ---
         // Fontos: Itt felülírjuk a beépített werner-t, hogy a te menüddel működjön
         if (d3.geo && d3.geo.bonne) {

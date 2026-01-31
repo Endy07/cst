@@ -5370,3 +5370,287 @@ window.togglePresetList = function() {
     }
 }
 
+// ============================================================
+// --- 1. KÁRTYA LISTÁK GENERÁLÁSA (EGYSÉGESÍTVE) ---
+// ============================================================
+window.initThemeSelectors = function() {
+    console.log("initThemeSelectors futtatása...");
+
+    // Itt mondjuk meg, melyik ID melyik oldalhoz tartozik
+    const containers = [
+        { id: 'theme-grid-container-left', side: 'left' },  // Bal (Editor)
+        { id: 'designer-templates-grid',   side: 'right' }  // Jobb (Designer)
+    ];
+
+    // Biztosítjuk, hogy a mapThemes létezzen
+    const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : {};
+
+    containers.forEach(item => {
+        const container = document.getElementById(item.id);
+        if (!container) return;
+
+        container.innerHTML = ''; // Törlés
+
+        for (const [key, theme] of Object.entries(themesSource)) {
+            // Átadjuk az 'item.side' paramétert (left/right)
+            container.appendChild(createThemeCardHTML(key, theme, 'normal', item.side));
+            container.appendChild(createThemeCardHTML(key, theme, 'heart', item.side));
+        }
+    });
+};
+
+// ============================================================
+// --- 2. EGY DARAB KÁRTYA LÉTREHOZÁSA ---
+// ============================================================
+window.createThemeCardHTML = function(key, theme, variant, sourceSide) {
+    const isHeart = (variant === 'heart');
+    const card = document.createElement('div');
+    card.className = 'theme-item';
+
+    // Fejléc
+    const label = document.createElement('div');
+    label.className = "theme-btn";
+    label.innerText = isHeart ? `♥ ${theme.name}` : theme.name;
+
+    if(isHeart) {
+        label.style.color = "#d81b60";
+        label.style.background = "#fff0f5";
+    }
+
+    // Kép
+    const preview = document.createElement('div');
+    preview.className = 'theme-preview-img';
+
+    let imgUrl = theme.image;
+    if (isHeart && imgUrl) imgUrl = imgUrl.replace('.png', '_heart.png');
+
+    if (imgUrl) {
+        preview.style.background = `url('${imgUrl}') center/contain no-repeat, ${theme.background}`;
+    } else {
+        preview.style.background = theme.background;
+    }
+
+    card.appendChild(label);
+    card.appendChild(preview);
+
+    // KATTINTÁS: Itt adjuk át a 'sourceSide'-ot a loadTheme-nek!
+    card.onclick = function() {
+        if (typeof window.loadTheme === 'function') {
+            window.loadTheme(key, variant, sourceSide);
+        }
+    };
+
+    return card;
+};
+
+// ============================================================
+// --- STABIL TÉMA BETÖLTÉS (ADAT MÓDOSÍTÁS -> RENDER SOR) ---
+// ============================================================
+window.loadTheme = function(key, variant = 'normal', sourceSide = 'right') {
+    console.log(`🎨 Téma kiválasztva: ${key} (${variant})`);
+
+    if (!myCelestialConf.userData) initUserData();
+
+    // 1. Melyik az aktív elem?
+    const uiState = myCelestialConf.userData.uiState;
+    let targetId = uiState.selectedElementId;
+    let selectedEl = myCelestialConf.userData.elements.find(e => e.id == targetId);
+
+    // Ha nincs (vagy nem térkép), keressük az első térképet
+    if (!selectedEl || selectedEl.type !== 'map') {
+        selectedEl = myCelestialConf.userData.elements.find(e => e.type === 'map');
+        if (selectedEl) targetId = selectedEl.id;
+    }
+
+    if (!selectedEl) { alert("Nincs kiválasztva csillagtérkép!"); return; }
+
+    // 2. Téma betöltése
+    const theme = mapThemes[key];
+    if (!theme) return;
+
+    activeThemeKey = key;
+    activeVariant = variant;
+
+    // Alap config előkészítése (Kényszerített 1000px)
+    let themeConfig = JSON.parse(JSON.stringify(theme.config));
+    themeConfig.width = 1000;
+
+    // Projekció kezelése
+    if (variant === 'heart') {
+        themeConfig.projection = "customHeart";
+        selectedEl.mask = 'classic';
+    } else {
+        themeConfig.projection = "stereographic";
+    }
+
+    // 3. MÓD KIVÁLASZTÁSA
+    let bgMode = 'global';
+    let radioName = (sourceSide === 'left') ? 'bg-mode-left' : 'bg-mode-right';
+    const selectedRadio = document.querySelector(`input[name="${radioName}"]:checked`);
+    if (selectedRadio) bgMode = selectedRadio.value;
+
+    console.log(`Mód: ${bgMode}`);
+
+    // --- ADATBÁZIS FRISSÍTÉSE (MÉG NEM RAJZOLUNK!) ---
+    const mapsToRender = []; // Ebbe gyűjtjük azokat az ID-kat, akiket újra kell generálni
+
+    if (bgMode === 'global') {
+        // 🌍 GLOBÁLIS:
+        // 1. Vászon háttér beállítása
+        window.updateCanvasBackground(theme.background);
+
+        // 2. Minden elem módosítása
+        myCelestialConf.userData.elements.forEach(el => {
+            el.localBackground = null; // Globálisnál töröljük a lokális hátteret
+
+            if (el.type === 'map') {
+                // Config frissítése (megtartva a helyadatokat)
+                updateElementConfig(el, themeConfig);
+                // Szövegek színezése
+                updateZoneColors(el.id, theme.textColor);
+                // Hozzáadás a renderelési listához
+                mapsToRender.push(el);
+            }
+        });
+
+    } else if (bgMode === 'local') {
+        // 🖼️ LOKÁLIS:
+        // 1. Csak a kijelölt elem háttere
+        selectedEl.localBackground = theme.background;
+
+        // 2. Config frissítése
+        updateElementConfig(selectedEl, themeConfig);
+
+        // 3. Szövegek színezése
+        updateZoneColors(selectedEl.id, theme.textColor);
+
+        // 4. Hozzáadás a renderelési listához
+        mapsToRender.push(selectedEl);
+
+    } else if (bgMode === 'none') {
+        // 🚫 CSAK STÍLUS:
+        // 1. Háttérhez nem nyúlunk
+
+        // 2. Config frissítése
+        updateElementConfig(selectedEl, themeConfig);
+
+        // 3. Szövegekhez nem nyúlunk
+
+        // 4. Hozzáadás a renderelési listához
+        mapsToRender.push(selectedEl);
+    }
+
+    // --- RENDERELÉS INDÍTÁSA (QUEUE) ---
+    // Ez a függvény fogja egyesével, biztonságosan végrehajtani a rajzolást
+    processRenderQueue(mapsToRender, 0);
+};
+
+// --- SEGÉDFÜGGVÉNY: Elem konfigurációjának frissítése ---
+function updateElementConfig(el, newBaseConfig) {
+    // Másolat készítése az új alapról
+    let finalConfig = JSON.parse(JSON.stringify(newBaseConfig));
+
+    // Meglévő adatok (Hely, Idő) átmentése, ha vannak
+    if (el.celestialConfig) {
+        if(el.celestialConfig.Ido) finalConfig.Ido = el.celestialConfig.Ido;
+        if(el.celestialConfig.Varos) finalConfig.Varos = el.celestialConfig.Varos;
+        if(el.celestialConfig.Lokacio) finalConfig.Lokacio = el.celestialConfig.Lokacio;
+        if(el.celestialConfig.geopos) finalConfig.geopos = el.celestialConfig.geopos;
+        // Kiemelések megőrzése
+        if(el.celestialConfig.highlights) finalConfig.highlights = el.celestialConfig.highlights;
+    }
+
+    el.celestialConfig = finalConfig;
+}
+
+// --- SEGÉDFÜGGVÉNY: Szövegzónák színezése ---
+function updateZoneColors(elementId, newColor) {
+    if (!newColor) return;
+    const zoneKey = (elementId === 'main-map') ? 'map' : `map_${elementId}`;
+    const zones = myCelestialConf.userData.zones;
+
+    if (zones[zoneKey]) {
+        ['top', 'bottom'].forEach(z => {
+            if (zones[zoneKey][z]) {
+                zones[zoneKey][z].blocks.forEach(block => {
+                    block.color = newColor;
+                });
+            }
+        });
+    }
+}
+
+// ============================================================
+// --- RENDER QUEUE (JAVÍTOTT: REFERENCIA MENTÉSSEL) ---
+// ============================================================
+function processRenderQueue(elementsList, index) {
+    // 1. KILÉPÉSI FELTÉTEL
+    if (index >= elementsList.length) {
+        console.log("✅ Minden térkép generálása kész.");
+
+        // Visszaállítjuk a teljes UserDatát (Most már tartalmazza a frissítéseket!)
+        if (window.savedFullUserData) {
+            myCelestialConf.userData = window.savedFullUserData;
+            window.savedFullUserData = null;
+        }
+
+        // Végső UI frissítés
+        window.refreshMapTransform();
+        window.renderFixedTexts();
+        window.renderZoneUI('top');
+        window.renderZoneUI('bottom');
+        return;
+    }
+
+    // 2. ELŐKÉSZÜLETEK
+    const el = elementsList[index];
+    console.log(`⏳ Generálás: ${el.id} (${index + 1}/${elementsList.length})`);
+
+    // --- JAVÍTÁS: CSAK REFERENCIÁT MENTÜNK, NEM MÁSOLATOT! ---
+    if (index === 0 && !window.savedFullUserData) {
+        window.savedFullUserData = myCelestialConf.userData;
+    }
+    // ---------------------------------------------------------
+
+    // 3. ISOLÁCIÓ (Becsapjuk a rendszert)
+    // Az elem configját másoljuk, hogy ne legyen gond
+    myCelestialConf = JSON.parse(JSON.stringify(el.celestialConfig));
+
+    // De a UserDatába az EREDETI elem referenciáját tesszük!
+    // Így ha a handleVectorExport ír bele, az megmarad.
+    myCelestialConf.userData = {
+        uiState: {
+            selectedElementId: el.id,
+            zoneFlags: window.savedFullUserData.uiState.zoneFlags || {}
+        },
+        elements: [el], // <--- Eredeti referencia!
+        zones: window.savedFullUserData.zones,
+        canvas: window.savedFullUserData.canvas
+    };
+
+    // 4. GENERÁLÁS
+    if (typeof Celestial !== 'undefined') {
+        Celestial.resize({width: 1000});
+        Celestial.apply(myCelestialConf);
+
+        if (myCelestialConf.Ido) Celestial.date(new Date(myCelestialConf.Ido));
+        if (myCelestialConf.geopos) Celestial.location(myCelestialConf.geopos);
+
+        if (el.highlights) Celestial.highlightList = el.highlights;
+        else Celestial.highlightList = {};
+
+        Celestial.redraw();
+
+        // Callback
+        window.onVectorExportFinished = function() {
+            processRenderQueue(elementsList, index + 1);
+        };
+
+        setTimeout(() => {
+            window.updateActiveMapSnapshot();
+        }, 150);
+    } else {
+        processRenderQueue(elementsList, index + 1);
+    }
+}
+
