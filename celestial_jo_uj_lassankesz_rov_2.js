@@ -24,12 +24,19 @@ const REFERENCE_WIDTH = 1440; // Ehhez a szélességhez igazítjuk az arányokat
 
 // Show it all, with the given config, otherwise with default settings
 Celestial.display = function(config) {
+  // --- CUSTOM HEART PROJECTION ALIAS ---
+  // A customHeart projekció a bonne projekciót használja (szív alakú térkép)
+  if (typeof d3 !== 'undefined' && d3.geo && d3.geo.bonne && !d3.geo.customHeart) {
+    d3.geo.customHeart = d3.geo.bonne;
+    console.log("✅ customHeart projekció regisztrálva (bonne alapján)");
+  }
+
   var animationID,
       container = Celestial.container,
-      animations = [], 
-      current = 0, 
+      animations = [],
+      current = 0,
       repeat = false;
-  
+
   //Mash config with default settings, todo: if globalConfig exists, make another one
   cfg = settings.set(config).applyDefaults(config);
   if (isNumber(cfg.zoomextend)) zoomextent = cfg.zoomextend;
@@ -1890,10 +1897,9 @@ var projections = {
   "baker": {n:"Baker Dinomic", arg:null, scale:160, ratio:1.4},
   "berghaus": {n:"Berghaus Star", arg:0, scale:320, ratio:1.0, clip:true},
   "boggs": {n:"Boggs Eumorphic", arg:null, scale:170},
-  // "bonne": {n:"Bonne", arg:Math.PI/2.5, scale:225, ratio:0.88},
+  "bonne": {n:"Bonne (Heart)", arg:Math.PI/2.5, scale:225, ratio:0.88},
   "bromley": {n:"Bromley", arg:null, scale:162},
 //  "butterfly": {n:"Butterfly", arg:null, scale:31, ratio:1.1, clip:true},
-  "customHeart": { arg:Math.PI/2.5, scale:210, ratio:0.88 },
   "cassini": {n:"Cassini", arg:null, scale:325, ratio:1.0, clip:true},
   "collignon": {n:"Collignon", arg:null, scale:100, ratio:2.6},
   "craig": {n:"Craig Retroazimuthal", arg:0, scale:310, ratio:1.5, clip:true},

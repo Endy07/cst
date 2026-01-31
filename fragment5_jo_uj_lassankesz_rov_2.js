@@ -424,6 +424,78 @@ window.refreshMapTransform = function() {
             slotCenterX = slotStartX + (slotW / 2); slotCenterY = paperH / 2;
         }
 
+        // --- LOKÁLIS HÁTTÉR (SLOT) RENDERELÉSE ---
+        // Ha az elemnek van lokalBackground tulajdonsága, rajzolunk egy hátteret a slot területére
+        if (el.localBackground) {
+            const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bgRect.setAttribute("x", slotStartX);
+            bgRect.setAttribute("y", slotStartY);
+            bgRect.setAttribute("width", slotW);
+            bgRect.setAttribute("height", slotH);
+            bgRect.setAttribute("class", "slot-local-background");
+
+            // Ellenőrizzük, hogy gradiens vagy sima szín
+            if (el.localBackground.includes("gradient")) {
+                // Gradiens esetén SVG gradienst készítünk
+                const gradId = `local-bg-grad-${el.id}`;
+
+                // Régi gradiens törlése, ha van
+                const oldGrad = defs.querySelector(`#${gradId}`);
+                if (oldGrad) oldGrad.remove();
+
+                // Gradiens irány és színek kinyerése a CSS-ből
+                const gradMatch = el.localBackground.match(/linear-gradient\(([^,]+),\s*(.+)\)/);
+                if (gradMatch) {
+                    const linearGrad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+                    linearGrad.setAttribute("id", gradId);
+
+                    // Irány feldolgozása
+                    const direction = gradMatch[1].trim();
+                    if (direction.includes("bottom")) {
+                        linearGrad.setAttribute("x1", "0%"); linearGrad.setAttribute("y1", "0%");
+                        linearGrad.setAttribute("x2", "0%"); linearGrad.setAttribute("y2", "100%");
+                    } else if (direction.includes("right")) {
+                        linearGrad.setAttribute("x1", "0%"); linearGrad.setAttribute("y1", "0%");
+                        linearGrad.setAttribute("x2", "100%"); linearGrad.setAttribute("y2", "0%");
+                    } else if (direction.includes("top")) {
+                        linearGrad.setAttribute("x1", "0%"); linearGrad.setAttribute("y1", "100%");
+                        linearGrad.setAttribute("x2", "0%"); linearGrad.setAttribute("y2", "0%");
+                    } else { // Default: to bottom
+                        linearGrad.setAttribute("x1", "0%"); linearGrad.setAttribute("y1", "0%");
+                        linearGrad.setAttribute("x2", "0%"); linearGrad.setAttribute("y2", "100%");
+                    }
+
+                    // Színek feldolgozása
+                    const colorStops = gradMatch[2].split(",").map(s => s.trim());
+                    colorStops.forEach((colorStop, idx) => {
+                        const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                        // Szín kinyerése (formátum: "#color percent%")
+                        const colorMatch = colorStop.match(/(#[a-fA-F0-9]+|rgb[a]?\([^)]+\))\s*(\d+%)?/);
+                        if (colorMatch) {
+                            stop.setAttribute("stop-color", colorMatch[1]);
+                            const offset = colorMatch[2] || (idx === 0 ? "0%" : "100%");
+                            stop.setAttribute("offset", offset);
+                        } else {
+                            stop.setAttribute("stop-color", colorStop);
+                            stop.setAttribute("offset", idx === 0 ? "0%" : "100%");
+                        }
+                        linearGrad.appendChild(stop);
+                    });
+
+                    defs.appendChild(linearGrad);
+                    bgRect.setAttribute("fill", `url(#${gradId})`);
+                } else {
+                    // Ha nem sikerült a regex, sima színként kezeljük
+                    bgRect.setAttribute("fill", el.localBackground);
+                }
+            } else {
+                // Sima szín
+                bgRect.setAttribute("fill", el.localBackground);
+            }
+
+            renderLayer.appendChild(bgRect);
+        }
+
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute('id', `element-group-${el.id}`);
         g.setAttribute('class', `designer-element type-${el.type}`);
@@ -2015,6 +2087,11 @@ window.updateElementSelectorUI = function() {
             }
         }
     }
+
+    // --- 3. HELY: SABLONOK MENÜ VÁLASZTÓ (fragment_r-4) ---
+    if (window.updateTemplateElementSelector) {
+        window.updateTemplateElementSelector();
+    }
 }
 
 // --- 2. VÁLASZTÁS KEZELÉSE (MINDENHONNAN) ---
@@ -2059,11 +2136,440 @@ window.handleElementSelection = function(id) {
     if (!id) return;
     const el = myCelestialConf.userData.elements.find(e => e.id == id);
     if (!el) return;
-    
+
     if (el.type === 'map') {
         loadMapToEditor(el.id);
     } else {
         highlightPhoto(el.id, null);
+    }
+}
+
+// ============================================================
+// --- SABLON ELEM VÁLASZTÓ KEZELÉSE (fragment_r-4) ---
+// ============================================================
+
+// Kezeli a Sablonok menüben lévő elem választót
+window.handleTemplateElementSelection = function(value) {
+    if(!myCelestialConf.userData) initUserData();
+
+    const parts = value.split('_');
+    const typePrefix = parts[0];
+    const id = parts.slice(1).join('_'); // Ha az ID tartalmaz '_'-t (pl. 'main-map' helyett 'main_map')
+
+    if (!id) return;
+
+    const el = myCelestialConf.userData.elements.find(e => e.id == id);
+    if (!el) return;
+
+    // Globális kijelölés mentése
+    myCelestialConf.userData.uiState.selectedElementId = id;
+
+    // Frissítjük a többi választót is
+    updateElementSelectorUI();
+
+    // Frissítjük az alkalmazási módok elérhetőségét az elem típusa alapján
+    updateTemplateModesAvailability(el);
+
+    console.log(`Sablon elem kiválasztva: ${el.type} - ${id}`);
+};
+
+// Frissíti az alkalmazási módok elérhetőségét az elem típusa alapján
+window.updateTemplateModesAvailability = function(selectedElement) {
+    const labelNone = document.getElementById('label-mode-none');
+    const modeInfoText = document.getElementById('mode-info-text');
+    const typeInfo = document.getElementById('template-element-type-info');
+
+    if (!selectedElement) return;
+
+    // Ha a kiválasztott elem NEM csillagtérkép (hanem fotó vagy hold)
+    const isStarMap = (selectedElement.type === 'map');
+    const isPhoto = (selectedElement.type === 'photo' && selectedElement.subType !== 'moon');
+    const isMoon = (selectedElement.type === 'photo' && selectedElement.subType === 'moon');
+
+    // Típus információ megjelenítése
+    if (typeInfo) {
+        if (isStarMap) {
+            typeInfo.innerHTML = '✨ <strong>Csillagtérkép</strong> - Minden mód elérhető';
+            typeInfo.style.color = '#4aff4a';
+        } else if (isMoon) {
+            typeInfo.innerHTML = '🌔 <strong>Holdfázis</strong> - A "Csak stílus" mód nem elérhető';
+            typeInfo.style.color = '#ffcc00';
+        } else {
+            typeInfo.innerHTML = '📷 <strong>Saját fotó</strong> - A "Csak stílus" mód nem elérhető';
+            typeInfo.style.color = '#ffcc00';
+        }
+    }
+
+    // "Csak stílus" mód kezelése
+    if (labelNone) {
+        const radioNone = labelNone.querySelector('input[type="radio"]');
+
+        if (!isStarMap) {
+            // Letiltjuk a "Csak stílus" módot fotók és holdak esetén
+            labelNone.style.opacity = '0.4';
+            labelNone.style.pointerEvents = 'none';
+            if (radioNone) radioNone.disabled = true;
+
+            // Ha éppen ez volt kiválasztva, átváltunk "Lokális"-ra
+            if (radioNone && radioNone.checked) {
+                const radioLocal = document.querySelector('input[name="bg-mode-right"][value="local"]');
+                if (radioLocal) radioLocal.checked = true;
+            }
+
+            // Figyelmeztetés megjelenítése
+            if (modeInfoText) {
+                modeInfoText.style.display = 'block';
+                modeInfoText.innerHTML = '⚠️ A "Csak stílus" mód csak csillagtérképeknél érhető el.';
+            }
+        } else {
+            // Engedélyezzük a "Csak stílus" módot csillagtérképeknél
+            labelNone.style.opacity = '1';
+            labelNone.style.pointerEvents = 'auto';
+            if (radioNone) radioNone.disabled = false;
+
+            // Elrejtjük a figyelmeztetést
+            if (modeInfoText) {
+                modeInfoText.style.display = 'none';
+            }
+        }
+    }
+};
+
+// Frissíti a sablonok menüben lévő elem választót
+window.updateTemplateElementSelector = function() {
+    if(!myCelestialConf.userData) initUserData();
+
+    const uiState = myCelestialConf.userData.uiState;
+    const allElements = myCelestialConf.userData.elements || [];
+    const container = document.getElementById('template-element-selector-container');
+    const select = document.getElementById('active-element-selector-templates');
+
+    if (!container || !select) return;
+
+    // Csak akkor mutatjuk, ha több elem van
+    if (allElements.length <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    // Opciók építése
+    const layoutDir = myCelestialConf.userData.canvas.layoutDirection || 'row';
+    const isRow = layoutDir === 'row';
+    let html = '';
+
+    allElements.forEach((el, idx) => {
+        let val = (el.type === 'map') ? `map_${el.id}` : `photo_${el.id}`;
+
+        // Címke
+        let label = "";
+        if (el.type === 'map') label = "✨ Csillagtérkép";
+        else if (el.subType === 'moon') label = "🌔 Holdfázis";
+        else label = "📷 Saját Fotó";
+
+        // Pozíció
+        let posText = "";
+        if (allElements.length > 1) {
+            if (idx === 0) posText = isRow ? " (Bal)" : " (Fent)";
+            else if (idx === allElements.length - 1) posText = isRow ? " (Jobb)" : " (Lent)";
+            else posText = ` (${idx + 1}.)`;
+        }
+
+        html += `<option value="${val}">${label}${posText}</option>`;
+    });
+
+    select.innerHTML = html;
+
+    // Aktív érték beállítása
+    const selId = uiState.selectedElementId;
+    if (selId) {
+        const el = allElements.find(e => e.id == selId);
+        if (el) {
+            const visualVal = (el.type === 'map') ? `map_${el.id}` : `photo_${el.id}`;
+            if (select.querySelector(`option[value="${visualVal}"]`)) {
+                select.value = visualVal;
+            }
+        }
+    }
+
+    // Frissítjük az alkalmazási módok elérhetőségét
+    const selectedEl = allElements.find(e => e.id == selId) || allElements[0];
+    if (selectedEl) {
+        updateTemplateModesAvailability(selectedEl);
+    }
+};
+
+// ============================================================
+// --- STABIL TÉMA BETÖLTÉS (JAVÍTOTT: SLOT KEZELÉS + FOTÓ/HOLD TÁMOGATÁS) ---
+// ============================================================
+window.loadTheme = function(key, variant = 'normal', sourceSide = 'right') {
+    console.log(`🎨 Téma kiválasztva: ${key} (${variant})`);
+
+    if (!myCelestialConf.userData) initUserData();
+
+    // 1. MELYIK AZ AKTÍV ELEM?
+    const uiState = myCelestialConf.userData.uiState;
+    let targetId = uiState.selectedElementId;
+    let selectedEl = myCelestialConf.userData.elements.find(e => e.id == targetId);
+
+    // Ha nincs kiválasztott elem, keressük az első térképet
+    if (!selectedEl) {
+        selectedEl = myCelestialConf.userData.elements.find(e => e.type === 'map');
+        if (selectedEl) targetId = selectedEl.id;
+    }
+
+    // 2. ELEM TÍPUSÁNAK MEGHATÁROZÁSA
+    const isStarMap = (selectedEl && selectedEl.type === 'map');
+    const isPhotoOrMoon = (selectedEl && selectedEl.type === 'photo');
+    const isMoon = (isPhotoOrMoon && selectedEl.subType === 'moon');
+
+    // 3. TÉMA BETÖLTÉSE
+    if (typeof mapThemes === 'undefined') {
+        console.error("mapThemes nem definiált!");
+        return;
+    }
+    const theme = mapThemes[key];
+    if (!theme) {
+        console.error(`Téma nem található: ${key}`);
+        return;
+    }
+
+    window.activeThemeKey = key;
+    window.activeVariant = variant;
+
+    // 4. ALAP CONFIG ELŐKÉSZÍTÉSE (Csak csillagtérképekhez)
+    let themeConfig = JSON.parse(JSON.stringify(theme.config));
+    themeConfig.width = 1000;
+
+    // Projekció kezelése (csak csillagtérképeknél)
+    if (variant === 'heart') {
+        themeConfig.projection = "customHeart";
+    } else {
+        themeConfig.projection = "stereographic";
+    }
+
+    // 5. MÓD KIVÁLASZTÁSA
+    let bgMode = 'global';
+    let radioName = (sourceSide === 'left') ? 'bg-mode-left' : 'bg-mode-right';
+    const selectedRadio = document.querySelector(`input[name="${radioName}"]:checked`);
+    if (selectedRadio) bgMode = selectedRadio.value;
+
+    console.log(`Mód: ${bgMode}, Elem típus: ${isStarMap ? 'Csillagtérkép' : (isMoon ? 'Holdfázis' : 'Saját fotó')}`);
+
+    // --- ADATBÁZIS FRISSÍTÉSE ---
+    const mapsToRender = [];
+
+    // ============================================================
+    // 🌍 GLOBÁLIS MÓD: Minden elem változik
+    // ============================================================
+    if (bgMode === 'global') {
+        // 1. Vászon háttér beállítása
+        window.updateCanvasBackground(theme.background);
+
+        // 2. Minden elem módosítása
+        myCelestialConf.userData.elements.forEach(el => {
+            el.localBackground = null; // Globálisnál töröljük a lokális hátteret
+
+            if (el.type === 'map') {
+                // Csillagtérkép: Config frissítése
+                updateThemeElementConfig(el, themeConfig, variant);
+                // Szövegek színezése
+                updateThemeZoneColors(el.id, theme.textColor);
+                // Hozzáadás a renderelési listához
+                mapsToRender.push(el);
+            } else if (el.type === 'photo') {
+                // Fotó/Hold: Csak a szövegszínek változnak
+                updateThemeZoneColors(el.id, theme.textColor, 'photo');
+            }
+        });
+    }
+    // ============================================================
+    // 🖼️ LOKÁLIS MÓD: Csak a kiválasztott elem slotja változik
+    // ============================================================
+    else if (bgMode === 'local') {
+        if (!selectedEl) {
+            alert("Nincs kiválasztott elem!");
+            return;
+        }
+
+        // 1. A kijelölt elem slotjának háttere
+        selectedEl.localBackground = theme.background;
+
+        // 2. Szövegek színezése (a kiválasztott elemhez tartozó)
+        if (isStarMap) {
+            updateThemeZoneColors(selectedEl.id, theme.textColor);
+        } else {
+            updateThemeZoneColors(selectedEl.id, theme.textColor, 'photo');
+        }
+
+        // 3. Ha csillagtérkép, config frissítése és renderelés
+        if (isStarMap) {
+            updateThemeElementConfig(selectedEl, themeConfig, variant);
+            mapsToRender.push(selectedEl);
+        }
+
+        // Fontos: Lokálisnál NEM változtatjuk a többi csillagtérképet!
+    }
+    // ============================================================
+    // 🚫 CSAK STÍLUS MÓD: Csak a kiválasztott csillagtérkép stílusa változik
+    // ============================================================
+    else if (bgMode === 'none') {
+        // Ez a mód CSAK csillagtérképeknél működik!
+        if (!isStarMap) {
+            console.warn("A 'Csak stílus' mód csak csillagtérképeknél érhető el!");
+            // Nem csinálunk semmit, mert a fotó/hold stílusa nem változtatható
+            return;
+        }
+
+        // 1. Háttérhez NEM nyúlunk (sem globális, sem lokális)
+
+        // 2. Szövegekhez NEM nyúlunk
+
+        // 3. Csak a térkép config frissítése
+        updateThemeElementConfig(selectedEl, themeConfig, variant);
+
+        // 4. Renderelési listához hozzáadás
+        mapsToRender.push(selectedEl);
+    }
+
+    // --- RENDERELÉS INDÍTÁSA ---
+    if (mapsToRender.length > 0) {
+        processThemeRenderQueue(mapsToRender, 0);
+    } else {
+        // Ha nincs renderelendő térkép (pl. lokális mód fotóval), csak a UI-t frissítjük
+        window.refreshMapTransform();
+        window.renderFixedTexts();
+        window.renderZoneUI('top');
+        window.renderZoneUI('bottom');
+    }
+};
+
+// --- SEGÉDFÜGGVÉNY: Elem konfigurációjának frissítése ---
+function updateThemeElementConfig(el, newBaseConfig, variant) {
+    // Másolat készítése az új alapról
+    let finalConfig = JSON.parse(JSON.stringify(newBaseConfig));
+
+    // Meglévő adatok (Hely, Idő) átmentése, ha vannak
+    if (el.celestialConfig) {
+        if (el.celestialConfig.Ido) finalConfig.Ido = el.celestialConfig.Ido;
+        if (el.celestialConfig.Varos) finalConfig.Varos = el.celestialConfig.Varos;
+        if (el.celestialConfig.Lokacio) finalConfig.Lokacio = el.celestialConfig.Lokacio;
+        if (el.celestialConfig.geopos) finalConfig.geopos = el.celestialConfig.geopos;
+        // Kiemelések megőrzése
+        if (el.celestialConfig.highlights) finalConfig.highlights = el.celestialConfig.highlights;
+    }
+
+    // Projekció beállítása variáns alapján
+    if (variant === 'heart') {
+        finalConfig.projection = "customHeart";
+        el.mask = 'classic';
+    } else {
+        finalConfig.projection = finalConfig.projection || "stereographic";
+    }
+
+    el.celestialConfig = finalConfig;
+}
+
+// --- SEGÉDFÜGGVÉNY: Szövegzónák színezése ---
+function updateThemeZoneColors(elementId, newColor, elementType = 'map') {
+    if (!newColor) return;
+
+    // Zóna kulcs meghatározása
+    let zoneKey;
+    if (elementType === 'photo') {
+        zoneKey = `photo_${elementId}`;
+    } else {
+        zoneKey = (elementId === 'main-map') ? 'map' : `map_${elementId}`;
+    }
+
+    const zones = myCelestialConf.userData.zones;
+
+    // Próbáljuk mindkét formátumot (régi és új kompatibilitás)
+    const keysToTry = [zoneKey];
+    if (elementType === 'map' && elementId !== 'main-map') {
+        keysToTry.push('map'); // Régi formátum fallback
+    }
+
+    for (const key of keysToTry) {
+        if (zones[key]) {
+            ['top', 'bottom'].forEach(z => {
+                if (zones[key][z] && zones[key][z].blocks) {
+                    zones[key][z].blocks.forEach(block => {
+                        block.color = newColor;
+                    });
+                }
+            });
+            break; // Ha találtunk, kilépünk
+        }
+    }
+}
+
+// --- RENDER QUEUE (TÉMA ALKALMAZÁSHOZ) ---
+function processThemeRenderQueue(elementsList, index) {
+    // 1. KILÉPÉSI FELTÉTEL
+    if (index >= elementsList.length) {
+        console.log("✅ Minden térkép generálása kész.");
+
+        // Visszaállítjuk a teljes UserDatát
+        if (window.savedFullUserData) {
+            myCelestialConf.userData = window.savedFullUserData;
+            window.savedFullUserData = null;
+        }
+
+        // Végső UI frissítés
+        window.refreshMapTransform();
+        window.renderFixedTexts();
+        window.renderZoneUI('top');
+        window.renderZoneUI('bottom');
+        return;
+    }
+
+    // 2. ELŐKÉSZÜLETEK
+    const el = elementsList[index];
+    console.log(`⏳ Generálás: ${el.id} (${index + 1}/${elementsList.length})`);
+
+    // Referencia mentése (csak egyszer, az elején)
+    if (index === 0 && !window.savedFullUserData) {
+        window.savedFullUserData = myCelestialConf.userData;
+    }
+
+    // 3. CELESTIAL MOTOR KONFIGURÁLÁSA
+    myCelestialConf = JSON.parse(JSON.stringify(el.celestialConfig));
+
+    myCelestialConf.userData = {
+        uiState: {
+            selectedElementId: el.id,
+            zoneFlags: window.savedFullUserData.uiState.zoneFlags || {}
+        },
+        elements: [el],
+        zones: window.savedFullUserData.zones,
+        canvas: window.savedFullUserData.canvas
+    };
+
+    // 4. GENERÁLÁS
+    if (typeof Celestial !== 'undefined') {
+        Celestial.resize({ width: 1000 });
+        Celestial.apply(myCelestialConf);
+
+        if (myCelestialConf.Ido) Celestial.date(new Date(myCelestialConf.Ido));
+        if (myCelestialConf.geopos) Celestial.location(myCelestialConf.geopos);
+
+        if (el.highlights) Celestial.highlightList = el.highlights;
+        else Celestial.highlightList = {};
+
+        Celestial.redraw();
+
+        // Callback
+        window.onVectorExportFinished = function () {
+            processThemeRenderQueue(elementsList, index + 1);
+        };
+
+        setTimeout(() => {
+            window.updateActiveMapSnapshot();
+        }, 150);
+    } else {
+        processThemeRenderQueue(elementsList, index + 1);
     }
 }
 
