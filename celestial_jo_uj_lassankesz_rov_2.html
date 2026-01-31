@@ -1614,43 +1614,32 @@ input:checked + .slider:before {
                     <div id="fragment_r-4">
                         <div id="designer-tab-templates">
                             <h3 style="margin-top:0;">Stílus & Háttér</h3>
-                            
-                            <!-- <div class="section" style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--accent-blue); background: rgba(0,0,0,0.2);">
-                                <label style="display:block; font-weight:bold; color: var(--accent-cyan); margin-bottom: 8px;">
-                                    Háttér beállítása sablon váltáskor:
-                                </label>
-                                
-                                <label style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer;">
-                                    <input type="radio" name="bg-mode-right" value="global" checked style="margin-right: 8px;">
-                                    <span>🌍 Teljes vászon (Globális)</span>
-                                </label>
-                                
-                                <label style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer;">
-                                    <input type="radio" name="bg-mode-right" value="local" style="margin-right: 8px;">
-                                    <span>🖼️ Csak a térkép mögött (Lokális)</span>
-                                </label>
-                                
-                                <label style="display:flex; align-items:center; cursor: pointer;">
-                                    <input type="radio" name="bg-mode-right" value="none" style="margin-right: 8px;">
-                                    <span>🚫 Ne változzon a háttér</span>
-                                </label>
-                            </div> -->
+
+                            <!-- ELEM VÁLASZTÓ A SABLONOK MENÜBEN -->
+                            <div id="template-element-selector-container" class="section" style="margin-bottom: 10px; padding: 10px; border: 1px solid var(--accent-purple); background: rgba(0,0,0,0.2); border-radius: 8px; display:none;">
+                                <label style="color:var(--accent-purple); font-weight:bold; margin-bottom:5px; font-size: 11px; display:block;">KIVÁLASZTOTT ELEM:</label>
+                                <select id="template-element-selector" onchange="window.handleTemplateElementSelection(this.value)" style="width:100%; padding:8px; font-weight:bold; background:rgba(0,0,0,0.3); color:white; border:1px solid #444; border-radius:4px; cursor:pointer;">
+                                    <!-- JS tölti fel -->
+                                </select>
+                            </div>
+
+                            <!-- ALKALMAZÁS MÓD VÁLASZTÓ -->
                             <div class="section" style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--accent-blue); background: rgba(0,0,0,0.2); border-radius: 8px;">
                                 <label style="display:block; font-weight:bold; color: var(--accent-cyan); margin-bottom: 8px; font-size: 11px;">
                                     ALKALMAZÁS MÓDJA:
                                 </label>
-                                
-                                <label style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer; font-size: 12px;">
+
+                                <label id="apply-mode-global-label" style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer; font-size: 12px;">
                                     <input type="radio" name="bg-mode-right" value="global" checked style="margin-right: 8px;">
                                     <span>🌍 Teljes vászonkép (Minden elem)</span>
                                 </label>
-                                
-                                <label style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer; font-size: 12px;">
+
+                                <label id="apply-mode-local-label" style="display:flex; align-items:center; margin-bottom: 5px; cursor: pointer; font-size: 12px;">
                                     <input type="radio" name="bg-mode-right" value="local" style="margin-right: 8px;">
                                     <span>🖼️ Csak a kiválasztott kép (Háttérrel)</span>
                                 </label>
-                                
-                                <label style="display:flex; align-items:center; cursor: pointer; font-size: 12px;">
+
+                                <label id="apply-mode-none-label" style="display:flex; align-items:center; cursor: pointer; font-size: 12px;">
                                     <input type="radio" name="bg-mode-right" value="none" style="margin-right: 8px;">
                                     <span>🚫 Csak a kiválasztott csillagtérkép (Stílus)</span>
                                 </label>

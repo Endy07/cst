@@ -428,6 +428,61 @@ window.refreshMapTransform = function() {
         g.setAttribute('id', `element-group-${el.id}`);
         g.setAttribute('class', `designer-element type-${el.type}`);
 
+        // --- LOKÁLIS HÁTTÉR (SLOT HÁTTÉR) ---
+        if (el.localBackground) {
+            const bgG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            bgG.setAttribute('class', 'slot-background');
+            bgG.setAttribute('transform', `translate(${slotStartX}, ${slotStartY})`);
+
+            const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bgRect.setAttribute('x', 0);
+            bgRect.setAttribute('y', 0);
+            bgRect.setAttribute('width', slotW);
+            bgRect.setAttribute('height', slotH);
+
+            // Gradiens vagy szín kezelése
+            if (el.localBackground.includes("gradient")) {
+                // Gradiens esetén SVG gradienst hozunk létre
+                const gradId = `slot-gradient-${el.id}`;
+                const colors = el.localBackground.match(/#[a-fA-F0-9]{6}|rgb\([^)]+\)/g);
+                let angleDeg = 180;
+                const angleMatch = el.localBackground.match(/(\d+)deg/);
+                if (angleMatch) angleDeg = parseInt(angleMatch[1]);
+
+                if (colors && colors.length >= 2) {
+                    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+                    gradient.setAttribute("id", gradId);
+
+                    // Szög -> x1,y1,x2,y2 konverzió
+                    const rad = (angleDeg - 90) * (Math.PI / 180);
+                    const x1 = 50 - 50 * Math.cos(rad);
+                    const y1 = 50 - 50 * Math.sin(rad);
+                    const x2 = 50 + 50 * Math.cos(rad);
+                    const y2 = 50 + 50 * Math.sin(rad);
+
+                    gradient.setAttribute("x1", x1 + "%");
+                    gradient.setAttribute("y1", y1 + "%");
+                    gradient.setAttribute("x2", x2 + "%");
+                    gradient.setAttribute("y2", y2 + "%");
+
+                    colors.forEach((c, i) => {
+                        const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+                        stop.setAttribute("offset", (i / (colors.length - 1)) * 100 + "%");
+                        stop.setAttribute("stop-color", c);
+                        gradient.appendChild(stop);
+                    });
+
+                    defs.appendChild(gradient);
+                    bgRect.setAttribute('fill', `url(#${gradId})`);
+                }
+            } else {
+                bgRect.setAttribute('fill', el.localBackground);
+            }
+
+            bgG.appendChild(bgRect);
+            renderLayer.appendChild(bgG);
+        }
+
         // Méretezés (KERET MÉRETE = 20cm alap)
         const contentBaseSize = 1000; 
         let desiredWidthCm = el.widthCM || 20;
@@ -2013,6 +2068,100 @@ window.updateElementSelectorUI = function() {
                 
                 visualSelect.onchange = function() { window.handleUnifiedSelection(this.value); };
             }
+        }
+    }
+
+    // --- 3. HELY: SABLONOK MENÜ ELEM VÁLASZTÓ ---
+    const templateContainer = document.getElementById('template-element-selector-container');
+    const templateSelect = document.getElementById('template-element-selector');
+
+    if (templateContainer && templateSelect) {
+        if (allElements.length > 1) {
+            templateContainer.style.display = 'block';
+            templateSelect.innerHTML = buildOptionsHTML(false); // Nincs közös opció
+
+            // Aktuális érték beállítása
+            let templateVal = currentCtx;
+            if (currentCtx === 'map') templateVal = 'map_main-map';
+            else if (currentCtx === 'common') {
+                const selId = uiState.selectedElementId;
+                const el = allElements.find(e => e.id == selId);
+                if(el) templateVal = (el.type === 'map') ? `map_${el.id}` : `photo_${el.id}`;
+            }
+
+            if(templateVal && templateSelect.querySelector(`option[value="${templateVal}"]`)) {
+                templateSelect.value = templateVal;
+            }
+        } else {
+            templateContainer.style.display = 'none';
+        }
+    }
+
+    // --- 4. ALKALMAZÁSI MÓDOK LÁTHATÓSÁGÁNAK FRISSÍTÉSE ---
+    if (window.updateApplyModeVisibility) window.updateApplyModeVisibility();
+}
+
+// --- SABLON ELEM VÁLASZTÓ KEZELÉSE ---
+window.handleTemplateElementSelection = function(value) {
+    if (!value) return;
+
+    const parts = value.split('_');
+    const typePrefix = parts[0];
+    const id = parts.slice(1).join('_'); // Handle IDs like 'main-map'
+
+    if (!id) return;
+
+    if(!myCelestialConf.userData) initUserData();
+
+    const el = myCelestialConf.userData.elements.find(e => e.id == id);
+    if (el) {
+        myCelestialConf.userData.uiState.selectedElementId = id;
+
+        // Frissítjük a többi választót is
+        const otherSelectors = ['active-element-selector', 'text-mode-selector'];
+        otherSelectors.forEach(selId => {
+            const sel = document.getElementById(selId);
+            if (sel && sel.querySelector(`option[value="${value}"]`)) {
+                sel.value = value;
+            }
+        });
+
+        // Alkalmazási módok frissítése
+        if (window.updateApplyModeVisibility) window.updateApplyModeVisibility();
+    }
+}
+
+// --- ALKALMAZÁSI MÓDOK LÁTHATÓSÁGÁNAK FRISSÍTÉSE ---
+window.updateApplyModeVisibility = function() {
+    if(!myCelestialConf.userData) return;
+
+    const uiState = myCelestialConf.userData.uiState;
+    const selId = uiState.selectedElementId;
+    const el = myCelestialConf.userData.elements.find(e => e.id == selId);
+
+    const noneLabel = document.getElementById('apply-mode-none-label');
+    const localLabel = document.getElementById('apply-mode-local-label');
+    const globalRadio = document.querySelector('input[name="bg-mode-right"][value="global"]');
+    const noneRadio = document.querySelector('input[name="bg-mode-right"][value="none"]');
+
+    // Ha nem csillagtérkép (fotó/hold) van kiválasztva
+    const isNotMap = el && el.type !== 'map';
+
+    if (noneLabel) {
+        if (isNotMap) {
+            // Letiltjuk a "Csak csillagtérkép" opciót fotó/hold esetén
+            noneLabel.style.opacity = '0.4';
+            noneLabel.style.pointerEvents = 'none';
+            noneLabel.title = 'Ez az opció csak csillagtérkép esetén elérhető';
+
+            // Ha éppen ez volt kiválasztva, átváltunk globálisra
+            if (noneRadio && noneRadio.checked && globalRadio) {
+                globalRadio.checked = true;
+            }
+        } else {
+            noneLabel.style.opacity = '1';
+            noneLabel.style.pointerEvents = 'auto';
+            noneLabel.title = '';
         }
     }
 }
@@ -3717,27 +3866,282 @@ window.copyMapToDesigner = function() {
     window.updateActiveMapSnapshot();
 };
 
-window.applyDesignerTheme = function(key, variant = 'normal') {
-    if (typeof getOptimalMapSize === 'function' && typeof Celestial !== 'undefined') Celestial.resize({width: getOptimalMapSize()});
-    if (typeof window.loadTheme === 'function') window.loadTheme(key, variant); 
-    let themeBg = "#000000";
-    if (typeof mapThemes !== 'undefined' && mapThemes[key]) themeBg = mapThemes[key].background;
-    if (window.updateCanvasBackground) window.updateCanvasBackground(themeBg);
-    const colorInput = document.getElementById('canvas-bg-color');
-    if (colorInput) {
-        let hex = themeBg.startsWith('#') ? themeBg : "#000000";
-        if(themeBg.includes("gradient")) { const match = themeBg.match(/#[a-fA-F0-9]{6}/); if(match) hex = match[0]; }
-        colorInput.value = hex;
+// ============================================================
+// --- AKTÍV TÉMA VÁLTOZÓK ---
+// ============================================================
+let activeThemeKey = null;
+let activeVariant = 'normal';
+
+// ============================================================
+// --- SABLON KÁRTYA LÉTREHOZÁS ---
+// ============================================================
+window.createThemeCardHTML = function(key, theme, variant, sourceSide) {
+    const isHeart = (variant === 'heart');
+    const card = document.createElement('div');
+    card.className = 'theme-item';
+
+    // Fejléc
+    const label = document.createElement('div');
+    label.className = "theme-btn";
+    label.innerText = isHeart ? `♥ ${theme.name}` : theme.name;
+
+    if(isHeart) {
+        label.style.color = "#d81b60";
+        label.style.background = "#fff0f5";
     }
+
+    // Kép
+    const preview = document.createElement('div');
+    preview.className = 'theme-preview-img';
+
+    let imgUrl = theme.image;
+    if (isHeart && imgUrl) imgUrl = imgUrl.replace('.png', '_heart.png');
+
+    if (imgUrl) {
+        preview.style.background = `url('${imgUrl}') center/contain no-repeat, ${theme.background}`;
+    } else {
+        preview.style.background = theme.background;
+    }
+
+    card.appendChild(label);
+    card.appendChild(preview);
+
+    // KATTINTÁS: Átadjuk a 'sourceSide'-ot a loadTheme-nek
+    card.onclick = function() {
+        if (typeof window.loadTheme === 'function') {
+            window.loadTheme(key, variant, sourceSide);
+        }
+    };
+
+    return card;
+};
+
+// ============================================================
+// --- FŐ TÉMA BETÖLTŐ (SLOT KEZELÉSSEL) ---
+// ============================================================
+window.loadTheme = function(key, variant = 'normal', sourceSide = 'right') {
+    console.log(`🎨 Téma kiválasztva: ${key} (${variant})`);
+
+    if (!myCelestialConf.userData) initUserData();
+
+    // 1. Melyik az aktív elem?
+    const uiState = myCelestialConf.userData.uiState;
+    let targetId = uiState.selectedElementId;
+    let selectedEl = myCelestialConf.userData.elements.find(e => e.id == targetId);
+
+    // Ha nincs (vagy az nem létezik), keressük az első térképet
+    if (!selectedEl) {
+        selectedEl = myCelestialConf.userData.elements.find(e => e.type === 'map');
+        if (selectedEl) targetId = selectedEl.id;
+    }
+
+    // 2. Téma betöltése
+    const theme = mapThemes[key];
+    if (!theme) return;
+
+    activeThemeKey = key;
+    activeVariant = variant;
+
+    // Alap config előkészítése (Kényszerített 1000px)
+    let themeConfig = JSON.parse(JSON.stringify(theme.config));
+    themeConfig.width = 1000;
+
+    // Projekció kezelése (szív forma)
+    if (variant === 'heart') {
+        themeConfig.projection = "customHeart";
+        if (selectedEl && selectedEl.type === 'map') selectedEl.mask = 'classic';
+    } else {
+        themeConfig.projection = "stereographic";
+    }
+
+    // 3. MÓD KIVÁLASZTÁSA
+    let bgMode = 'global';
+    let radioName = (sourceSide === 'left') ? 'bg-mode-left' : 'bg-mode-right';
+    const selectedRadio = document.querySelector(`input[name="${radioName}"]:checked`);
+    if (selectedRadio) bgMode = selectedRadio.value;
+
+    console.log(`Mód: ${bgMode}, Kiválasztott elem típusa: ${selectedEl ? selectedEl.type : 'nincs'}`);
+
+    // --- ADATBÁZIS FRISSÍTÉSE ---
+    const mapsToRender = [];
+    const allElements = myCelestialConf.userData.elements;
+    const isSelectedNotMap = selectedEl && selectedEl.type !== 'map';
+
+    if (bgMode === 'global') {
+        // 🌍 TELJES VÁSZONKÉP (Minden elem)
+        // Vászon háttér beállítása
+        window.updateCanvasBackground(theme.background);
+
+        // Minden elem módosítása
+        allElements.forEach(el => {
+            el.localBackground = null; // Töröljük a lokális hátteret
+
+            if (el.type === 'map') {
+                // Csillagtérkép: Config frissítése + szövegszínek
+                updateElementConfig(el, themeConfig);
+                updateZoneColors(el.id, theme.textColor);
+                mapsToRender.push(el);
+            } else {
+                // Fotó/Hold: Csak szövegszínek
+                updateZoneColors(el.id, theme.textColor);
+            }
+        });
+
+    } else if (bgMode === 'local') {
+        // 🖼️ CSAK A KIVÁLASZTOTT KÉP (Háttérrel)
+        if (!selectedEl) { alert("Nincs kiválasztva elem!"); return; }
+
+        // Lokális háttér beállítása a kiválasztott slotra
+        selectedEl.localBackground = theme.background;
+
+        // Szövegszín frissítése a kiválasztott elemhez
+        updateZoneColors(selectedEl.id, theme.textColor);
+
+        if (selectedEl.type === 'map') {
+            // Ha csillagtérkép, config frissítése is
+            updateElementConfig(selectedEl, themeConfig);
+            mapsToRender.push(selectedEl);
+        }
+        // Ha fotó/hold, a csillagtérképek NEM változnak
+
+    } else if (bgMode === 'none') {
+        // 🚫 CSAK A KIVÁLASZTOTT CSILLAGTÉRKÉP (Stílus)
+        if (isSelectedNotMap) {
+            // Ha nem csillagtérkép, nem csinálunk semmit
+            console.log("Ez az opció csak csillagtérkép esetén működik.");
+            return;
+        }
+
+        if (!selectedEl || selectedEl.type !== 'map') {
+            alert("Válassz ki egy csillagtérképet!");
+            return;
+        }
+
+        // Csak a kiválasztott térkép stílusa változik (háttér és szöveg NEM)
+        updateElementConfig(selectedEl, themeConfig);
+        mapsToRender.push(selectedEl);
+    }
+
+    // --- RENDERELÉS INDÍTÁSA ---
+    if (mapsToRender.length > 0) {
+        processRenderQueue(mapsToRender, 0);
+    } else {
+        // Ha nincs mit renderelni (pl. fotó lokális módban), csak frissítjük a UI-t
+        window.refreshMapTransform();
+        window.renderFixedTexts();
+    }
+};
+
+// --- SEGÉDFÜGGVÉNY: Elem konfigurációjának frissítése ---
+function updateElementConfig(el, newBaseConfig) {
+    let finalConfig = JSON.parse(JSON.stringify(newBaseConfig));
+
+    // Meglévő adatok (Hely, Idő) átmentése
+    if (el.celestialConfig) {
+        if(el.celestialConfig.Ido) finalConfig.Ido = el.celestialConfig.Ido;
+        if(el.celestialConfig.Varos) finalConfig.Varos = el.celestialConfig.Varos;
+        if(el.celestialConfig.Lokacio) finalConfig.Lokacio = el.celestialConfig.Lokacio;
+        if(el.celestialConfig.geopos) finalConfig.geopos = el.celestialConfig.geopos;
+        if(el.celestialConfig.highlights) finalConfig.highlights = el.celestialConfig.highlights;
+    }
+
+    el.celestialConfig = finalConfig;
+}
+
+// --- SEGÉDFÜGGVÉNY: Szövegzónák színezése ---
+function updateZoneColors(elementId, newColor) {
+    if (!newColor) return;
+    const zoneKey = (elementId === 'main-map') ? 'map' : `map_${elementId}`;
+    const zones = myCelestialConf.userData.zones;
+
+    if (zones[zoneKey]) {
+        ['top', 'bottom'].forEach(z => {
+            if (zones[zoneKey][z]) {
+                zones[zoneKey][z].blocks.forEach(block => {
+                    block.color = newColor;
+                });
+            }
+        });
+    }
+}
+
+// ============================================================
+// --- RENDER QUEUE (SORBAN GENERÁLÁS) ---
+// ============================================================
+function processRenderQueue(elementsList, index) {
+    // 1. KILÉPÉSI FELTÉTEL
+    if (index >= elementsList.length) {
+        console.log("✅ Minden térkép generálása kész.");
+
+        // Visszaállítjuk a teljes UserDatát
+        if (window.savedFullUserData) {
+            myCelestialConf.userData = window.savedFullUserData;
+            window.savedFullUserData = null;
+        }
+
+        // Végső UI frissítés
+        window.refreshMapTransform();
+        window.renderFixedTexts();
+        window.renderZoneUI('top');
+        window.renderZoneUI('bottom');
+        return;
+    }
+
+    // 2. ELŐKÉSZÜLETEK
+    const el = elementsList[index];
+    console.log(`⏳ Generálás: ${el.id} (${index + 1}/${elementsList.length})`);
+
+    // Referencia mentés
+    if (index === 0 && !window.savedFullUserData) {
+        window.savedFullUserData = myCelestialConf.userData;
+    }
+
+    // 3. ISOLÁCIÓ
+    myCelestialConf = JSON.parse(JSON.stringify(el.celestialConfig));
+
+    myCelestialConf.userData = {
+        uiState: {
+            selectedElementId: el.id,
+            zoneFlags: window.savedFullUserData.uiState.zoneFlags || {}
+        },
+        elements: [el],
+        zones: window.savedFullUserData.zones,
+        canvas: window.savedFullUserData.canvas
+    };
+
+    // 4. GENERÁLÁS
     if (typeof Celestial !== 'undefined') {
+        Celestial.resize({width: 1000});
+        Celestial.apply(myCelestialConf);
+
+        if (myCelestialConf.Ido) Celestial.date(new Date(myCelestialConf.Ido));
+        if (myCelestialConf.geopos) Celestial.location(myCelestialConf.geopos);
+
+        if (el.highlights) Celestial.highlightList = el.highlights;
+        else Celestial.highlightList = {};
+
+        Celestial.redraw();
+
+        // Callback
+        window.onVectorExportFinished = function() {
+            processRenderQueue(elementsList, index + 1);
+        };
+
         setTimeout(() => {
-            try { Celestial.redraw(); } catch (e) { console.warn("Redraw error", e); }
-            setTimeout(() => {
-                window.updateActiveMapSnapshot();
-                if (typeof window.refreshMapTransform === 'function') window.refreshMapTransform(); 
-                if (typeof window.renderFixedTexts === 'function') window.renderFixedTexts();
-            }, 800); 
-        }, 50);
+            window.updateActiveMapSnapshot();
+        }, 150);
+    } else {
+        processRenderQueue(elementsList, index + 1);
+    }
+}
+
+// ============================================================
+// --- RÉGI applyDesignerTheme (KOMPATIBILITÁS) ---
+// ============================================================
+window.applyDesignerTheme = function(key, variant = 'normal') {
+    // Átirányítás az új loadTheme-re
+    if (typeof window.loadTheme === 'function') {
+        window.loadTheme(key, variant, 'right');
     }
 }
 
@@ -3772,24 +4176,36 @@ window.updateCanvasBackground = function(color) {
     }
 }
 
+// ============================================================
+// --- SABLON LISTÁK INICIALIZÁLÁSA ---
+// ============================================================
 function initDesignerTemplates() {
-    const container = document.getElementById('designer-templates-grid'); if (!container) return; container.innerHTML = ''; 
-    const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : designerThemes;
-    for (const [key, theme] of Object.entries(themesSource)) {
-        const createCard = (variant) => {
-            const isHeart = (variant === 'heart');
-            const card = document.createElement('div'); card.className = 'theme-item';
-            const preview = document.createElement('div'); preview.className = 'theme-preview-img';
-            let imgUrl = theme.image; if (isHeart && imgUrl) imgUrl = imgUrl.replace('.png', '_heart.png');
-            if (imgUrl) preview.style.background = `url('${imgUrl}') center/contain no-repeat, ${theme.background}`; else preview.style.background = theme.background; 
-            const label = document.createElement('div'); label.className = "theme-btn"; label.innerText = isHeart ? `♥ ${theme.name}` : theme.name;
-            if(isHeart) { label.style.color = "#d81b60"; label.style.background = "#fff0f5"; }
-            card.onclick = function() { if (typeof window.applyDesignerTheme === 'function') window.applyDesignerTheme(key, variant); };
-            card.appendChild(label); card.appendChild(preview); return card;
-        };
-        container.appendChild(createCard('normal')); container.appendChild(createCard('heart'));
-    }
+    console.log("initDesignerTemplates futtatása...");
+
+    // Mindkét konténert feltöltjük
+    const containers = [
+        { id: 'theme-grid-container-left', side: 'left' },  // Bal (Editor)
+        { id: 'designer-templates-grid',   side: 'right' }  // Jobb (Designer)
+    ];
+
+    const themesSource = (typeof mapThemes !== 'undefined') ? mapThemes : {};
+
+    containers.forEach(item => {
+        const container = document.getElementById(item.id);
+        if (!container) return;
+
+        container.innerHTML = ''; // Törlés
+
+        for (const [key, theme] of Object.entries(themesSource)) {
+            // Az új createThemeCardHTML használata
+            container.appendChild(window.createThemeCardHTML(key, theme, 'normal', item.side));
+            container.appendChild(window.createThemeCardHTML(key, theme, 'heart', item.side));
+        }
+    });
 }
+
+// Alias kompatibilitás
+window.initThemeSelectors = initDesignerTemplates;
 
 
 
