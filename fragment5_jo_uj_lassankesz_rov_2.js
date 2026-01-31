@@ -2195,22 +2195,13 @@ window.updateActiveMapSnapshot = function() {
 // ============================================================
 window.handleVectorExport = function(svgContent) {
     console.log("✅ Vektoros adat (SVG) érkezett feldolgozásra...");
-    
+
     if (!myCelestialConf.userData) initUserData();
 
-    // Cél elem keresése
-    let targetId = myCelestialConf.userData.uiState.selectedElementId;
-    let targetEl = null;
-
-    if (targetId) {
-        targetEl = myCelestialConf.userData.elements.find(e => e.id == targetId && e.type === 'map');
-    }
-
-    // Ha nincs kijelölt, keressük az utolsót (új hozzáadásnál fontos)
-    if (!targetEl) {
-        const maps = myCelestialConf.userData.elements.filter(e => e.type === 'map');
-        if (maps.length > 0) targetEl = maps[maps.length - 1];
-    }
+    // FONTOS: A processRenderQueue "becsapta" a userDatát -
+    // az egyetlen elem az 'elements' tömbben az a cél elemünk!
+    // Mivel ez egy REFERENCIA az eredeti elemre, a módosítások megmaradnak!
+    let targetEl = myCelestialConf.userData.elements[0];
 
     if (targetEl) {
         // --- CSS OSZTÁLYOK EGYEDIVÉ TÉTELE (SCOPING) ---
@@ -2218,7 +2209,6 @@ window.handleVectorExport = function(svgContent) {
         const uniquePrefix = `map_${targetEl.id}_`; // Pl. map_1715234_
 
         // 1. <style> blokkban lévő osztályok átnevezése
-        // JAVÍTÁS 1: A (?!\d) biztosítja, hogy az opacity: .15 ne romoljon el!
         const styleMatch = scopedSvg.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
         if (styleMatch) {
             let originalCss = styleMatch[1];
@@ -2234,60 +2224,31 @@ window.handleVectorExport = function(svgContent) {
             return `class="${newClassNames}"`;
         });
 
-        // 3. JAVÍTÁS 2 (MÉRETEZÉS): Visszatesszük a "background" jelölőt!
-        // A refreshMapTransform a .background osztályt keresi a méréshez.
-        // Megkeressük az átnevezett (pl. map_123_background) osztályt, és mellé írjuk a sima "background"-ot is.
-        // Mivel a style blokkban már nincs .background szabály, ez nem rontja el a színeket!
+        // 3. JAVÍTÁS (MÉRETEZÉS): Visszatesszük a "background" jelölőt!
         scopedSvg = scopedSvg.replace(new RegExp(`class="[^"]*${uniquePrefix}background[^"]*"`, 'g'), (match) => {
             return match.slice(0, -1) + ' background"';
         });
 
         // 4. ID-k és URL hivatkozások egyedivé tétele
-        scopedSvg = scopedSvg.replace(/id="([^"]+)"/g, (match, idVal) => {
-            return `id="${uniquePrefix}${idVal}"`;
-        });
-        
-        scopedSvg = scopedSvg.replace(/url\(#([^)]+)\)/g, (match, idRef) => {
-             if (!idRef.startsWith(uniquePrefix)) {
-                 return `url(#${uniquePrefix}${idRef})`;
-             }
-             return match;
-        });
+        scopedSvg = scopedSvg.replace(/id="([^"]+)"/g, (match, idVal) => { return `id="${uniquePrefix}${idVal}"`; });
+        scopedSvg = scopedSvg.replace(/url\(#([^)]+)\)/g, (match, idRef) => { if (!idRef.startsWith(uniquePrefix)) return `url(#${uniquePrefix}${idRef})`; return match; });
 
-        // // --- MENTÉS ---
-        // targetEl.vectorData = scopedSvg;
-        
-        // // Config snapshot frissítése (A jelenlegi beállítások mentése)
-        // const currentConfig = JSON.parse(JSON.stringify(myCelestialConf));
-        // MENTÉS
-        targetEl.vectorData = svgContent;
-        
-        // --- ÚJ: KIEMELÉSEK MENTÉSE AZ ELEMBE ---
-        // Elmentjük a jelenlegi globális listát a térkép saját adatai közé
+        // --- MENTÉS AZ EREDETI OBJEKTUMBA (scopedSvg, nem svgContent!) ---
+        targetEl.vectorData = scopedSvg;
+
+        // Highlights mentése
         if (typeof Celestial !== 'undefined' && Celestial.highlightList) {
             targetEl.highlights = JSON.parse(JSON.stringify(Celestial.highlightList));
-        } else {
-            targetEl.highlights = {};
-        }
-        // ----------------------------------------
-        
-        // Config snapshot frissítése
-        const currentConfig = JSON.parse(JSON.stringify(myCelestialConf));
-        if (currentConfig.userData) delete currentConfig.userData;
-        targetEl.celestialConfig = currentConfig;
-        
-        console.log(`✅ Térkép (ID: ${targetEl.id}) izolált és méretezett SVG mentve.`);
-        
-        // Maszk frissítése
-        if (typeof currentMapMask !== 'undefined' && currentMapMask !== 'none') {
-            targetEl.mask = currentMapMask;
         }
 
-        // Újrarajzolás és Méretezés
-        window.refreshMapTransform();
-        setTimeout(window.renderFixedTexts, 50);
-    } else {
-        console.warn("❌ Hiba: Nem találtam térképet az SVG mentéséhez.");
+        console.log(`✅ Snapshot kész: ${targetEl.id}`);
+    }
+
+    // --- SZINKRONIZÁCIÓ: Jelezzük a loopnak, hogy végeztünk! ---
+    if (typeof window.onVectorExportFinished === 'function') {
+        const callback = window.onVectorExportFinished;
+        window.onVectorExportFinished = null;
+        callback(); // MEHET A KÖVETKEZŐ!
     }
 };
 
@@ -5561,6 +5522,10 @@ function updateElementConfig(el, newBaseConfig) {
     }
 
     el.celestialConfig = finalConfig;
+
+    // FONTOS: A widthCM és más elem-specifikus beállítások NEM változnak!
+    // Az el.widthCM, el.align, el.marginTop, stb. maradnak, mert nem nyúlunk hozzájuk!
+    // Csak a celestialConfig (térkép stílus) frissül.
 }
 
 // --- SEGÉDFÜGGVÉNY: Szövegzónák színezése ---
@@ -5614,7 +5579,15 @@ function processRenderQueue(elementsList, index) {
 
     // 3. ISOLÁCIÓ (Becsapjuk a rendszert)
     // Az elem configját másoljuk, hogy ne legyen gond
-    myCelestialConf = JSON.parse(JSON.stringify(el.celestialConfig));
+    // FONTOS: Ha nincs celestialConfig, használjuk az aktuális globális configot!
+    if (el.celestialConfig) {
+        myCelestialConf = JSON.parse(JSON.stringify(el.celestialConfig));
+    } else {
+        // Ha nincs elmentett config, a jelenlegi globálisból készítünk másolatot
+        const tempConfig = JSON.parse(JSON.stringify(myCelestialConf));
+        if (tempConfig.userData) delete tempConfig.userData;
+        myCelestialConf = tempConfig;
+    }
 
     // De a UserDatába az EREDETI elem referenciáját tesszük!
     // Így ha a handleVectorExport ír bele, az megmarad.
