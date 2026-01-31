@@ -2015,6 +2015,46 @@ window.updateElementSelectorUI = function() {
             }
         }
     }
+
+    // --- 3. HELY: SABLONOK MENÜ ELEM-VÁLASZTÓ (Nincs Közös) ---
+    const templateContainer = document.getElementById('template-element-selector-container');
+
+    if (templateContainer) {
+        if (allElements.length <= 1) {
+            templateContainer.style.display = 'none';
+        } else {
+            templateContainer.style.display = 'block';
+
+            let templateSelect = document.getElementById('template-element-selector');
+            if (templateSelect) {
+                // Tartalom töltése (FALSE = Nincs Közös opció)
+                templateSelect.innerHTML = buildOptionsHTML(false);
+
+                // Aktív érték
+                let templateVal = currentCtx;
+                // Ha 'common'-ban vagyunk, itt mutassuk az utolsó kijelölt elemet
+                if (currentCtx === 'common' || !currentCtx) {
+                    const selId = uiState.selectedElementId;
+                    if (selId) {
+                        const el = allElements.find(e => e.id == selId);
+                        if(el) templateVal = (el.type === 'map') ? `map_${el.id}` : `photo_${el.id}`;
+                    }
+                } else if (currentCtx === 'map') {
+                    templateVal = 'map_main-map';
+                }
+
+                // Csak akkor állítjuk be, ha nem 'common' (hogy ne legyen üres)
+                if(templateVal && templateVal !== 'common') {
+                     // Ellenőrizzük, hogy létezik-e ilyen opció
+                     if (templateSelect.querySelector(`option[value="${templateVal}"]`)) {
+                         templateSelect.value = templateVal;
+                     }
+                }
+
+                templateSelect.onchange = function() { window.handleUnifiedSelection(this.value); };
+            }
+        }
+    }
 }
 
 // --- 2. VÁLASZTÁS KEZELÉSE (MINDENHONNAN) ---
