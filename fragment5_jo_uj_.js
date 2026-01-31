@@ -547,7 +547,7 @@ window.refreshMapTransform = function() {
 
             gSP.appendChild(circle);
             gSP.appendChild(text);
-            renderLayer.appendChild(gSP); y
+            renderLayer.appendChild(gSP);
         });
     }
     window.renderFixedTexts();
