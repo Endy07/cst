@@ -1,3 +1,4 @@
+
 // --- 1. KONSTANSOK ÉS GLOBÁLIS VÁLTOZÓK ---
 const MOON_IMG_SRC = 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Full_Moon_as_Seen_From_Denmark.jpg';
 
@@ -27,28 +28,21 @@ const GRADIENT_PRESETS = [
     { name: "Mély Űr (Fekete)", value: "#000000" },
     { name: "Tiszta Fehér", value: "#ffffff" },
     { name: "Monokróm (Fekete-Fehér)", value: "linear-gradient(135deg, #000000 0%, #ffffff 100%)" },
-    { name: "Monokróm (Fehér-Fekete)", value: "linear-gradient(135deg, #ffffff 0%, #000000 100%)" },
-    { name: "Monokróm (Fekete-Fehér vízszintes)", value: "linear-gradient(0deg, #ffffff 50%, #000000 50%)" },
-    { name: "Monokróm (Fekete-Fehérr)", value: "linear-gradient(135deg, #000000 50%, #ffffff 50%)" },
-    { name: "Monokróm (Fehér-Fekete)", value: "linear-gradient(0deg, #ffffff 50%, #000000 50%)" },
-    { name: "Hármas Monokróm (Fehér-Fekete-Fehér)", value: "linear-gradient(0deg, #ffffff 0%, #000000 50%, #ffffff 100%, #000000 100%)" },
     { name: "Éjfél (Sötétkék)", value: "linear-gradient(135deg, #020024 0%, #090979 35%, #00d4ff 100%)" },
     { name: "Naplemente (Lila)", value: "linear-gradient(135deg, #240b36 0%, #c31432 100%)" },
     { name: "Aurora (Zöldes)", value: "linear-gradient(135deg, #000000 0%, #0f9b0f 100%)" },
     { name: "Királyi (Arany-Kék)", value: "linear-gradient(135deg, #141E30 0%, #243B55 100%)" },
-    { name: "Ködös (Szürke)", value: "linear-gradient(135deg, #3E5151 0%, #DECBA4 100%)" },
     { name: "Vintage (Papír)", value: "#f0e6d2" },
     { name: "Szerelmes (Rózsaszín)", value: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)" }
 ];
 
 window.tempMoonShadow = "black";
-let designerSVG, textLayer, mapLayer, transformGroup;
-let activeSymbolZone = null;
-let activeSymbolBlockId = null;
+let designerSVG, textLayer, mapLayer;
+let activeSymbolZone = null, activeSymbolBlockId = null;
 let cropper;
-let tempInsertSide = 'end'; 
-let tempUploadedFileName = ''; 
+let tempInsertSide = 'end', tempUploadedFileName = '';
 
+// --- ADATBÁZIS ÉS INICIALIZÁLÁS ---
 function initUserData() {
     if (typeof myCelestialConf === 'undefined' || !myCelestialConf) {
         window.myCelestialConf = {};
@@ -75,17 +69,20 @@ function initUserData() {
                 'map': { top: { align: 'center', margin: 0, blocks: [] }, bottom: { align: 'center', margin: 0, blocks: [] } },
                 'common': { top: { align: 'center', blocks: [] }, bottom: { align: 'center', blocks: [] } } 
             },
+            smartpoints: [],
             uiState: {
                 activePhotoId: null, 
                 selectedElementId: 'main-map',
                 currentTextContext: 'map',
                 zoneFlags: { topCommon: false, bottomCommon: false },
-                layoutMode: 'multi', 
                 activeAddMode: 'photo',
-                photoURL: null 
+                photoURL: null,
+                showSmartpoints: true
             }
         };
         initDefaultTexts();
     }
 }
-// ... (The rest of the merged and corrected JavaScript code will be placed here) ...
+//...
+// (The full merged and corrected code will be written here)
+// This will be a large block of code.
