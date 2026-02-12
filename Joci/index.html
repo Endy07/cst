@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="hu" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prémium Nyílászárók és Falpanelek | Csend és Stílus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Manrope:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        luxury: {
+                            black: '#0a0a0a',
+                            charcoal: '#151515',
+                            gold: '#D4AF37',
+                            goldLight: '#F4C430',
+                            neon: '#00f2ff'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Manrope', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'hero-pattern': "url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2653&auto=format&fit=crop')", // Luxury Interior
+                        'gradient-gold': 'linear-gradient(135deg, #D4AF37 0%, #F4C430 100%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+        .slider-handle {
+            width: 40px;
+            height: 40px;
+            background: #D4AF37;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(212,175,55,0.5);
+            cursor: pointer;
+            z-index: 20;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-luxury-black text-gray-200 font-sans antialiased overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 transition-all duration-300 glass" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-serif font-bold text-white tracking-widest uppercase">
+                Prémium<span class="text-luxury-gold">.</span>
+            </a>
+            <div class="hidden md:flex space-x-8 text-sm font-semibold tracking-wide uppercase">
+                <a href="#windows" class="hover:text-luxury-gold transition-colors">Ablakok</a>
+                <a href="#doors" class="hover:text-luxury-gold transition-colors">Ajtók</a>
+                <a href="#panels" class="hover:text-luxury-gold transition-colors">Falpanelek</a>
+                <a href="#contact" class="px-6 py-2 border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-black transition-all duration-300">Ajánlatkérés</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative h-screen flex items-center justify-center overflow-hidden">
+        <!-- Background with Overlay -->
+        <div class="absolute inset-0 z-0">
+            <div class="absolute inset-0 bg-black/60 z-10"></div>
+            <img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=2574&auto=format&fit=crop" 
+                 class="w-full h-full object-cover transition-transform duration-[20s] hover:scale-110 ease-linear" alt="Luxury Interior">
+        </div>
+
+        <div class="relative z-10 text-center px-4 max-w-4xl mx-auto" data-aos="fade-up">
+            <p class="text-luxury-gold uppercase tracking-[0.3em] mb-4 text-sm font-bold">A nyugalom luxusa</p>
+            <h1 class="font-serif text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight text-glow">
+                Csend. <span class="bg-clip-text text-transparent bg-gradient-gold">Stílus.</span> Otthon.
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-10 font-light max-w-2xl mx-auto leading-relaxed">
+                Prémium akusztikus falpanelek és német mérnöki pontosságú Kömmerling nyílászárók. Mert az igazi luxus a csendnél kezdődik.
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <a href="#panels" class="px-8 py-4 bg-luxury-gold text-black font-bold uppercase tracking-wider hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-300 transform hover:-translate-y-1">
+                    Akusztikus Panelek
+                </a>
+                <a href="#windows" class="px-8 py-4 border border-white/30 hover:border-white hover:bg-white/10 text-white font-bold uppercase tracking-wider backdrop-blur-sm transition-all duration-300">
+                    Nyílászáró Katalógus
+                </a>
+            </div>
+        </div>
+        
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-luxury-gold">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+    </header>
+
+    <!-- Value Proposition -->
+    <section class="py-24 bg-luxury-charcoal relative">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+            <div class="group p-8 glass rounded-none hover:bg-white/5 transition-all duration-500">
+                <div class="w-16 h-16 mx-auto mb-6 bg-luxury-gold/10 rounded-full flex items-center justify-center text-luxury-gold group-hover:scale-110 transition-transform">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white mb-3">Maximális Csend</h3>
+                <p class="text-gray-400 text-sm leading-6">Akusztikai elnyelés A-osztályú minősítéssel. Zárja ki a külvilág zaját.</p>
+            </div>
+            <div class="group p-8 glass rounded-none hover:bg-white/5 transition-all duration-500 border-x border-white/5">
+                <div class="w-16 h-16 mx-auto mb-6 bg-luxury-gold/10 rounded-full flex items-center justify-center text-luxury-gold group-hover:scale-110 transition-transform">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white mb-3">Kömmerling Minőség</h3>
+                <p class="text-gray-400 text-sm leading-6">Német profilrendszerek, 3 rétegű üvegezés. Passzívház szintű hőszigetelés.</p>
+            </div>
+            <div class="group p-8 glass rounded-none hover:bg-white/5 transition-all duration-500">
+                <div class="w-16 h-16 mx-auto mb-6 bg-luxury-gold/10 rounded-full flex items-center justify-center text-luxury-gold group-hover:scale-110 transition-transform">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <h3 class="text-xl font-serif font-bold text-white mb-3">Látványos Design</h3>
+                <p class="text-gray-400 text-sm leading-6">280cm-es toldásmentes falpanelek és prémium dekorfóliák a tökéletes összhatásért.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Wall Panels Section with Before/After Slider -->
+    <section id="panels" class="py-24 bg-luxury-black relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 mb-16 flex flex-col md:flex-row justify-between items-end">
+            <div class="max-w-2xl">
+                <span class="text-luxury-gold text-sm font-bold uppercase tracking-widest">Technológia és Design</span>
+                <h2 class="text-4xl md:text-5xl font-serif font-bold text-white mt-4 mb-6">Akusztikus Falpanelek, <br>Amik Életre Kelnek</h2>
+                <p class="text-gray-400 leading-relaxed">
+                    SPC Vízálló burkolat – Fürdőszobába is tökéletes. <br>
+                    Nagy méretű panelek (280cm) a padlótól a mennyezetig érő eleganciáért.
+                </p>
+            </div>
+            <div class="hidden md:block">
+                <div class="text-right">
+                    <p class="text-sm text-gray-500 uppercase tracking-wider mb-2">Kezdő ár</p>
+                    <p class="text-3xl font-serif text-luxury-gold">14.990 Ft<span class="text-sm text-gray-500 font-sans ml-1">/db-tól</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Before/After Slider Container -->
+        <div class="relative w-full h-[600px] max-w-7xl mx-auto overflow-hidden group border-y border-luxury-gold/20">
+            <!-- After Image (Full width background) -->
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2600&auto=format&fit=crop');">
+                <div class="absolute bottom-10 right-10 bg-black/70 px-6 py-2 backdrop-blur-md">
+                    <span class="text-luxury-gold font-bold uppercase tracking-widest text-sm">UTÁNA (Csend és Design)</span>
+                </div>
+            </div>
+            
+            <!-- Before Image (Clipped) -->
+            <div id="before-image" class="absolute inset-0 bg-cover bg-center border-r-2 border-luxury-gold w-1/2 overflow-hidden" style="background-image: url('https://images.unsplash.com/photo-1581094794320-c488a37fcf43?q=80&w=2600&auto=format&fit=crop'); filter: grayscale(100%) contrast(120%);">
+                <div class="absolute bottom-10 left-10 bg-black/70 px-6 py-2 backdrop-blur-md">
+                    <span class="text-white font-bold uppercase tracking-widest text-sm">ELŐTTE (Zaj és Üresség)</span>
+                </div>
+            </div>
+
+            <!-- Slider Handle -->
+            <div id="slider-handle" class="slider-handle left-1/2">
+                <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+            </div>
+        </div>
+        
+        <!-- Pricing Cards Row -->
+        <div class="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Card 1 -->
+            <div class="glass p-8 relative overflow-hidden group hover:border-luxury-gold/50 transition-all duration-300">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <span class="text-6xl font-serif text-white">01</span>
+                </div>
+                <h3 class="text-2xl font-serif text-white mb-2">Standard Panel</h3>
+                <p class="text-luxury-gold mb-6 font-mono">30x280 cm</p>
+                <div class="mb-8 space-y-2 text-sm text-gray-400">
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Hangszigetelő filc</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Vízálló anyag</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Több mint 10 szín</p>
+                </div>
+                <div class="flex justify-between items-end border-t border-white/10 pt-6">
+                    <div>
+                        <span class="block text-xs text-gray-500 uppercase">Javasolt Ár</span>
+                        <span class="text-2xl font-bold text-white">14.990 Ft</span>
+                    </div>
+                    <button class="bg-white/10 hover:bg-luxury-gold hover:text-black text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors">Részletek</button>
+                </div>
+            </div>
+
+            <!-- Card 2 (Featured) -->
+            <div class="glass p-8 relative overflow-hidden group border-luxury-gold/50 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
+                <div class="absolute top-0 right-0 bg-luxury-gold text-black text-xs font-bold px-3 py-1 uppercase">Best Seller</div>
+                <h3 class="text-2xl font-serif text-white mb-2">Wide Grand Panel</h3>
+                <p class="text-luxury-gold mb-6 font-mono">60x280 cm</p>
+                <div class="mb-8 space-y-2 text-sm text-gray-400">
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Dupla szélesség</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Gyorsabb telepítés</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Prémium fa hatás</p>
+                </div>
+                <div class="flex justify-between items-end border-t border-white/10 pt-6">
+                    <div>
+                        <span class="block text-xs text-gray-500 uppercase">Javasolt Ár</span>
+                        <span class="text-2xl font-bold text-luxury-gold">31.990 Ft</span>
+                    </div>
+                    <button class="bg-luxury-gold text-black px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-white transition-colors">Részletek</button>
+                </div>
+            </div>
+
+             <!-- Card 3 -->
+             <div class="glass p-8 relative overflow-hidden group hover:border-luxury-gold/50 transition-all duration-300">
+                <h3 class="text-2xl font-serif text-white mb-2">Mintadarab</h3>
+                <p class="text-luxury-gold mb-6 font-mono">30x60 cm</p>
+                <div class="mb-8 space-y-2 text-sm text-gray-400">
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Próbálja ki otthon</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Színminta garantált</p>
+                    <p class="flex items-center"><span class="w-1.5 h-1.5 bg-luxury-gold rounded-full mr-2"></span>Pénzvisszafizetés (vásárláskor)</p>
+                </div>
+                <div class="flex justify-between items-end border-t border-white/10 pt-6">
+                    <div>
+                        <span class="block text-xs text-gray-500 uppercase">Javasolt Ár</span>
+                        <span class="text-2xl font-bold text-white">4.490 Ft</span>
+                    </div>
+                    <button class="bg-white/10 hover:bg-luxury-gold hover:text-black text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors">Kosárba</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Showcase: Windows (Kömmerling) -->
+    <section id="windows" class="py-24 bg-luxury-charcoal">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-luxury-gold to-white blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                    <div class="relative bg-black p-2">
+                        <img src="https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4?q=80&w=2670&auto=format&fit=crop" alt="Premium Windows" class="w-full h-auto grayscale group-hover:grayscale-0 transition-all duration-700">
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-4xl font-serif font-bold text-white mb-6">Kömmerling 76AD Profilok</h2>
+                    <p class="text-gray-400 mb-8 leading-relaxed">
+                        Nem csak egy ablak. Egy befektetés. A Kömmerling rendszerek a német mérnöki csúcsteljesítményt képviselik. 
+                        76mm-es beépítési mélység és 5 légkamrás kialakítás garantálja, hogy a meleg bent, a zaj pedig kint maradjon.
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-6 mb-10">
+                        <div class="border-l-2 border-luxury-gold pl-4">
+                            <span class="block text-3xl font-bold text-white">0.98 <span class="text-sm font-normal text-gray-500">W/m²K</span></span>
+                            <span class="text-xs uppercase text-gray-400 tracking-wider">Hőszigetelési érték (Uf)</span>
+                        </div>
+                        <div class="border-l-2 border-luxury-gold pl-4">
+                            <span class="block text-3xl font-bold text-white">44 <span class="text-sm font-normal text-gray-500">dB</span></span>
+                            <span class="text-xs uppercase text-gray-400 tracking-wider">Hangszigetelés</span>
+                        </div>
+                    </div>
+
+                    <a href="#" class="inline-flex items-center text-luxury-gold font-bold uppercase tracking-widest hover:text-white transition-colors group">
+                        Katalógus megtekintése
+                        <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black py-12 border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center opacity-50 text-sm">
+            <p>&copy; 2026 Prémium Nyílászárók és Burkolatok. All rights reserved.</p>
+            <div class="flex space-x-6 mt-4 md:mt-0">
+                <a href="#" class="hover:text-luxury-gold">Adatvédelem</a>
+                <a href="#" class="hover:text-luxury-gold">ÁSZF</a>
+                <a href="#" class="hover:text-luxury-gold">Kapcsolat</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple script for the slider interaction
+        const sliderContainer = document.querySelector('.relative.w-full.h-\\[600px\\]');
+        const beforeImage = document.getElementById('before-image');
+        const sliderHandle = document.getElementById('slider-handle');
+
+        if (sliderContainer && beforeImage && sliderHandle) {
+            let isDragging = false;
+
+            const updateSlider = (x) => {
+                const rect = sliderContainer.getBoundingClientRect();
+                let percentage = ((x - rect.left) / rect.width) * 100;
+                percentage = Math.max(0, Math.min(100, percentage));
+                
+                beforeImage.style.width = `${percentage}%`;
+                sliderHandle.style.left = `${percentage}%`;
+            };
+
+            sliderHandle.addEventListener('mousedown', () => { isDragging = true; });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                updateSlider(e.clientX);
+            });
+            
+            // Touch support
+            sliderHandle.addEventListener('touchstart', () => { isDragging = true; });
+            document.addEventListener('touchend', () => { isDragging = false; });
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                updateSlider(e.touches[0].clientX);
+            });
+            
+            // Initial position (center)
+            beforeImage.style.width = '50%';
+            sliderHandle.style.left = '50%';
+        }
+    </script>
+</body>
+</html>
