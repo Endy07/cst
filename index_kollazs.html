@@ -1,0 +1,3698 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Betűkollázs Szerkesztő PRO - Refaktált</title>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap CSS & JS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="theme_szoveges_antig_temazas.css">
+</head>
+
+<body>
+
+    <!-- Liquid Background -->
+    <div class="liquid-bg">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <div class="blob b3"></div>
+        <div class="blob b4"></div>
+        <div class="blob b5"></div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <h3 id="loading-text">Feldolgozás...</h3>
+        <div id="loading-progress-container">
+            <div id="loading-progress"></div>
+        </div>
+    </div>
+
+    <!-- Session Recovery Modal -->
+    <div class="modal fade" id="recoveryModal" tabindex="-1" aria-labelledby="recoveryModalLabel" aria-hidden="true"
+        data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="recoveryModalLabel">
+                        <i class="fas fa-history text-accent me-2"></i>Szeretnéd folytatni az előző tervezést?
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    Úgy tűnik, van egy korábbi mentett tervezésed. Szeretnéd betölteni és onnan folytatni, ahol
+                    abbahagytad?
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" id="discardSession" class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">Új tervezés</button>
+                    <button type="button" id="restoreSession" class="btn btn-accent px-4">Folytatás</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Panel -->
+    <div id="themePanel">
+        <div class="theme-panel-header">
+            <h2>🎨 Témák</h2>
+            <button class="close-panel-btn" onclick="toggleThemePanel()">×</button>
+        </div>
+        <div class="theme-grid-scroll" id="themeGridScroll">
+            <!-- Theme grid will be rendered by JS -->
+        </div>
+        <div class="custom-colors-section">
+            <h3>Egyedi Színek</h3>
+            <div class="custom-color-row">
+                <input type="color" id="customColor1" class="custom-color-input" value="#000000" title="Háttér">
+                <input type="color" id="customColor2" class="custom-color-input" value="#333333" title="Blob">
+                <input type="color" id="customColor3" class="custom-color-input" value="#FFFFFF" title="Accent">
+            </div>
+            <button class="btn-action btn-secondary" onclick="applyCustomTheme()">
+                <i class="fas fa-check"></i> Alkalmazás
+            </button>
+        </div>
+    </div>
+
+    <!-- Layout Wrapper -->
+    <div class="layout-wrapper">
+
+        <!-- Desktop Layout -->
+        <div class="desktop-layout">
+            <div id="preview-area" class="desktop-preview">
+                <button id="quickThemeToggle" onclick="toggleLightDarkMode()" title="Váltás Sötét/Világos módra">
+                    <i class="fas fa-moon"></i>
+                </button>
+
+                <!-- History Controls -->
+                <div class="history-controls">
+                    <button class="btn-history" onclick="undo()" title="Visszavonás (Ctrl+Z)" id="btn-undo" disabled>
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn-history" onclick="redo()" title="Mégis (Ctrl+Y)" id="btn-redo" disabled>
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <!-- Save/Load Buttons -->
+                    <button class="btn-history" onclick="exportState()" title="Projekt Mentése (.json)">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button class="btn-history" onclick="document.getElementById('project-upload').click()"
+                        title="Projekt Betöltése (.json)">
+                        <i class="fas fa-folder-open"></i>
+                    </button>
+                    <input type="file" id="project-upload" style="display: none;" accept=".json"
+                        onchange="importState(event)">
+                </div>
+
+                <canvas id="main-canvas"></canvas>
+            </div>
+
+            <div class="settings-tabs-container">
+                <div class="settings-tabs-header">
+                    <div class="settings-tab active" data-tab="structure">
+                        <i class="fas fa-layer-group"></i> Szerkezet
+                    </div>
+                    <div class="settings-tab" data-tab="canvas">
+                        <i class="far fa-square"></i> Vászon
+                    </div>
+                    <div class="settings-tab" data-tab="word">
+                        <i class="fas fa-font"></i> Szó
+                    </div>
+                    <div class="settings-tab" data-tab="header">
+                        <i class="fas fa-arrow-up"></i> Felső
+                    </div>
+                    <div class="settings-tab" data-tab="footer">
+                        <i class="fas fa-arrow-down"></i> Alsó
+                    </div>
+                    <div class="settings-tab" data-tab="smartpoint">
+                        <i class="fas fa-plus-circle"></i> Okos
+                    </div>
+                </div>
+
+                <div class="settings-content">
+                    <!-- Structure Tab -->
+                    <div id="tab-structure" class="tab-content active">
+                        <div class="accordion-body">
+                            <label>Kis Képek Mérete (cm)</label>
+                            <div class="input-row">
+                                <div class="input-col">
+                                    <label>Szélesség</label>
+                                    <input type="number" id="slot-width" value="10.5" step="0.1"
+                                        onchange="handleSlotResize('width')">
+                                </div>
+                                <div class="input-col">
+                                    <label>Magasság</label>
+                                    <input type="number" id="slot-height" value="6.0" step="0.1"
+                                        onchange="handleSlotResize('height')">
+                                </div>
+                                <div style="padding-top: 39.5px;" title="Képarány rögzítése">
+                                    <button id="lock-slot-ratio-btn" class="btn-toggle-icon active"
+                                        onclick="toggleLockSlotRatio()">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <label>Térközök (Gap) (cm)</label>
+                            <div class="input-row">
+                                <div class="input-col">
+                                    <label>Vízszintes</label>
+                                    <input type="number" id="gap-x" value="0" step="0.1"
+                                        onchange="updateState('gaps.x', this.value)">
+                                </div>
+                                <div class="input-col">
+                                    <label>Függőleges</label>
+                                    <input type="number" id="gap-y" value="0" step="0.1"
+                                        onchange="updateState('gaps.y', this.value)">
+                                </div>
+                            </div>
+
+                            <label>Kollázs Igazítása (Margón belül)</label>
+                            <div class="btn-group-toggle">
+                                <button class="btn-toggle" onclick="setAlign('collage', 'top')" id="btn-collage-top"><i
+                                        class="fas fa-arrow-up"></i> Fent</button>
+                                <button class="btn-toggle active" onclick="setAlign('collage', 'center')"
+                                    id="btn-collage-center"><i class="fas fa-grip-lines"></i> Közép</button>
+                                <button class="btn-toggle" onclick="setAlign('collage', 'bottom')"
+                                    id="btn-collage-bottom"><i class="fas fa-arrow-down"></i> Lent</button>
+                            </div>
+                            <input type="hidden" id="collage-align" value="center" onchange="draw()">
+                        </div>
+
+                        <!-- Download Button (Visible on all tabs) -->
+                        <div style="padding: 20px; border-top: 1px solid #eee;">
+                            <button class="btn-action btn-success" onclick="downloadCanvas()">
+                                <i class="fas fa-download"></i> Letöltés (JPG)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Tab -->
+                    <div id="tab-canvas" class="tab-content">
+                        <div class="accordion-body">
+                            <div class="checkbox-row">
+                                <input type="checkbox" id="auto-resize-canvas"
+                                    onchange="updateState('autoResize', this.checked)">
+                                <label for="auto-resize-canvas" style="display:inline; text-transform:none;">Automata /
+                                    Csatolt méretezés</label>
+                            </div>
+
+                            <label>Vászon Háttérszíne</label>
+                            <input type="color" id="global-bg-color" value="#ffffff"
+                                onchange="updateState('globalBgColor', this.value); draw()">
+
+                            <label>Teljes Méret (cm)</label>
+                            <div class="input-row">
+                                <div class="input-col">
+                                    <input type="number" id="canvas-width" value="27" step="0.5"
+                                        onchange="handleCanvasResize('width')">
+                                </div>
+                                <div class="input-col">
+                                    <input type="number" id="canvas-height" value="30" step="0.5"
+                                        onchange="handleCanvasResize('height')">
+                                </div>
+                            </div>
+
+                            <label style="margin-top:10px;">Margók (cm)</label>
+                            <div class="input-row">
+                                <div class="input-col"><label>Fent</label><input type="number" id="margin-top" value="2"
+                                        step="0.5" onchange="updateState('margins.top', this.value)"></div>
+                                <div class="input-col"><label>Lent</label><input type="number" id="margin-bottom"
+                                        value="2" step="0.5" onchange="updateState('margins.bottom', this.value)"></div>
+                            </div>
+                            <div class="input-row">
+                                <div class="input-col"><label>Bal</label><input type="number" id="margin-left" value="2"
+                                        step="0.5" onchange="updateState('margins.left', this.value)"></div>
+                                <div class="input-col"><label>Jobb</label><input type="number" id="margin-right"
+                                        value="2" step="0.5" onchange="updateState('margins.right', this.value)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Word Tab -->
+                    <div id="tab-word" class="tab-content">
+                        <div class="accordion-body">
+                            <label>Szó</label>
+                            <input type="text" id="input-word" value="LOVE" oninput="updateWord()">
+                            <label>Betűtípus</label>
+                            <select id="word-font-family" onchange="updateState('wordFont', this.value); draw()">
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Impact">Impact</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                            </select>
+
+                            <div class="input-row" style="flex-direction: column;">
+                                <div class="input-col" style="width: 100%;">
+                                    <label>Szín & Átlátszóság</label>
+                                    <div style="display:flex; gap:5px; align-items:center;">
+                                        <input type="color" id="word-color" value="#000000"
+                                            onchange="updateState('wordColor', this.value); draw()"
+                                            style="flex:1; height:38px;">
+                                        <input type="number" id="word-opacity" min="0" max="100" step="10" value="100"
+                                            onchange="updateState('wordOpacity', this.value); debouncedDraw()"
+                                            title="Átlátszóság (%)" style="width: 30%;">
+                                    </div>
+                                </div>
+                                <div class="input-col" style="display: flex; width: 100%;     gap: 5px;">
+                                    <div class="checkbox-row" style="flex: 1;"><input type="checkbox" id="word-bold"
+                                            checked
+                                            onchange="updateState('wordBold', this.checked); draw()"><label>Félkövér</label>
+                                    </div>
+                                    <div class="checkbox-row" style="flex: 1;"><input type="checkbox" id="word-italic"
+                                            onchange="updateState('wordItalic', this.checked); draw()"><label>Dőlt</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <label>Betűméret (A képekhez képest)</label>
+                            <div class="precision-slider-container">
+                                <button class="btn-precision" onmousedown="startAdjust('word', -1)"
+                                    onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                    ontouchstart="startAdjust('word', -1)" ontouchend="stopAdjust()">-</button>
+                                <div class="precision-display">
+                                    <span id="word-size-cm-display">-- cm</span>
+                                    <small id="word-size-percent-display">100%</small>
+                                </div>
+                                <button class="btn-precision" onmousedown="startAdjust('word', 1)"
+                                    onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                    ontouchstart="startAdjust('word', 1)" ontouchend="stopAdjust()">+</button>
+                            </div>
+                            <input type="hidden" id="word-size-percent" value="100"
+                                onchange="updateState('wordSizePercent', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Header Tab -->
+                    <div id="tab-header" class="tab-content">
+                        <div class="accordion-body">
+                            <!-- Global Header Settings -->
+                            <label>Igazítás (Vászon teteje és Kollázs között)</label>
+                            <div class="btn-group-toggle">
+                                <button class="btn-toggle" onclick="setAlign('header', 'top')" id="btn-header-top"><i
+                                        class="fas fa-arrow-up"></i> Fent</button>
+                                <button class="btn-toggle active" onclick="setAlign('header', 'center')"
+                                    id="btn-header-center"><i class="fas fa-grip-lines"></i> Közép</button>
+                                <button class="btn-toggle" onclick="setAlign('header', 'bottom')"
+                                    id="btn-header-bottom"><i class="fas fa-arrow-down"></i> Lent</button>
+                            </div>
+                            <input type="hidden" id="header-align" value="center" onchange="draw()">
+
+                            <div class="input-row mt-2">
+                                <div class="input-col" style="width:100%;">
+                                    <label>Szöveg sáv mérete</label>
+                                    <div class="precision-slider-container">
+                                        <button class="btn-precision" onmousedown="startAdjust('header-zone', -0.1)"
+                                            onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                            ontouchstart="startAdjust('header-zone', -0.1)"
+                                            ontouchend="stopAdjust()">-</button>
+                                        <div class="precision-display">
+                                            <span id="header-zone-cm-display">-- cm</span>
+                                        </div>
+                                        <button class="btn-precision" onmousedown="startAdjust('header-zone', 0.1)"
+                                            onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                            ontouchstart="startAdjust('header-zone', 0.1)"
+                                            ontouchend="stopAdjust()">+</button>
+                                    </div>
+                                    <input type="hidden" id="header-zone-mult" value="1.5"
+                                        onchange="updateState('headerZoneMult', this.value)">
+                                </div>
+                            </div>
+
+                            <label class="mt-3">Szövegsorok</label>
+                            <div id="header-lines-container"></div>
+
+                            <button class="btn-add-line mt-2" onclick="addLine('header')">
+                                <i class="fas fa-plus"></i> Új sor hozzáadása
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Footer Tab -->
+                    <div id="tab-footer" class="tab-content">
+                        <div class="accordion-body">
+                            <!-- Global Footer Settings -->
+                            <label>Igazítás (Kollázs alja és Vászon alja között)</label>
+                            <div class="btn-group-toggle">
+                                <button class="btn-toggle" onclick="setAlign('footer', 'top')" id="btn-footer-top"><i
+                                        class="fas fa-arrow-up"></i> Fent</button>
+                                <button class="btn-toggle active" onclick="setAlign('footer', 'center')"
+                                    id="btn-footer-center"><i class="fas fa-grip-lines"></i> Közép</button>
+                                <button class="btn-toggle" onclick="setAlign('footer', 'bottom')"
+                                    id="btn-footer-bottom"><i class="fas fa-arrow-down"></i> Lent</button>
+                            </div>
+                            <input type="hidden" id="footer-align" value="center" onchange="draw()">
+
+                            <div class="input-row mt-2">
+                                <div class="input-col" style="width:100%;">
+                                    <label>Szöveg sáv mérete</label>
+                                    <div class="precision-slider-container">
+                                        <button class="btn-precision" onmousedown="startAdjust('footer-zone', -0.1)"
+                                            onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                            ontouchstart="startAdjust('footer-zone', -0.1)"
+                                            ontouchend="stopAdjust()">-</button>
+                                        <div class="precision-display">
+                                            <span id="footer-zone-cm-display">-- cm</span>
+                                        </div>
+                                        <button class="btn-precision" onmousedown="startAdjust('footer-zone', 0.1)"
+                                            onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                            ontouchstart="startAdjust('footer-zone', 0.1)"
+                                            ontouchend="stopAdjust()">+</button>
+                                    </div>
+                                    <input type="hidden" id="footer-zone-mult" value="1.5"
+                                        onchange="updateSizes('text')">
+                                </div>
+                            </div>
+
+                            <label class="mt-3">Szövegsorok</label>
+                            <div id="footer-lines-container"></div>
+
+                            <button class="btn-add-line mt-2" onclick="addLine('footer')">
+                                <i class="fas fa-plus"></i> Új sor hozzáadása
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Smartpoint Tab -->
+                    <div id="tab-smartpoint" class="tab-content">
+                        <div class="accordion-body">
+                            <!-- Új Okospont gomb -->
+                            <button type="button" id="addSmartpointBtn" class="btn-add-line w-100">
+                                <i class="fas fa-plus-circle"></i> Új Okospont hozzáadása
+                            </button>
+
+                            <!-- Típus választó -->
+                            <div id="smart-point-type-selector" class="smartpoint-type-section" style="display: none;">
+                                <label>Válaszd ki az Okospont típusát:</label>
+                                <div class="smartpoint-type-grid">
+                                    <button type="button" class="smartpoint-type-option" data-type="audio"
+                                        onclick="selectSmartPointType('audio')">
+                                        <i class="fas fa-music"></i>
+                                        <span>Hangfájl</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="video"
+                                        onclick="selectSmartPointType('video')">
+                                        <i class="fas fa-video"></i>
+                                        <span>Videó</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="image"
+                                        onclick="selectSmartPointType('image')">
+                                        <i class="fas fa-image"></i>
+                                        <span>Kép</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="images"
+                                        onclick="selectSmartPointType('images')">
+                                        <i class="fas fa-images"></i>
+                                        <span>Képek</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="youtube"
+                                        onclick="selectSmartPointType('youtube')">
+                                        <i class="fab fa-youtube"></i>
+                                        <span>YouTube</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="spotify"
+                                        onclick="selectSmartPointType('spotify')">
+                                        <i class="fab fa-spotify"></i>
+                                        <span>Spotify</span>
+                                    </button>
+                                    <button type="button" class="smartpoint-type-option" data-type="url"
+                                        onclick="selectSmartPointType('url')">
+                                        <i class="fas fa-link"></i>
+                                        <span>URL</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tartalom beviteli mezők -->
+                            <div id="smart-point-content-input" class="smartpoint-content-section"
+                                style="display: none;">
+                                <div id="smart-point-url-input">
+                                    <label>URL:</label>
+                                    <input type="url" id="smart-point-url" placeholder="https://...">
+                                </div>
+                                <div id="smart-point-file-input" style="display: none;">
+                                    <label>Fájl feltöltése:</label>
+                                    <input type="file" id="smart-point-file" accept="audio/*,video/*,image/*">
+                                </div>
+                                <div class="smartpoint-action-buttons">
+                                    <button type="button" id="save-smart-point-btn" class="btn-action btn-success">
+                                        <i class="fas fa-save"></i> Mentés
+                                    </button>
+                                    <button type="button" id="cancel-smart-point-btn" class="btn-action btn-secondary">
+                                        <i class="fas fa-times"></i> Mégse
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Műveleti gombok -->
+                            <div class="smartpoint-controls-desktop" id="smartpoint-controls">
+                                <button type="button" id="toggleSmartpointsBtn" class="btn-action btn-secondary"
+                                    onclick="toggleSmartpointsVisibility()">
+                                    <i class="fas fa-eye"></i> <span id="toggleSmartpointsText">Okospontok
+                                        megjelenítése</span>
+                                </button>
+                                <button type="button" id="moveSmartpointsBtn" class="btn-action btn-secondary"
+                                    onclick="toggleMoveSmartpointsMode()">
+                                    <i class="fas fa-arrows-alt"></i> <span id="moveSmartpointsText">Okospontok
+                                        áthelyezése</span>
+                                </button>
+                            </div>
+
+                            <!-- Okospontok listája -->
+                            <div id="smartpointsList" class="smartpoints-list-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Mobile Layout -->
+    <div class="mobile-layout">
+        <div id="preview-area" class="mobile-preview">
+            <button id="quickThemeToggle" onclick="toggleLightDarkMode()" title="Váltás Sötét/Világos módra">
+                <i class="fas fa-moon"></i>
+            </button>
+            <canvas id="mobile-canvas"></canvas>
+        </div>
+
+        <div class="mobile-settings-container">
+            <div class="mobile-tabs-header">
+                <div class="mobile-tab active" data-mobile-tab="structure">
+                    <i class="fas fa-layer-group"></i>
+                    <span class="mobile-tab-text">Szerkezet</span>
+                </div>
+                <div class="mobile-tab" data-mobile-tab="canvas">
+                    <i class="far fa-square"></i>
+                    <span class="mobile-tab-text">Vászon</span>
+                </div>
+                <div class="mobile-tab" data-mobile-tab="word">
+                    <i class="fas fa-font"></i>
+                    <span class="mobile-tab-text">Szó</span>
+                </div>
+                <div class="mobile-tab" data-mobile-tab="header">
+                    <i class="fas fa-arrow-up"></i>
+                    <span class="mobile-tab-text">Felső</span>
+                </div>
+                <div class="mobile-tab" data-mobile-tab="footer">
+                    <i class="fas fa-arrow-down"></i>
+                    <span class="mobile-tab-text">Alsó</span>
+                </div>
+                <div class="mobile-tab" data-mobile-tab="smartpoint">
+                    <i class="fas fa-plus-circle"></i>
+                    <span class="mobile-tab-text">Okospont</span>
+                </div>
+            </div>
+
+            <div class="mobile-settings-content">
+                <!-- Structure Tab -->
+                <div id="mobile-tab-structure" class="mobile-tab-content active">
+                    <div class="accordion-body">
+                        <label>Kis Képek Mérete (cm)</label>
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Szélesség</label>
+                                <input type="number" id="mobile-slot-width" value="10.5" step="0.1"
+                                    onchange="handleSlotResize('width', true)">
+                            </div>
+                            <div class="input-col">
+                                <label>Magasság</label>
+                                <input type="number" id="mobile-slot-height" value="6.0" step="0.1"
+                                    onchange="handleSlotResize('height', true)">
+                            </div>
+                            <div style="padding-top: 39.5px;" title="Képarány rögzítése">
+                                <button id="mobile-lock-slot-ratio-btn" class="btn-toggle-icon active"
+                                    onclick="toggleLockSlotRatio()">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <label>Térközök (Gap) (cm)</label>
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Vízszintes</label>
+                                <input type="number" id="mobile-gap-x" value="0" step="0.1"
+                                    onchange="updateState('gaps.x', this.value)">
+                            </div>
+                            <div class="input-col">
+                                <label>Függőleges</label>
+                                <input type="number" id="mobile-gap-y" value="0" step="0.1"
+                                    onchange="updateState('gaps.y', this.value)">
+                            </div>
+                        </div>
+
+                        <label>Kollázs Igazítása (Margón belül)</label>
+                        <select id="mobile-collage-align" onchange="draw()">
+                            <option value="center" selected>Középen</option>
+                            <option value="top">Fent</option>
+                            <option value="bottom">Lent</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Canvas Tab -->
+                <div id="mobile-tab-canvas" class="mobile-tab-content">
+                    <div class="accordion-body">
+                        <div class="checkbox-row" style="margin-bottom: 15px;">
+                            <div class="checkbox-row">
+                                <input type="checkbox" id="mobile-auto-resize-canvas"
+                                    onchange="updateState('autoResize', this.checked)">
+                                <label for="mobile-auto-resize-canvas"
+                                    style="display:inline; text-transform:none;">Automata /
+                                    Csatolt méretezés</label>
+                            </div>
+                        </div>
+
+                        <label>Vászon Háttérszíne</label>
+                        <input type="color" id="mobile-global-bg-color" value="#ffffff" onchange="draw()">
+
+                        <label>Teljes Méret (cm)</label>
+                        <div class="input-row">
+                            <div class="input-col">
+                                <input type="number" id="mobile-canvas-width" value="27" step="0.5"
+                                    onchange="handleCanvasResize('width', true)">
+                            </div>
+                            <div class="input-col">
+                                <input type="number" id="mobile-canvas-height" value="30" step="0.5"
+                                    onchange="handleCanvasResize('height', true)">
+                            </div>
+                        </div>
+
+                        <label style="margin-top:10px;">Margók (cm)</label>
+                        <div class="input-row">
+                            <div class="input-col"><label>Fent</label><input type="number" id="mobile-margin-top"
+                                    value="2" step="0.5" onchange="updateSizes('margin')"></div>
+                            <div class="input-col"><label>Lent</label><input type="number" id="mobile-margin-bottom"
+                                    value="2" step="0.5" onchange="updateSizes('margin')"></div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-col"><label>Bal</label><input type="number" id="mobile-margin-left"
+                                    value="2" step="0.5" onchange="updateSizes('margin')"></div>
+                            <div class="input-col"><label>Jobb</label><input type="number" id="mobile-margin-right"
+                                    value="2" step="0.5" onchange="updateSizes('margin')"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Word Tab -->
+                <div id="mobile-tab-word" class="mobile-tab-content">
+                    <div class="accordion-body">
+                        <label>Szó</label>
+                        <input type="text" id="mobile-input-word" value="LOVE" oninput="updateWordMobile()">
+                        <label>Betűtípus</label>
+                        <select id="mobile-word-font-family" onchange="draw()">
+                            <option value="Arial">Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Impact">Impact</option>
+                            <option value="'Courier New', monospace">Courier New</option>
+                        </select>
+
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Szín & Átlátszóság</label>
+                                <div style="display:flex; gap:5px; align-items:center;">
+                                    <input type="color" id="mobile-word-color" value="#000000" onchange="draw()"
+                                        style="flex:1; height:38px;">
+                                    <input type="number" id="mobile-word-opacity" min="0" max="100" step="10"
+                                        value="100" oninput="draw()" title="Átlátszóság (%)" style="width: 60px;">
+                                </div>
+                            </div>
+                            <div class="input-col">
+                                <div class="checkbox-row"><input type="checkbox" id="mobile-word-bold" checked
+                                        onchange="draw()"><label>Félkövér</label></div>
+                                <div class="checkbox-row"><input type="checkbox" id="mobile-word-italic"
+                                        onchange="draw()"><label>Dőlt</label></div>
+                            </div>
+                        </div>
+
+                        <label>Betűméret (A képekhez képest)</label>
+                        <div class="precision-slider-container">
+                            <button class="btn-precision" onmousedown="startAdjust('mobile-word', -1)"
+                                onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                ontouchstart="startAdjust('mobile-word', -1)" ontouchend="stopAdjust()">-</button>
+                            <div class="precision-display">
+                                <span id="mobile-word-size-percent-display">100%</span>
+                                <small id="mobile-word-size-cm-display">-- cm</small>
+                            </div>
+                            <button class="btn-precision" onmousedown="startAdjust('mobile-word', 1)"
+                                onmouseup="stopAdjust()" onmouseleave="stopAdjust()"
+                                ontouchstart="startAdjust('mobile-word', 1)" ontouchend="stopAdjust()">+</button>
+                        </div>
+                        <input type="hidden" id="mobile-word-size-percent" value="100" onchange="draw()">
+                    </div>
+                </div>
+
+                <!-- Header Tab -->
+                <div id="mobile-tab-header" class="mobile-tab-content">
+                    <div class="accordion-body">
+                        <input type="text" id="mobile-header-text" placeholder="Szöveg beírása..."
+                            oninput="updateSizes('text')">
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Sáv mérete (Szorzó)</label>
+                                <input type="number" id="mobile-header-zone-mult" value="3.0" step="0.1"
+                                    onchange="updateSizes('text')">
+                                <small style="font-size: 10px; color: #666;">(Betűméret *
+                                    Szorzó)</small>
+                            </div>
+                        </div>
+                        <label>Igazítás (Vászon teteje és Kollázs között)</label>
+                        <select id="mobile-header-align" onchange="draw()">
+                            <option value="center" selected>Középen</option>
+                            <option value="top">Fent</option>
+                            <option value="bottom">Lent</option>
+                        </select>
+
+                        <div class="input-row mt-2">
+                            <div class="input-col">
+                                <label>Betűtípus</label>
+                                <select id="mobile-header-font" onchange="draw()">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="'Segoe UI'">Segoe UI</option>
+                                    <option value="Impact">Impact</option>
+                                </select>
+                            </div>
+                            <div class="input-col">
+                                <label>Szín</label>
+                                <input type="color" id="mobile-header-color" value="#000000" onchange="draw()">
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Méret (px)</label>
+                                <input type="number" id="mobile-header-size" value="60" onchange="updateSizes('text')">
+                            </div>
+                        </div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="mobile-header-bold" checked onchange="draw()"> <label
+                                class="me-3">B</label>
+                            <input type="checkbox" id="mobile-header-italic" onchange="draw()"> <label>I</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Tab -->
+                <div id="mobile-tab-footer" class="mobile-tab-content">
+                    <div class="accordion-body">
+                        <input type="text" id="mobile-footer-text" placeholder="Szöveg beírása..."
+                            oninput="updateSizes('text')">
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Sáv mérete (Szorzó)</label>
+                                <input type="number" id="mobile-footer-zone-mult" value="3.0" step="0.1"
+                                    onchange="updateSizes('text')">
+                                <small style="font-size: 10px; color: #666;">(Betűméret *
+                                    Szorzó)</small>
+                            </div>
+                        </div>
+                        <label>Igazítás (Kollázs alja és Vászon alja között)</label>
+                        <select id="mobile-footer-align" onchange="draw()">
+                            <option value="center" selected>Középen</option>
+                            <option value="top">Fent</option>
+                            <option value="bottom">Lent</option>
+                        </select>
+
+                        <div class="input-row mt-2">
+                            <div class="input-col">
+                                <label>Betűtípus</label>
+                                <select id="mobile-footer-font" onchange="draw()">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="'Segoe UI'">Segoe UI</option>
+                                    <option value="Impact">Impact</option>
+                                </select>
+                            </div>
+                            <div class="input-col">
+                                <label>Szín</label>
+                                <input type="color" id="mobile-footer-color" value="#000000" onchange="draw()">
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="input-col">
+                                <label>Méret (px)</label>
+                                <input type="number" id="mobile-footer-size" value="60" onchange="updateSizes('text')">
+                            </div>
+                        </div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="mobile-footer-bold" checked onchange="draw()"> <label
+                                class="me-3">B</label>
+                            <input type="checkbox" id="mobile-footer-italic" onchange="draw()"> <label>I</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Smartpoint Tab -->
+                <div id="mobile-tab-smartpoint" class="mobile-tab-content">
+                    <div class="accordion-body">
+                        <!-- Új Okospont gomb -->
+                        <button type="button" id="mobile-addSmartpointBtn" class="btn-add-line w-100"
+                            onclick="startAddSmartpoint()">
+                            <i class="fas fa-plus-circle"></i> Új Okospont
+                        </button>
+
+                        <!-- Típus választó - mobilra optimalizált rácsban -->
+                        <div id="mobile-smart-point-type-selector" class="smartpoint-type-section"
+                            style="display: none;">
+                            <label>Típus:</label>
+                            <div class="smartpoint-type-grid mobile-grid">
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('youtube')">
+                                    <i class="fab fa-youtube"></i>
+                                    <span>YT</span>
+                                </button>
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('image')">
+                                    <i class="fas fa-image"></i>
+                                    <span>Kép</span>
+                                </button>
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('gallery')">
+                                    <i class="fas fa-images"></i>
+                                    <span>Galéria</span>
+                                </button>
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('video')">
+                                    <i class="fas fa-video"></i>
+                                    <span>Videó</span>
+                                </button>
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('audio')">
+                                    <i class="fas fa-music"></i>
+                                    <span>Hang</span>
+                                </button>
+                                <button class="smartpoint-type-option" onclick="selectSmartPointType('url')">
+                                    <i class="fas fa-link"></i>
+                                    <span>URL</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tartalom beviteli mezők -->
+                        <div id="mobile-smart-point-content-input" class="smartpoint-content-section"
+                            style="display: none;">
+                            <label>URL:</label>
+                            <input type="text" id="mobile-smart-point-url" placeholder="https://...">
+                            <input type="file" id="mobile-smart-point-file" style="display: none;" multiple>
+                            <div class="smartpoint-action-buttons">
+                                <button class="btn-action btn-success" onclick="saveSmartPoint()">
+                                    <i class="fas fa-check"></i> OK
+                                </button>
+                                <button class="btn-action btn-secondary" onclick="cancelAddSmartpoint()">
+                                    <i class="fas fa-times"></i> X
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Műveleti gombok -->
+                        <div class="smartpoint-controls">
+                            <button id="mobile-toggleSmartpointsBtn" class="btn-toggle-icon active"
+                                onclick="toggleSmartpointsVisibility()" title="Okospontok megjelenítése/elrejtése">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button id="mobile-moveSmartpointsBtn" class="btn-toggle-icon"
+                                onclick="toggleMoveSmartpointsMode()" title="Okospontok áthelyezése">
+                                <i class="fas fa-arrows-alt"></i>
+                            </button>
+                        </div>
+
+                        <!-- Okospontok listája -->
+                        <div id="mobile-smartpointsList" class="smartpoints-list-container"></div>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <div style="padding: 20px; border-top: 1px solid #eee;">
+                    <button class="btn-action btn-success" onclick="downloadCanvas()">
+                        <i class="fas fa-download"></i> Letöltés (JPG)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Input -->
+    <input type="file" id="image-uploader" accept="image/*" style="display:none;">
+
+    <!-- Cropper Modal -->
+    <div class="modal fade" id="cropperModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kép szerkesztése</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="img-container">
+                        <img id="cropper-image" src="" style="max-width: 100%;">
+                        <!-- SVG Overlay lesz ide beszúrva -->
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: space-between;">
+                    <button type="button" class="btn btn-outline-secondary"
+                        onclick="document.getElementById('image-uploader').click()">
+                        <i class="fas fa-exchange-alt"></i> Kép cseréje
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégsem</button>
+                        <button type="button" class="btn btn-primary" id="crop-save-btn">Mentés</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div id="custom-message">
+        <div id="custom-message-text" class="small mb-2"></div>
+        <button class="btn btn-sm btn-outline-secondary w-100" onclick="hideCustomMessage()">Bezárás</button>
+    </div>
+
+    <script type="text/javascript">
+        // ============ THEME SYSTEM ============
+        function showCustomMessage(text, type = 'info') {
+            const msgBox = document.getElementById('custom-message');
+            const msgText = document.getElementById('custom-message-text');
+            if (!msgBox || !msgText) return;
+
+            msgText.innerText = text;
+            msgBox.className = ''; // Reset classes
+            msgBox.classList.add(type);
+            msgBox.style.display = 'block';
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                hideCustomMessage();
+            }, 5000);
+        }
+
+        function hideCustomMessage() {
+            const msgBox = document.getElementById('custom-message');
+            if (msgBox) msgBox.style.display = 'none';
+        }
+
+        const themes = [
+            // --- MISTY / LIGHT SETS ---
+            { name: "Misty Original", colors: ["#FDFBFB", "#FFFFFF", "#C5A059"], dark: false, category: "light" },
+            { name: "Rose Gold", colors: ["#FFF0F5", "#FFFFFF", "#D4AF37"], dark: false, category: "light" },
+            { name: "Vintage Blush", colors: ["#F4E1E1", "#FFFAFA", "#8B5F65"], dark: false, category: "light" },
+            { name: "Soft Romance", colors: ["#FFF5F7", "#FFFFFF", "#E6C2C2"], dark: false, category: "light" },
+            { name: "Dusty Rose", colors: ["#E0D0D5", "#F5EBEB", "#5C4033"], dark: false, category: "light" },
+            { name: "Porcelain Pink", colors: ["#FFFEFE", "#FFE4E1", "#708090"], dark: false, category: "light" },
+            { name: "Misty Copper", colors: ["#FFE4E1", "#FFF", "#B87333"], dark: false, category: "light" },
+            { name: "Champagne", colors: ["#FAF0E6", "#FFF5EE", "#C5A059"], dark: false, category: "light" },
+            // --- MODERN / MINIMAL ---
+            { name: "Scandi", colors: ["#F7F7F7", "#FFFFFF", "#333333"], dark: false, category: "modern" },
+            { name: "Cream & Gold", colors: ["#F5F5DC", "#FFFFF0", "#DAA520"], dark: false, category: "modern" },
+            { name: "Arctic", colors: ["#F0F8FF", "#FFFFFF", "#4682B4"], dark: false, category: "modern" },
+            { name: "Urban", colors: ["#F0F0F0", "#FFFFFF", "#FF4500"], dark: false, category: "modern" },
+            { name: "Latte", colors: ["#EBE0D6", "#FFF8F0", "#6F4E37"], dark: false, category: "modern" },
+            { name: "Pure Gold", colors: ["#FAFAFA", "#FFFFFF", "#FFD700"], dark: false, category: "modern" },
+            { name: "Marble", colors: ["#E5E5E5", "#F9F9F9", "#000000"], dark: false, category: "modern" },
+            { name: "Sage", colors: ["#F0FFF0", "#FFFFFF", "#556B2F"], dark: false, category: "modern" },
+            { name: "Lavender", colors: ["#F3E5F5", "#FFFFFF", "#9370DB"], dark: false, category: "modern" },
+            // --- DARK / PREMIUM ---
+            { name: "Onyx", colors: ["#000000", "#111111", "#FFFFFF"], dark: true, category: "dark" },
+            { name: "Midnight", colors: ["#0B1026", "#151B3B", "#C5A059"], dark: true, category: "dark" },
+            { name: "Deep Space", colors: ["#121212", "#1E1E1E", "#BB86FC"], dark: true, category: "dark" },
+            { name: "Emerald", colors: ["#04291C", "#083D2A", "#D4AF37"], dark: true, category: "dark" },
+            { name: "Royal", colors: ["#1A0526", "#2D0A3D", "#E6C200"], dark: true, category: "dark" },
+            { name: "Cosmic", colors: ["#121212", "#1E1E1E", "#BB86FC"], dark: true, category: "dark" },
+            { name: "Chocolate", colors: ["#3E2723", "#4E342E", "#D7CCC8"], dark: true, category: "dark" },
+            { name: "Gunmetal", colors: ["#263238", "#37474F", "#00BCD4"], dark: true, category: "dark" },
+            { name: "Velvet Red", colors: ["#4A0404", "#600606", "#FFD700"], dark: true, category: "dark" },
+            { name: "Space Grey", colors: ["#1C1C1E", "#2C2C2E", "#0A84FF"], dark: true, category: "dark" },
+            { name: "Vampire", colors: ["#1A0000", "#2E0000", "#FF0000"], dark: true, category: "dark" },
+            // --- EXTRA / VIBRANT ---
+            { name: "Ocean", colors: ["#E0F7FA", "#4DD0E1", "#006064"], dark: false, category: "vibrant" },
+            { name: "Sunset", colors: ["#FFF3E0", "#FFB74D", "#E65100"], dark: false, category: "vibrant" },
+            { name: "Mint", colors: ["#E0F2F1", "#4DB6AC", "#004D40"], dark: false, category: "vibrant" },
+            { name: "Berry", colors: ["#FCE4EC", "#F06292", "#880E4F"], dark: false, category: "vibrant" },
+            { name: "Steel", colors: ["#ECEFF1", "#90A4AE", "#263238"], dark: false, category: "vibrant" },
+            { name: "Cyber", colors: ["#0d0d0d", "#1a1a1a", "#00ffcc"], dark: true, category: "vibrant" },
+            { name: "Miami", colors: ["#222", "#333", "#ff00ff"], dark: true, category: "vibrant" },
+            { name: "Forest", colors: ["#1b2e1b", "#2a422a", "#55aa55"], dark: true, category: "vibrant" },
+            { name: "Lemonade", colors: ["#FFFDE7", "#FFF59D", "#FBC02D"], dark: false, category: "vibrant" },
+            { name: "Ice", colors: ["#E3F2FD", "#90CAF9", "#1565C0"], dark: false, category: "vibrant" },
+            { name: "Ruby", colors: ["#2b0a0a", "#4a1212", "#ff3333"], dark: true, category: "vibrant" }
+        ];
+
+        let currentTheme = "Misty Original";
+
+        function toggleThemePanel() {
+            document.getElementById('themePanel').classList.toggle('active');
+        }
+
+        function applyTheme(themeName, closePanel = true) {
+            const theme = themes.find(t => t.name === themeName);
+            if (!theme) return;
+
+            currentTheme = themeName;
+            const [bg, blob, accent] = theme.colors;
+            const root = document.documentElement;
+
+            // Update CSS variables
+            root.style.setProperty('--bg-color', bg);
+            root.style.setProperty('--blob-1', blob);
+            root.style.setProperty('--blob-2', accent);
+            root.style.setProperty('--blob-3', theme.dark ? '#333333' : '#cccccc');
+
+            // Glass surfaces based on dark/light mode
+            if (theme.dark) {
+                root.style.setProperty('--glass-surface', 'rgba(0, 0, 0, 0.4)');
+                root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
+                root.style.setProperty('--glass-highlight', 'rgba(255, 255, 255, 0.15)');
+                root.style.setProperty('--text-main', '#f0f0f0');
+                root.style.setProperty('--text-muted', '#aaaaaa');
+                root.style.setProperty('--card-bg', 'rgba(40, 40, 40, 0.6)');
+                root.style.setProperty('--card-bg-hover', 'rgba(60, 60, 60, 0.7)');
+                root.style.setProperty('--card-bg-light', 'rgba(30, 30, 30, 0.6)');
+            } else {
+                root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.3)');
+                root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.1)');
+                root.style.setProperty('--glass-highlight', 'rgba(255, 255, 255, 0.5)');
+                root.style.setProperty('--text-main', '#1a1a1a');
+                root.style.setProperty('--text-muted', '#555555');
+                root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.6)');
+                root.style.setProperty('--card-bg-hover', 'rgba(255, 255, 255, 0.75)');
+                root.style.setProperty('--card-bg-light', 'rgba(255, 255, 255, 0.5)');
+            }
+
+            // Accent color
+            root.style.setProperty('--accent', accent);
+            root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accent} 0%, ${adjustBrightness(accent, -20)} 100%)`);
+            if (currentTheme == "Misty Original") {
+
+            } else {
+                // Update blob colors
+                document.querySelectorAll('.b4, .b5').forEach((el, i) => {
+                    el.style.background = i === 0 ? "#575757" : "#676767";
+                });
+            }
+
+            // Update custom color inputs
+            document.getElementById('customColor1').value = bg;
+            document.getElementById('customColor2').value = blob;
+            document.getElementById('customColor3').value = accent;
+
+            // Mark active theme
+            document.querySelectorAll('.theme-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.theme === themeName) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Update toggle button icon
+            updateThemeIcon();
+
+            // Close panel if requested
+            if (closePanel) {
+                setTimeout(() => {
+                    const panel = document.getElementById('themePanel');
+                    if (panel.classList.contains('active')) toggleThemePanel();
+                }, 150);
+            }
+        }
+
+        function toggleLightDarkMode() {
+            const theme = themes.find(t => t.name === currentTheme);
+            if (theme && theme.dark) {
+                applyTheme("Misty Original", false);
+            } else {
+                applyTheme("Onyx", false);
+            }
+        }
+
+        function updateThemeIcon() {
+            const btn = document.getElementById('quickThemeToggle');
+            if (!btn) return;
+            const theme = themes.find(t => t.name === currentTheme);
+            const isDark = theme ? theme.dark : (currentTheme === "Onyx");
+
+            const icon = btn.querySelector('i');
+            if (isDark) {
+                icon.className = 'fas fa-sun';
+                btn.title = "Váltás Világos módra";
+            } else {
+                icon.className = 'fas fa-moon';
+                btn.title = "Váltás Sötét módra";
+            }
+        }
+
+        function applyCustomTheme() {
+            const bg = document.getElementById('customColor1').value;
+            const blob = document.getElementById('customColor2').value;
+            const accent = document.getElementById('customColor3').value;
+
+            const root = document.documentElement;
+            const isDark = isColorDark(bg);
+
+            root.style.setProperty('--bg-color', bg);
+            root.style.setProperty('--blob-1', blob);
+            root.style.setProperty('--blob-2', accent);
+            root.style.setProperty('--blob-3', isDark ? '#333333' : '#cccccc');
+
+            if (isDark) {
+                root.style.setProperty('--glass-surface', 'rgba(0, 0, 0, 0.4)');
+                root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
+                root.style.setProperty('--text-main', '#f0f0f0');
+                root.style.setProperty('--text-muted', '#aaaaaa');
+                root.style.setProperty('--card-bg', 'rgba(40, 40, 40, 0.6)');
+                root.style.setProperty('--card-bg-light', 'rgba(30, 30, 30, 0.6)');
+            } else {
+                root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.3)');
+                root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.1)');
+                root.style.setProperty('--text-main', '#1a1a1a');
+                root.style.setProperty('--text-muted', '#555555');
+                root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.6)');
+                root.style.setProperty('--card-bg-light', 'rgba(255, 255, 255, 0.5)');
+            }
+
+            root.style.setProperty('--accent', accent);
+            root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accent} 0%, ${adjustBrightness(accent, -20)} 100%)`);
+
+            currentTheme = "Custom";
+            document.querySelectorAll('.theme-item').forEach(item => item.classList.remove('active'));
+            toggleThemePanel();
+        }
+
+        function renderThemeGrid() {
+            const container = document.getElementById('themeGridScroll');
+            const categories = ['light', 'modern', 'dark', 'vibrant'];
+            const categoryNames = {
+                light: '🌸 Világos / Romantikus',
+                modern: '🏛️ Modern / Minimal',
+                dark: '🌙 Sötét / Prémium',
+                vibrant: '🎨 Vibráns / Extra'
+            };
+
+            let html = '';
+            categories.forEach(cat => {
+                const catThemes = themes.filter(t => t.category === cat);
+                html += `<div class="theme-category">
+            <div class="theme-category-title">${categoryNames[cat]}</div>
+            <div class="theme-grid">`;
+                catThemes.forEach(t => {
+                    html += `<div class="theme-item ${t.name === currentTheme ? 'active' : ''}" data-theme="${t.name}" onclick="applyTheme('${t.name}', true)">
+                <div class="theme-colors">
+                    <div class="theme-color-swatch" style="background: ${t.colors[0]}"></div>
+                    <div class="theme-color-swatch" style="background: ${t.colors[1]}"></div>
+                    <div class="theme-color-swatch" style="background: ${t.colors[2]}"></div>
+                </div>
+                <div class="theme-name">${t.name}</div>
+            </div>`;
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function adjustBrightness(hex, percent) {
+            if (!hex || hex.length < 4) return hex;
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            r = Math.min(255, Math.max(0, r + (r * percent / 100)));
+            g = Math.min(255, Math.max(0, g + (g * percent / 100)));
+            b = Math.min(255, Math.max(0, b + (b * percent / 100)));
+            return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+        }
+
+        function isColorDark(hex) {
+            if (!hex) return true;
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderThemeGrid();
+            applyTheme("Misty Original", false);
+        });
+
+        let drawTimeout;
+        function debouncedDraw() {
+            clearTimeout(drawTimeout);
+            drawTimeout = setTimeout(() => draw(), 150);
+        }
+
+        const CONFIG = {
+            PPI: 118.11,
+            DEFAULTS: {
+                SLOT_WIDTH: 10.5,
+                SLOT_HEIGHT: 6.0,
+                CANVAS_WIDTH: 26.0,
+                CANVAS_HEIGHT: 30.0,
+                MARGIN: 2,
+                ZONE_MULT: 1.5
+            },
+            MAX_ZOOM_MULT: 5.0,
+            MIN_ZOOM_MULT: 1.0,
+            DEBOUNCE_DELAY: 10
+        };
+
+        const PPI = CONFIG.PPI;
+
+        let state = {
+            word: "LOVE",
+            wordOpacity: 100,
+            wordFont: "'Arial'",
+            wordColor: "#000000",
+            wordBold: true,
+            wordItalic: false,
+
+            globalBgColor: "#ffffff",
+            collageAlign: "center",
+            headerAlign: "center",
+            footerAlign: "center",
+
+            wordSizePercent: 100,
+            headerZoneMult: 3.0,
+            footerZoneMult: 3.0,
+
+            slots: [],
+
+            slotWidthCm: 10.5,
+            slotHeightCm: 6.0,
+            gaps: { x: 0, y: 0 },
+            canvasWidthCm: 26.0,
+            canvasHeightCm: 30.0,
+            margins: {
+                top: 2,
+                right: 2,
+                bottom: 2,
+                left: 2
+            },
+
+            autoResize: false,
+            lockSlotRatio: true,
+
+            activeSlotIndex: -1,
+
+            headerLines: [],
+            footerLines: [],
+
+            smartpoints: [],
+            nextSmartpointId: 1,
+            showSmartpoints: true
+        };
+
+        let placingSmartpointId = null;
+        let pickedUpSmartpointId = null; // For click-and-drop moving
+        let selectedSmartpointId = null;
+        let movingSmartpointMode = false;
+        let isAddingNewSmartpoint = false;
+        let selectedSmartPointType = null;
+        let tempSmartpointChanges = {};
+        let editingSmartpointId = null;
+
+        const history = {
+            past: [],
+            future: [],
+            limit: 50,
+            isNavigating: false
+        };
+
+        function cloneState(s) {
+            return JSON.parse(JSON.stringify(s));
+        }
+
+        function pushToHistory() {
+            if (history.isNavigating) return;
+            history.past.push(cloneState(state));
+            if (history.past.length > history.limit) history.past.shift();
+            history.future = [];
+            updateHistoryButtons();
+            scheduleAutoSave();
+        }
+
+        function undo() {
+            if (history.past.length === 0) return;
+            history.future.push(cloneState(state));
+            const previous = history.past.pop();
+            applyState(previous);
+            updateHistoryButtons();
+        }
+
+        function redo() {
+            if (history.future.length === 0) return;
+            history.past.push(cloneState(state));
+            const next = history.future.pop();
+            applyState(next);
+            updateHistoryButtons();
+        }
+
+        function applyState(newState) {
+            history.isNavigating = true;
+            state = cloneState(newState);
+            rebuildUIFromState();
+            draw();
+            setTimeout(() => { history.isNavigating = false; }, 50);
+        }
+
+        function updateHistoryButtons() {
+            const undoBtn = document.getElementById('btn-undo');
+            const redoBtn = document.getElementById('btn-redo');
+            if (undoBtn) undoBtn.disabled = history.past.length === 0;
+            if (redoBtn) redoBtn.disabled = history.future.length === 0;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        function rebuildUIFromState() {
+            const mapping = [
+                { id: 'input-word', val: state.word },
+                { id: 'canvas-width', val: state.canvasWidthCm.toFixed(2) },
+                { id: 'canvas-height', val: state.canvasHeightCm.toFixed(2) },
+                { id: 'slot-width', val: state.slotWidthCm },
+                { id: 'slot-height', val: state.slotHeightCm },
+                { id: 'gap-x', val: state.gaps.x },
+                { id: 'gap-y', val: state.gaps.y },
+                { id: 'margin-top', val: state.margins.top },
+                { id: 'margin-right', val: state.margins.right },
+                { id: 'margin-bottom', val: state.margins.bottom },
+                { id: 'margin-left', val: state.margins.left }
+            ];
+
+            mapping.forEach(m => {
+                const el = document.getElementById(m.id);
+                if (el) el.value = m.val;
+                const mobEl = document.getElementById('mobile-' + m.id);
+                if (mobEl) mobEl.value = m.val;
+            });
+
+            const wOp = document.getElementById('word-opacity');
+            if (wOp) wOp.value = state.wordOpacity !== undefined ? state.wordOpacity : 100;
+
+            const wFont = document.getElementById('word-font-family');
+            if (wFont) wFont.value = state.wordFont || "'Segoe UI', sans-serif";
+
+            const wColor = document.getElementById('word-color');
+            if (wColor) wColor.value = state.wordColor || "#000000";
+
+            const wBold = document.getElementById('word-bold');
+            if (wBold) wBold.checked = state.wordBold !== undefined ? state.wordBold : true;
+
+            const wItalic = document.getElementById('word-italic');
+            if (wItalic) wItalic.checked = state.wordItalic !== undefined ? state.wordItalic : false;
+
+            const gBg = document.getElementById('global-bg-color');
+            if (gBg) gBg.value = state.globalBgColor || "#ffffff";
+
+            ['collage', 'header', 'footer'].forEach(type => {
+                const key = type + 'Align';
+                const val = state[key] || 'center';
+                const inp = document.getElementById(type + '-align');
+                if (inp) inp.value = val;
+                const mobInp = document.getElementById('mobile-' + type + '-align');
+                if (mobInp) mobInp.value = val;
+
+                ['top', 'center', 'bottom'].forEach(pos => {
+                    const btn = document.getElementById(`btn-${type}-${pos}`);
+                    if (btn) {
+                        if (pos === val) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    }
+                });
+            });
+
+            renderLinesUI('header');
+            renderLinesUI('footer');
+
+            setVal('margin-top', state.margins.top);
+            setVal('margin-bottom', state.margins.bottom);
+            setVal('margin-left', state.margins.left);
+            setVal('margin-right', state.margins.right);
+            setVal('mobile-margin-top', state.margins.top);
+            setVal('mobile-margin-bottom', state.margins.bottom);
+            setVal('mobile-margin-left', state.margins.left);
+            setVal('mobile-margin-right', state.margins.right);
+
+            setVal('slot-width', state.slotWidthCm);
+            setVal('slot-height', state.slotHeightCm);
+            setVal('mobile-slot-width', state.slotWidthCm);
+            setVal('mobile-slot-height', state.slotHeightCm);
+
+            setVal('gap-x', state.gaps.x);
+            setVal('gap-y', state.gaps.y);
+            setVal('mobile-gap-x', state.gaps.x);
+            setVal('mobile-gap-y', state.gaps.y);
+
+            setCheck('lock-slot-ratio', state.lockSlotRatio);
+            setCheck('mobile-lock-slot-ratio', state.lockSlotRatio);
+
+            setVal('canvas-width', state.canvasWidthCm);
+            setVal('canvas-height', state.canvasHeightCm);
+            setVal('mobile-canvas-width', state.canvasWidthCm);
+            setVal('mobile-canvas-height', state.canvasHeightCm);
+
+            setCheck('auto-resize-canvas', state.autoResize);
+            setCheck('mobile-auto-resize-canvas', state.autoResize);
+
+            syncLockSlotRatioUI();
+
+            const wSize = state.wordSizePercent || 100;
+            setVal('word-size-percent', wSize);
+            setVal('mobile-word-size-percent', wSize);
+            updatePrecisionDisplay('word', wSize);
+            updatePrecisionDisplay('mobile-word', wSize);
+
+            const hMult = state.headerZoneMult || 3.0;
+            const fMult = state.footerZoneMult || 3.0;
+            setVal('header-zone-mult', hMult);
+            setVal('mobile-header-zone-mult', hMult);
+            setVal('footer-zone-mult', fMult);
+            setVal('mobile-footer-zone-mult', fMult);
+
+            updatePrecisionDisplay('header-zone', hMult);
+            updatePrecisionDisplay('footer-zone', fMult);
+
+            renderSmartpointsList();
+            syncSmartpointUI();
+
+            function setVal(id, v) {
+                const el = document.getElementById(id);
+                if (el) el.value = typeof v === 'number' ? parseFloat(v.toFixed(2)) : v;
+                if (el && typeof v === 'string') el.value = v;
+            }
+            function setCheck(id, v) {
+                const el = document.getElementById(id);
+                if (el) el.checked = !!v;
+            }
+            debouncedDraw();
+        }
+
+        function toggleLockSlotRatio() {
+            updateState('lockSlotRatio', !state.lockSlotRatio);
+            syncLockSlotRatioUI();
+        }
+
+        function syncLockSlotRatioUI() {
+            const btn = document.getElementById('lock-slot-ratio-btn');
+            const mobBtn = document.getElementById('mobile-lock-slot-ratio-btn');
+            if (btn) {
+                if (state.lockSlotRatio) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+            if (mobBtn) {
+                if (state.lockSlotRatio) mobBtn.classList.add('active');
+                else mobBtn.classList.remove('active');
+            }
+        }
+
+        function updateState(key, value) {
+            pushToHistory();
+
+            if (key.includes('.')) {
+                const parts = key.split('.');
+                if (state[parts[0]] && typeof state[parts[0]] === 'object') {
+                    if (['gaps', 'margins'].includes(parts[0])) {
+                        state[parts[0]][parts[1]] = parseFloat(value) || 0;
+                    } else {
+                        state[parts[0]][parts[1]] = value;
+                    }
+                }
+            } else {
+                if (['slotWidthCm', 'slotHeightCm', 'canvasWidthCm', 'canvasHeightCm', 'wordSizePercent', 'headerZoneMult', 'footerZoneMult'].includes(key)) {
+                    value = parseFloat(value);
+                }
+                state[key] = value;
+
+                if (key === 'autoResize' && value === true) {
+                    state.lockSlotRatio = true;
+                }
+            }
+
+            if (['slotWidthCm', 'slotHeightCm', 'gaps.x', 'gaps.y',
+                'margins.top', 'margins.bottom', 'margins.left', 'margins.right',
+                'autoResize', 'canvasWidthCm', 'canvasHeightCm', 'lockSlotRatio',
+                'headerZoneMult', 'footerZoneMult'].some(k => key === k || key.startsWith('margins') || key.startsWith('gaps') || k === 'lockSlotRatio')) {
+
+                updateSizes('state');
+                rebuildSlots();
+                rebuildUIFromState();
+            } else {
+                debouncedDraw();
+            }
+
+            // Auto-save session after state changes
+            scheduleAutoSave();
+        }
+
+        let adjustInterval = null;
+        let adjustTimeout = null;
+
+        function hexToRgba(hex, alpha) {
+            let r = 0, g = 0, b = 0;
+            if (hex.length === 4) {
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            } else if (hex.length === 7) {
+                r = parseInt(hex.slice(1, 3), 16);
+                g = parseInt(hex.slice(3, 5), 16);
+                b = parseInt(hex.slice(5, 7), 16);
+            }
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        let cropper = null;
+        let svgOverlayElement = null;
+        const cropperModal = new bootstrap.Modal(document.getElementById('cropperModal'));
+        const uploader = document.getElementById('image-uploader');
+        const desktopCanvas = document.getElementById('main-canvas');
+        const mobileCanvas = document.getElementById('mobile-canvas');
+        const desktopCtx = desktopCanvas.getContext('2d');
+        const mobileCtx = mobileCanvas.getContext('2d');
+
+        function getActiveCanvas() {
+            return window.innerWidth >= 992 ? desktopCanvas : mobileCanvas;
+        }
+
+        function getActiveContext() {
+            return window.innerWidth >= 992 ? desktopCtx : mobileCtx;
+        }
+
+        const measureCanvas = document.createElement('canvas');
+        const measureCtx = measureCanvas.getContext('2d', { willReadFrequently: true });
+
+        function init() {
+            initTabs();
+            initMobileTabs();
+
+            document.getElementById('canvas-width').value = state.canvasWidthCm;
+            document.getElementById('canvas-height').value = state.canvasHeightCm;
+            document.getElementById('mobile-canvas-width').value = state.canvasWidthCm;
+            document.getElementById('mobile-canvas-height').value = state.canvasHeightCm;
+
+            document.getElementById('auto-resize-canvas').checked = false;
+            document.getElementById('mobile-auto-resize-canvas').checked = false;
+
+            document.getElementById('slot-width').value = state.slotWidthCm;
+            document.getElementById('slot-height').value = state.slotHeightCm;
+            document.getElementById('mobile-slot-width').value = state.slotWidthCm;
+            document.getElementById('mobile-slot-height').value = state.slotHeightCm;
+
+            syncLockSlotRatioUI();
+
+            document.getElementById('margin-top').value = state.margins.top;
+            document.getElementById('margin-bottom').value = state.margins.bottom;
+            document.getElementById('margin-left').value = state.margins.left;
+            document.getElementById('margin-right').value = state.margins.right;
+            document.getElementById('mobile-margin-top').value = state.margins.top;
+            document.getElementById('mobile-margin-bottom').value = state.margins.bottom;
+            document.getElementById('mobile-margin-left').value = state.margins.left;
+            document.getElementById('mobile-margin-right').value = state.margins.right;
+
+            document.getElementById('gap-x').value = state.gaps.x;
+            document.getElementById('gap-y').value = state.gaps.y;
+            document.getElementById('mobile-gap-x').value = state.gaps.x;
+            document.getElementById('mobile-gap-y').value = state.gaps.y;
+
+            syncInputs();
+            rebuildSlots();
+            updateSizes('init');
+            setupEvents();
+
+            const wordVal = parseInt(document.getElementById('word-size-percent').value) || 100;
+            updatePrecisionDisplay('word', wordVal);
+            updatePrecisionDisplay('header-zone', parseFloat(document.getElementById('header-zone-mult').value) || 1.5);
+            updatePrecisionDisplay('footer-zone', parseFloat(document.getElementById('footer-zone-mult').value) || 1.5);
+
+            draw();
+
+            setTimeout(() => {
+                updateState('autoResize', true);
+                const ar = document.getElementById('auto-resize-canvas');
+                const mar = document.getElementById('mobile-auto-resize-canvas');
+                if (ar) { ar.checked = true; ar.disabled = false; }
+                if (mar) { mar.checked = true; mar.disabled = false; }
+            }, 100);
+        }
+
+        // Canvas event handlers for smartpoint placement and moving
+        function setupEvents() {
+            const handleCanvasClick = function (e) {
+                const canvas = getActiveCanvas();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                const x_cm = x / PPI;
+                const y_cm = y / PPI;
+
+                // If in move mode and clicking on a smartpoint on canvas, select it
+                if (movingSmartpointMode && !selectedSmartpointId) {
+                    const radiusCm = 0.5;
+                    const clicked = state.smartpoints.find(sp => {
+                        if (!sp.placed) return false;
+                        const dx = sp.x_cm - x_cm;
+                        const dy = sp.y_cm - y_cm;
+                        return Math.sqrt(dx * dx + dy * dy) < radiusCm * 1.5;
+                    });
+                    if (clicked) {
+                        selectedSmartpointId = clicked.id;
+                        showCustomMessage('Okospont kiválasztva. Kattints a képre az új hely megadásához!', 'info');
+                        renderSmartpointsList();
+                        debouncedDraw();
+                        return;
+                    }
+                }
+
+                // If moving and have a selected smartpoint, move it
+                if (movingSmartpointMode && selectedSmartpointId !== null) {
+                    const sp = state.smartpoints.find(s => s.id === selectedSmartpointId);
+                    if (sp) {
+                        pushToHistory();
+                        sp.x_cm = x_cm;
+                        sp.y_cm = y_cm;
+                        sp.placed = true;
+                        showCustomMessage('Okospont áthelyezve!', 'success');
+                        selectedSmartpointId = null;
+                        renderSmartpointsList();
+                        syncSmartpointUI();
+                        debouncedDraw();
+                    }
+                    return;
+                }
+
+                // If placing a new smartpoint
+                if (placingSmartpointId !== null) {
+                    const sp = state.smartpoints.find(s => s.id === placingSmartpointId);
+                    if (sp) {
+                        pushToHistory();
+                        sp.x_cm = x_cm;
+                        sp.y_cm = y_cm;
+                        sp.placed = true;
+                        showCustomMessage('Okospont lehelyezve!', 'success');
+                        placingSmartpointId = null;
+                        syncSmartpointUI();
+                        renderSmartpointsList();
+                        debouncedDraw();
+                    }
+                }
+            };
+
+            desktopCanvas.addEventListener('click', handleCanvasClick);
+            mobileCanvas.addEventListener('click', handleCanvasClick);
+
+            syncSmartpointUI();
+        }
+
+        function initTabs() {
+            const tabs = document.querySelectorAll('.settings-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    const tabContents = document.querySelectorAll('.tab-content');
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                });
+            });
+        }
+
+        function initMobileTabs() {
+            const mobileTabs = document.querySelectorAll('.mobile-tab');
+            mobileTabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    mobileTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    const mobileTabContents = document.querySelectorAll('.mobile-tab-content');
+                    mobileTabContents.forEach(content => content.classList.remove('active'));
+                    const tabId = this.getAttribute('data-mobile-tab');
+                    document.getElementById(`mobile-tab-${tabId}`).classList.add('active');
+                });
+            });
+        }
+
+        function toggleMobileSettings() {
+            const content = document.getElementById('mobile-settings-content');
+            const chevron = document.getElementById('mobile-settings-chevron');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                chevron.className = 'fas fa-chevron-up';
+            } else {
+                content.style.display = 'none';
+                chevron.className = 'fas fa-chevron-down';
+            }
+        }
+
+        function syncInputs() {
+            syncInput('slot-width', 'mobile-slot-width');
+            syncInput('slot-height', 'mobile-slot-height');
+            syncInput('gap-x', 'mobile-gap-x');
+            syncInput('gap-y', 'mobile-gap-y');
+            syncInput('canvas-width', 'mobile-canvas-width');
+            syncInput('canvas-height', 'mobile-canvas-height');
+            syncInput('margin-top', 'mobile-margin-top');
+            syncInput('margin-bottom', 'mobile-margin-bottom');
+            syncInput('margin-left', 'mobile-margin-left');
+            syncInput('margin-right', 'mobile-margin-right');
+            syncInput('input-word', 'mobile-input-word');
+            syncInput('word-font-family', 'mobile-word-font-family');
+            syncInput('word-color', 'mobile-word-color');
+            syncInput('word-opacity', 'mobile-word-opacity');
+            syncCheckbox('word-bold', 'mobile-word-bold');
+            syncCheckbox('word-italic', 'mobile-word-italic');
+            syncInput('word-size-percent', 'mobile-word-size-percent');
+            syncInput('header-zone-mult', 'mobile-header-zone-mult');
+            syncInput('header-align', 'mobile-header-align');
+            syncInput('footer-zone-mult', 'mobile-footer-zone-mult');
+            syncInput('footer-align', 'mobile-footer-align');
+            syncInput('global-bg-color', 'mobile-global-bg-color');
+            syncInput('collage-align', 'mobile-collage-align');
+            syncCheckbox('auto-resize-canvas', 'mobile-auto-resize-canvas');
+        }
+
+        function syncInput(sourceId, targetId) {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            if (source && target) {
+                target.value = source.value;
+                source.addEventListener('input', () => { target.value = source.value; });
+                target.addEventListener('input', () => { source.value = target.value; });
+            }
+        }
+
+        function syncCheckbox(sourceId, targetId) {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            if (source && target) {
+                target.checked = source.checked;
+                source.addEventListener('change', () => { target.checked = source.checked; });
+                target.addEventListener('change', () => { source.checked = target.checked; });
+            }
+        }
+
+        function rebuildSlots() {
+            const rows = state.word.length;
+            const cols = 2;
+            const newSlots = [];
+            let index = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const existing = state.slots[index];
+                    newSlots.push({
+                        id: index,
+                        row: r,
+                        col: c,
+                        img: existing ? existing.img : null,
+                        originalUrl: existing ? existing.originalUrl : null,
+                        bgColor: existing ? existing.bgColor : '#eeeeee'
+                    });
+                    index++;
+                }
+            }
+            state.slots = newSlots;
+        }
+
+        function calculateTheoreticalHeightCm(wordLength) {
+            const isMobile = window.innerWidth < 992;
+            const prefix = isMobile ? 'mobile-' : '';
+
+            let headerContentH = 0;
+            state.headerLines.forEach(l => headerContentH += l.size);
+            const headerMult = parseFloat(document.getElementById(prefix + 'header-zone-mult')?.value || 1.5);
+            const headerZoneH = headerContentH * headerMult;
+
+            let footerContentH = 0;
+            state.footerLines.forEach(l => footerContentH += l.size);
+            const footerMult = parseFloat(document.getElementById(prefix + 'footer-zone-mult')?.value || 1.5);
+            const footerZoneH = footerContentH * footerMult;
+
+            const mTop = state.margins.top * PPI;
+            const mBottom = state.margins.bottom * PPI;
+
+            const slotH = state.slotHeightCm * PPI;
+            const gapY = state.gaps.y * PPI;
+            const len = Math.max(wordLength, 0);
+            let collageH = 0;
+            if (len > 0) {
+                collageH = (len * slotH) + ((len - 1) * gapY);
+            }
+
+            const totalH_px = mTop + headerZoneH + collageH + footerZoneH + mBottom;
+            return totalH_px / PPI;
+        }
+
+        function updateWord() {
+            const newVal = document.getElementById('input-word').value;
+            if (newVal && newVal !== state.word) {
+                const currentTheoretical = calculateTheoreticalHeightCm(state.word.length);
+                const currentActual = state.canvasHeightCm;
+                let addCustomHeight = currentActual - currentTheoretical;
+                if (Math.abs(addCustomHeight) < 0.05) addCustomHeight = 0;
+
+                state.word = newVal.replace(/\s/g, '');
+
+                const newTheoretical = calculateTheoreticalHeightCm(state.word.length);
+                state.canvasHeightCm = newTheoretical + addCustomHeight;
+
+                const hVal = state.canvasHeightCm.toFixed(2);
+                const deskInp = document.getElementById('canvas-height');
+                const mobInp = document.getElementById('mobile-canvas-height');
+                if (deskInp) deskInp.value = hVal;
+                if (mobInp) mobInp.value = hVal;
+
+                rebuildSlots();
+                debouncedDraw();
+            }
+        }
+
+        function updateWordMobile() {
+            const newVal = document.getElementById('mobile-input-word').value;
+            if (newVal && newVal !== state.word) {
+                const currentTheoretical = calculateTheoreticalHeightCm(state.word.length);
+                const currentActual = state.canvasHeightCm;
+                let addCustomHeight = currentActual - currentTheoretical;
+                if (Math.abs(addCustomHeight) < 0.05) addCustomHeight = 0;
+
+                state.word = newVal.replace(/\s/g, '');
+
+                const newTheoretical = calculateTheoreticalHeightCm(state.word.length);
+                state.canvasHeightCm = newTheoretical + addCustomHeight;
+
+                const hVal = state.canvasHeightCm.toFixed(2);
+                const deskInp = document.getElementById('canvas-height');
+                const mobInp = document.getElementById('mobile-canvas-height');
+                if (deskInp) deskInp.value = hVal;
+                if (mobInp) mobInp.value = hVal;
+
+                rebuildSlots();
+                debouncedDraw();
+            }
+        }
+
+        function readInputs() {
+            const isMobile = window.innerWidth < 992;
+            state.margins.top = parseFloat(isMobile ? document.getElementById('mobile-margin-top').value : document.getElementById('margin-top').value) || 0;
+            state.margins.bottom = parseFloat(isMobile ? document.getElementById('mobile-margin-bottom').value : document.getElementById('margin-bottom').value) || 0;
+            state.margins.left = parseFloat(isMobile ? document.getElementById('mobile-margin-left').value : document.getElementById('margin-left').value) || 0;
+            state.margins.right = parseFloat(isMobile ? document.getElementById('mobile-margin-right').value : document.getElementById('margin-right').value) || 0;
+            state.gaps.x = parseFloat(isMobile ? document.getElementById('mobile-gap-x').value : document.getElementById('gap-x').value) || 0;
+            state.gaps.y = parseFloat(isMobile ? document.getElementById('mobile-gap-y').value : document.getElementById('gap-y').value) || 0;
+        }
+
+        function showLoading(msg = 'Feldolgozás...') {
+            const ol = document.getElementById('loading-overlay');
+            if (ol) {
+                ol.querySelector('h3').textContent = msg;
+                ol.style.display = 'flex';
+            }
+        }
+
+        function hideLoading() {
+            const ol = document.getElementById('loading-overlay');
+            if (ol) ol.style.display = 'none';
+        }
+
+        function setAlign(type, value) {
+            if (type === 'collage') updateState('collageAlign', value);
+            else if (type === 'header') updateState('headerAlign', value);
+            else if (type === 'footer') updateState('footerAlign', value);
+
+            const inputId = type + '-align';
+            const input = document.getElementById(inputId);
+            if (input) input.value = value;
+            const mobileInputId = 'mobile-' + type + '-align';
+            const mobileInput = document.getElementById(mobileInputId);
+            if (mobileInput) mobileInput.value = value;
+
+            const positions = ['top', 'center', 'bottom'];
+            positions.forEach(pos => {
+                const btn = document.getElementById(`btn-${type}-${pos}`);
+                if (btn) {
+                    if (pos === value) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            debouncedDraw();
+        }
+
+        function safeNum(val, def = 0, min = null, max = null) {
+            let n = parseFloat(val);
+            if (isNaN(n)) return def;
+            if (min !== null && n < min) return min;
+            if (max !== null && n > max) return max;
+            return n;
+        }
+
+        function handleSlotResize(changedDim, isMobile = false) {
+            const prefix = isMobile ? 'mobile-' : '';
+            state.autoResize = document.getElementById(prefix + 'auto-resize-canvas').checked;
+            let newSlotW = parseFloat(document.getElementById(prefix + 'slot-width').value) || state.slotWidthCm;
+            let newSlotH = parseFloat(document.getElementById(prefix + 'slot-height').value) || state.slotHeightCm;
+
+            if (!state.autoResize) {
+                if (state.lockSlotRatio) {
+                    const currentRatio = state.slotWidthCm / state.slotHeightCm;
+                    if (changedDim === 'width') {
+                        newSlotH = newSlotW / currentRatio;
+                        document.getElementById(prefix + 'slot-height').value = newSlotH.toFixed(2);
+                    } else {
+                        newSlotW = newSlotH * currentRatio;
+                        document.getElementById(prefix + 'slot-width').value = newSlotW.toFixed(2);
+                    }
+                }
+                state.slotWidthCm = newSlotW;
+                state.slotHeightCm = newSlotH;
+                updateSizes('slot');
+                return;
+            }
+
+            let scaleFactor = 1.0;
+            if (changedDim === 'width') scaleFactor = newSlotW / state.slotWidthCm;
+            else if (changedDim === 'height') scaleFactor = newSlotH / state.slotHeightCm;
+
+            if (scaleFactor !== 1.0) {
+                state.slotWidthCm *= scaleFactor;
+                state.slotHeightCm *= scaleFactor;
+                state.canvasWidthCm *= scaleFactor;
+                state.canvasHeightCm *= scaleFactor;
+                state.gaps.x *= scaleFactor;
+                state.gaps.y *= scaleFactor;
+                state.margins.top *= scaleFactor;
+                state.margins.bottom *= scaleFactor;
+                state.margins.left *= scaleFactor;
+                state.margins.right *= scaleFactor;
+            }
+            updateSizes('slot_manual');
+            rebuildUIFromState();
+        }
+
+        function handleCanvasResize(changedDim, isMobile = false) {
+            const prefix = isMobile ? 'mobile-' : '';
+            state.autoResize = document.getElementById(prefix + 'auto-resize-canvas').checked;
+            const newCanvasW = parseFloat(document.getElementById(prefix + 'canvas-width').value) || state.canvasWidthCm;
+            const newCanvasH = parseFloat(document.getElementById(prefix + 'canvas-height').value) || state.canvasHeightCm;
+
+            if (!state.autoResize) {
+                state.canvasWidthCm = newCanvasW;
+                state.canvasHeightCm = newCanvasH;
+                draw();
+                return;
+            }
+
+            let scaleFactor = 1.0;
+            if (changedDim === 'width') {
+                scaleFactor = newCanvasW / state.canvasWidthCm;
+                state.canvasWidthCm = newCanvasW;
+                state.canvasHeightCm *= scaleFactor;
+            } else if (changedDim === 'height') {
+                scaleFactor = newCanvasH / state.canvasHeightCm;
+                state.canvasHeightCm = newCanvasH;
+                state.canvasWidthCm *= scaleFactor;
+            }
+
+            if (scaleFactor !== 1.0) {
+                state.slotWidthCm *= scaleFactor;
+                state.slotHeightCm *= scaleFactor;
+                state.gaps.x *= scaleFactor;
+                state.gaps.y *= scaleFactor;
+                state.margins.top *= scaleFactor;
+                state.margins.bottom *= scaleFactor;
+                state.margins.left *= scaleFactor;
+                state.margins.right *= scaleFactor;
+            }
+            updateSizes('canvas_manual');
+            rebuildUIFromState();
+        }
+
+        function startAdjust(target, delta) {
+            stopAdjust();
+            adjustValue(target, delta);
+            adjustTimeout = setTimeout(() => {
+                adjustInterval = setInterval(() => { adjustValue(target, delta); }, 50);
+            }, 400);
+        }
+
+        function stopAdjust() {
+            clearTimeout(adjustTimeout);
+            clearInterval(adjustInterval);
+        }
+
+        function adjustValue(target, delta) {
+            let newVal;
+            pushToHistory();
+
+            if (target === 'word' || target === 'mobile-word') {
+                const input = document.getElementById(target + '-size-percent');
+                let current = parseInt(input.value) || 100;
+                newVal = current + delta;
+                if (newVal < 1) newVal = 1;
+                if (newVal > 1000) newVal = 1000;
+                state.wordSizePercent = newVal;
+                input.value = newVal;
+                updatePrecisionDisplay(target, newVal);
+                draw();
+                return;
+            } else if (target === 'header-zone' || target === 'footer-zone') {
+                const type = target.split('-')[0];
+                const key = type + 'ZoneMult';
+                let current = state[key] || 3.0;
+                newVal = parseFloat((current + delta).toFixed(1));
+                if (newVal < 1.0) newVal = 1.0;
+                if (newVal > 10.0) newVal = 10.0;
+                updateState(key, newVal);
+                updateSizes('text');
+                updatePrecisionDisplay(target, newVal);
+                return;
+            } else {
+                const parts = target.split('-');
+                const type = parts[0];
+                const index = parseInt(parts[2]);
+                const lines = type === 'header' ? state.headerLines : state.footerLines;
+                if (lines[index]) {
+                    let current = lines[index].size;
+                    newVal = current + delta;
+                    if (newVal < 1) newVal = 1;
+                    if (newVal > 1000) newVal = 1000;
+                    updateLineProperty(type, index, 'size', newVal);
+                    updatePrecisionDisplay(target, newVal);
+                }
+                return;
+            }
+        }
+
+        function updatePrecisionDisplay(target, val) {
+            let displayId, displayCmId;
+            if (target === 'word' || target === 'mobile-word') {
+                displayId = target + '-size-percent-display';
+                displayCmId = target + '-size-cm-display';
+            } else if (target.includes('zone')) {
+                displayCmId = target + '-cm-display';
+            } else {
+                displayId = target + '-size-display';
+                displayCmId = target + '-size-cm-display';
+            }
+
+            const display = document.getElementById(displayId);
+            const displayCm = document.getElementById(displayCmId);
+            if (display) display.textContent = val + (target.includes('word') ? "%" : "");
+            if (displayCm) {
+                let cmVal = 0;
+                if (target.includes('word')) {
+                    cmVal = state.slotHeightCm * (val / 100);
+                } else if (target.includes('zone')) {
+                    const type = target.includes('header') ? 'header' : 'footer';
+                    const lines = type === 'header' ? state.headerLines : state.footerLines;
+                    let contentH = 0;
+                    lines.forEach(l => contentH += l.size);
+                    cmVal = (contentH * val) / PPI;
+                } else {
+                    cmVal = val / PPI;
+                }
+                displayCm.textContent = cmVal.toFixed(2) + " cm";
+            }
+        }
+
+        function addLine(type) {
+            pushToHistory();
+            const lines = type === 'header' ? state.headerLines : state.footerLines;
+            lines.push({
+                text: "",
+                font: "Arial",
+                color: "#000000",
+                opacity: 100,
+                bold: true,
+                italic: false,
+                size: 60
+            });
+            renderLinesUI(type);
+            updateSizes('text');
+        }
+
+        function deleteLine(type, index) {
+            pushToHistory();
+            const lines = type === 'header' ? state.headerLines : state.footerLines;
+            lines.splice(index, 1);
+            renderLinesUI(type);
+            updateSizes('text');
+        }
+
+        function renderLinesUI(type) {
+            const containerId = type + '-lines-container';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const lines = type === 'header' ? state.headerLines : state.footerLines;
+            container.innerHTML = "";
+            lines.forEach((line, index) => {
+                const el = document.createElement('div');
+                el.className = 'line-item';
+                const targetIdBase = `${type}-line-${index}`;
+                el.innerHTML = `
+            <div class="line-item-header">
+                <span>${index + 1}. Sor</span>
+                <button class="btn-delete-line" onclick="deleteLine('${type}', ${index})" title="Sor törlése">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <input type="text" class="form-control mb-2" placeholder="Szöveg..." style="font-size:14px;"
+                   value="${line.text}" oninput="updateLineProperty('${type}', ${index}, 'text', this.value)">
+            <div class="input-col" style="width: 100%; margin-bottom: 5px;">
+                <label>Betűtípus</label>
+                <select onchange="updateLineProperty('${type}', ${index}, 'font', this.value)">
+                    ${getFontOptions(line.font)}
+                </select>
+            </div>
+            <div class="input-row" style="flex-direction: column;">
+                <div class="input-col" style="width: 100%;">
+                    <label>Szín & Átlátszóság</label>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <input type="color" value="${line.color}" onchange="updateLineProperty('${type}', ${index}, 'color', this.value)" style="flex:1; height:38px;">
+                        <input type="number" min="0" max="100" step="10" value="${line.opacity}" oninput="updateLineProperty('${type}', ${index}, 'opacity', this.value)" style="width: 30%;" title="Átlátszóság (%)">
+                    </div>
+                </div>
+                <div class="input-col" style="display: flex; width: 100%; gap: 5px;">
+                    <div class="checkbox-row" style="flex: 1;">
+                        <input type="checkbox" ${line.bold ? 'checked' : ''} onchange="updateLineProperty('${type}', ${index}, 'bold', this.checked)"> <label>Félkövér</label>
+                    </div>
+                    <div class="checkbox-row" style="flex: 1;">
+                        <input type="checkbox" ${line.italic ? 'checked' : ''} onchange="updateLineProperty('${type}', ${index}, 'italic', this.checked)"> <label>Dőlt</label>
+                    </div>
+                </div>
+            </div>
+            <label>Betűméret (A képekhez képest)</label>
+            <div class="precision-slider-container">
+                    <button class="btn-precision" onmousedown="startAdjust('${targetIdBase}', -1)" onmouseup="stopAdjust()" onmouseleave="stopAdjust()" ontouchstart="startAdjust('${targetIdBase}', -1)" ontouchend="stopAdjust()">-</button>
+                    <div class="precision-display">
+                        <span id="${targetIdBase}-size-cm-display">${(line.size / PPI).toFixed(2)} cm</span>
+                        <small id="${targetIdBase}-size-display">${line.size}</small>
+                    </div>
+                    <button class="btn-precision" onmousedown="startAdjust('${targetIdBase}', 1)" onmouseup="stopAdjust()" onmouseleave="stopAdjust()" ontouchstart="startAdjust('${targetIdBase}', 1)" ontouchend="stopAdjust()">+</button>
+            </div>
+            <input type="hidden" id="${targetIdBase}-size" value="${line.size}">
+        `;
+                container.appendChild(el);
+            });
+        }
+
+        function getFontOptions(selected) {
+            const fonts = ["Arial", "Times New Roman", "'Segoe UI', sans-serif", "Verdana", "Georgia", "Impact", "'Courier New', monospace"];
+            return fonts.map(f => {
+                const cleanName = f.replace(/['",]/g, '').replace('sans-serif', '').replace('monospace', '').trim();
+                const isSel = f === selected || f.includes(selected);
+                return `<option value="${f}" ${isSel ? 'selected' : ''}>${cleanName}</option>`;
+            }).join('');
+        }
+
+        function updateLineProperty(type, index, prop, value) {
+            const lines = type === 'header' ? state.headerLines : state.footerLines;
+            if (lines[index]) {
+                if (prop === 'size' || prop === 'opacity') value = parseInt(value);
+                if (lines[index][prop] !== value) {
+                    pushToHistory();
+                    lines[index][prop] = value;
+                    if (prop === 'size' || prop === 'text') updateSizes('text');
+                    else debouncedDraw();
+                }
+            }
+        }
+
+        function updateSizes(source) {
+            state.canvasWidthCm = safeNum(state.canvasWidthCm, CONFIG.DEFAULTS.CANVAS_WIDTH, 1);
+            state.canvasHeightCm = safeNum(state.canvasHeightCm, CONFIG.DEFAULTS.CANVAS_HEIGHT, 1);
+            debouncedDraw();
+        }
+
+        function syncCanvasToContent() {
+            const isMobile = window.innerWidth < 992;
+            const headerMult = parseFloat(document.getElementById('header-zone-mult').value) || 1.5;
+            const footerMult = parseFloat(document.getElementById('footer-zone-mult').value) || 1.5;
+            let headerContentH = 0;
+            state.headerLines.forEach(l => headerContentH += l.size);
+            const headerZoneH = headerContentH * headerMult * PPI;
+            let footerContentH = 0;
+            state.footerLines.forEach(l => footerContentH += l.size);
+            const footerZoneH = footerContentH * footerMult * PPI;
+            const mTop = state.margins.top * PPI;
+            const mBottom = state.margins.bottom * PPI;
+            const mLeft = state.margins.left * PPI;
+            const mRight = state.margins.right * PPI;
+            const slotW = state.slotWidthCm * PPI;
+            const slotH = state.slotHeightCm * PPI;
+            const gapX = state.gaps.x * PPI;
+            const gapY = state.gaps.y * PPI;
+            const collageW = (slotW * 2) + gapX;
+            const collageH = (state.word.length * slotH) + ((state.word.length - 1) * gapY);
+            const totalH = mTop + (headerZoneH * PPI) + collageH + (footerZoneH * PPI) + mBottom;
+            const totalW = mLeft + collageW + mRight;
+            state.canvasWidthCm = totalW / PPI;
+            state.canvasHeightCm = totalH / PPI;
+            document.getElementById('canvas-width').value = state.canvasWidthCm.toFixed(2);
+            document.getElementById('canvas-height').value = state.canvasHeightCm.toFixed(2);
+            document.getElementById('mobile-canvas-width').value = state.canvasWidthCm.toFixed(2);
+            document.getElementById('mobile-canvas-height').value = state.canvasHeightCm.toFixed(2);
+        }
+
+        function getVisualMetrics(text, fontStrBase, fontSize) {
+            const size = Math.ceil(fontSize * 2);
+            measureCanvas.width = size;
+            measureCanvas.height = size;
+            measureCtx.clearRect(0, 0, size, size);
+            measureCtx.font = fontStrBase;
+            measureCtx.fillStyle = '#000';
+            measureCtx.textBaseline = 'alphabetic';
+            const x = size / 2;
+            const y = size / 2;
+            measureCtx.fillText(text, x, y);
+            const imageData = measureCtx.getImageData(0, 0, size, size).data;
+            let topY = size, bottomY = 0;
+            let found = false;
+            for (let py = 0; py < size; py++) {
+                const rowStart = py * size * 4;
+                for (let px = 0; px < size; px++) {
+                    if (imageData[rowStart + px * 4 + 3] > 0) {
+                        if (!found) topY = py;
+                        bottomY = py;
+                        found = true;
+                    }
+                }
+            }
+            if (!found) return { pixelHeight: fontSize, visualTop: 0, visualBottom: 0, baselineY: y };
+            return { pixelHeight: bottomY - topY + 1, visualTop: topY, visualBottom: bottomY, baselineY: y };
+        }
+
+        function calculateTextLayout(char, fontConfig, boxHeight, sizePercent) {
+            const targetPixelHeight = boxHeight * (sizePercent / 100);
+            const refFontSize = 1000;
+            let style = "";
+            if (fontConfig.bold) style += "bold ";
+            if (fontConfig.italic) style += "italic ";
+            const refFontStr = `${style} ${refFontSize}px ${fontConfig.family}`;
+            const metrics = getVisualMetrics(char, refFontStr, refFontSize);
+            const scale = targetPixelHeight / metrics.pixelHeight;
+            const finalFontSize = refFontSize * scale;
+            const visualTopFromBaseline = (metrics.visualTop - metrics.baselineY) * scale;
+            const visualBottomFromBaseline = (metrics.visualBottom - metrics.baselineY) * scale;
+            const visualCenterFromBaseline = (visualTopFromBaseline + visualBottomFromBaseline) / 2;
+            const boxCenter = boxHeight / 2;
+            const drawY = boxCenter - visualCenterFromBaseline;
+            return { fontSize: finalFontSize, drawY: drawY, fontStr: `${style} ${finalFontSize}px ${fontConfig.family}`, metrics: metrics };
+        }
+
+        function setupFontBasic(ctx, type, isMobile) {
+            let prefix = type;
+            let size = isMobile ?
+                document.getElementById('mobile-' + prefix + '-size').value :
+                document.getElementById(prefix + '-size').value;
+            let family = isMobile ?
+                document.getElementById('mobile-' + prefix + '-font').value :
+                document.getElementById(prefix + '-font').value;
+            let color = isMobile ?
+                document.getElementById('mobile-' + prefix + '-color').value :
+                document.getElementById(prefix + '-color').value;
+            let isBold = isMobile ?
+                document.getElementById('mobile-' + prefix + '-bold').checked :
+                document.getElementById(prefix + '-bold').checked;
+            let isItalic = isMobile ?
+                document.getElementById('mobile-' + prefix + '-italic').checked :
+                document.getElementById(prefix + '-italic').checked;
+            let style = "";
+            if (isBold) style += "bold ";
+            if (isItalic) style += "italic ";
+            ctx.font = `${style} ${size}px ${family}`;
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+        }
+
+
+        // --- Smartpoint UI & Management ---
+        function startAddSmartpoint() {
+            if (!state.slots || state.slots.length === 0) {
+                showCustomMessage('Kérjük, először hozz létre egy kollázst!', 'warning');
+                return;
+            }
+
+            const isMobile = window.innerWidth < 992;
+            const typeSelector = isMobile
+                ? document.getElementById('mobile-smart-point-type-selector')
+                : document.getElementById('smart-point-type-selector');
+
+            if (!typeSelector) {
+                console.error('Type selector not found');
+                return;
+            }
+
+            if (typeSelector.style.display === 'none' || typeSelector.style.display === '') {
+                typeSelector.style.display = 'block';
+                isAddingNewSmartpoint = true;
+                editingSmartpointId = null;
+                updateSmartpointButtons();
+            } else {
+                cancelAddSmartpoint();
+            }
+        }
+
+        // Okospont funkciók - Synchronized from simavkepeditor
+        tempSmartpointChanges = {};
+
+        function renderSmartpointsList() {
+            const container = $('#smartpointsList');
+            const mobileContainer = $('#mobile-smartpointsList');
+
+            if (!editingSmartpointId) {
+                container.empty();
+                mobileContainer.empty();
+                tempSmartpointChanges = {};
+            } else {
+                container.find('.smart-point-list-item:not(.editing)').remove();
+                mobileContainer.find('.smart-point-list-item:not(.editing)').remove();
+            }
+
+            if (state.smartpoints.length === 0) {
+                const emptyMsg = '<div class="text-muted text-center py-3 small">Nincsenek még okospontok</div>';
+                container.html(emptyMsg);
+                mobileContainer.html(emptyMsg);
+                return;
+            }
+
+            state.smartpoints.forEach((sp, index) => {
+                const isEditing = editingSmartpointId === sp.id;
+                const isSelected = selectedSmartpointId === sp.id;
+
+                const typeIcons = {
+                    'audio': 'fas fa-music',
+                    'video': 'fas fa-video',
+                    'image': 'fas fa-image',
+                    'images': 'fas fa-images',
+                    'youtube': 'fab fa-youtube',
+                    'spotify': 'fab fa-spotify',
+                    'url': 'fas fa-link'
+                };
+
+                const typeNames = {
+                    'audio': 'Hangfájl',
+                    'video': 'Videó',
+                    'image': 'Kép',
+                    'images': 'Képek',
+                    'youtube': 'YouTube',
+                    'spotify': 'Spotify',
+                    'url': 'URL'
+                };
+
+                if (isEditing && container.find(`.smart-point-list-item.editing[data-id="${sp.id}"]`).length > 0) {
+                    return;
+                }
+
+                if (!isEditing) {
+                    const item = $(`
+                        <div class="smart-point-list-item ${isSelected ? 'smartpoint-selected' : ''}" data-id="${sp.id}">
+                            <div class="smartpoint-item-info">
+                                <div class="smartpoint-row smartpoint-row-header">
+                                    <i class="${sp.type ? typeIcons[sp.type] : 'fas fa-circle-dot'} smart-point-type-icon"></i>
+                                    <span class="smartpoint-title">Okospont ${index + 1}${sp.type ? ` - ${typeNames[sp.type]}` : ''}</span>
+                                </div>
+                                <div class="smartpoint-row smartpoint-row-content">
+                                    <span class="smartpoint-content-text">${sp.content || '<em>Nincs tartalom</em>'}</span>
+                                </div>
+                                <div class="smartpoint-row smartpoint-row-status">
+                                    ${sp.placed ?
+                            '<span class="smartpoint-status status-placed"><i class="fas fa-check-circle"></i> Elhelyezve</span>' :
+                            '<span class="smartpoint-status status-pending"><i class="fas fa-map-marker-alt"></i> Elhelyezésre vár</span>'
+                        }
+                                </div>
+                            </div>
+                            <div class="smart-point-actions">
+                                <button type="button" class="btn-sp-action btn-sp-edit edit-smartpoint" data-id="${sp.id}" title="Szerkesztés">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn-sp-action btn-sp-delete remove-smartpoint" data-id="${sp.id}" title="Törlés">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `);
+
+                    // Add click handler for selecting smartpoint in move mode
+                    item.on('click', function (e) {
+                        // Don't trigger if clicking on action buttons
+                        if ($(e.target).closest('.smart-point-actions').length > 0) return;
+
+                        if (movingSmartpointMode) {
+                            selectedSmartpointId = sp.id;
+                            showCustomMessage('Okospont kiválasztva. Kattints a képre az új hely megadásához!', 'info');
+                            renderSmartpointsList();
+                            debouncedDraw();
+                        }
+                    });
+
+                    container.append(item);
+
+                    // Clone item for mobile list
+                    const mobileItem = item.clone(true);
+                    mobileContainer.append(mobileItem);
+                } else {
+                    if (!tempSmartpointChanges[sp.id]) {
+                        tempSmartpointChanges[sp.id] = {
+                            type: sp.type,
+                            content: sp.content
+                        };
+                    }
+
+                    const currentType = tempSmartpointChanges[sp.id].type || sp.type;
+                    const currentContent = tempSmartpointChanges[sp.id].content !== undefined ? tempSmartpointChanges[sp.id].content : sp.content;
+
+                    const editor = $(`
+                        <div class="smart-point-list-item editing ${isSelected ? 'smartpoint-selected' : ''}" data-id="${sp.id}">
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="small fw-bold">Okospont ${index + 1} szerkesztése</div>
+                                    <div class="smart-point-actions">
+                                        <button type="button" class="btn btn-sm btn-success save-smartpoint-edit" data-id="${sp.id}">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary cancel-smartpoint-edit" data-id="${sp.id}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Típus módosítása:</label>
+                                    <div class="type-selector">
+                                        <div class="selected-type btn btn-outline-secondary w-100 text-start" 
+                                             data-bs-toggle="collapse" data-bs-target="#typeDropdown-${sp.id}">
+                                            <i class="${currentType ? typeIcons[currentType] : 'fas fa-question'} me-2"></i>
+                                            ${currentType ? typeNames[currentType] : 'Válassz típust...'}
+                                            <i class="fas fa-chevron-down float-end mt-1"></i>
+                                        </div>
+                                        <div class="collapse mt-2 px-2" id="typeDropdown-${sp.id}">
+                                            <div class="btn-group-vertical w-100">
+                                                ${Object.keys(typeNames).map(t => `
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm text-start type-option ${currentType === t ? 'active' : ''}" data-type="${t}">
+                                                        <i class="${typeIcons[t]} me-2"></i>${typeNames[t]}
+                                                    </button>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="content-input-area">
+                                    ${renderContentInput(currentType, currentContent, sp.id)}
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                    container.append(editor);
+
+                    editor.find('.type-option').on('click', function () {
+                        const newType = $(this).data('type');
+                        tempSmartpointChanges[sp.id].type = newType;
+                        editor.find('.selected-type').html(`<i class="${typeIcons[newType]} me-2"></i>${typeNames[newType]}<i class="fas fa-chevron-down float-end mt-1"></i>`);
+                        $(`#typeDropdown-${sp.id}`).collapse('hide');
+                        editor.find('.content-input-area').html(renderContentInput(newType, tempSmartpointChanges[sp.id].content, sp.id));
+                    });
+                }
+            });
+        }
+
+        function renderContentInput(type, currentContent = '', spId = '') {
+            const placeholders = { 'youtube': 'https://youtube.com/watch?v=...', 'spotify': 'https://open.spotify.com/track/...', 'url': 'https://...' };
+            if (['audio', 'video', 'image', 'images'].includes(type)) {
+                return `
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small">Fájl feltöltése:</label>
+                        <input type="file" class="form-control form-control-sm content-file-input" data-id="${spId}" accept="${type === 'audio' ? 'audio/*' : type === 'video' ? 'video/*' : 'image/*'}" ${type === 'images' ? 'multiple' : ''}>
+                        ${currentContent ? `<small class="text-success mt-1 d-block"><i class="fas fa-check me-1"></i>Jelenlegi: ${currentContent}</small>` : ''}
+                    </div>`;
+            } else {
+                return `
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small">URL:</label>
+                        <input type="url" class="form-control form-control-sm content-url-input" data-id="${spId}" placeholder="${placeholders[type] || 'https://...'}" value="${currentContent || ''}">
+                    </div>`;
+            }
+        }
+
+        function selectSmartPointType(type) {
+            selectedSmartPointType = type;
+            const isMobile = window.innerWidth < 992;
+
+            // Handle both old and new button class names
+            $('.smart-point-type-btn, .smartpoint-type-option').removeClass('active');
+            $(`.smart-point-type-btn[data-type="${type}"], .smartpoint-type-option[data-type="${type}"]`).addClass('active');
+
+            // Select appropriate elements based on view
+            const fileInputContainer = isMobile ? $('#mobile-smart-point-file').parent() : $('#smart-point-file-input');
+            const urlInputContainer = isMobile ? $('#mobile-smart-point-url').parent() : $('#smart-point-url-input');
+            const fileInput = isMobile ? $('#mobile-smart-point-file') : $('#smart-point-file');
+            const urlInput = isMobile ? $('#mobile-smart-point-url') : $('#smart-point-url');
+            const contentInput = isMobile ? $('#mobile-smart-point-content-input') : $('#smart-point-content-input');
+
+            if (['audio', 'video', 'image', 'images', 'gallery'].includes(type)) {
+                fileInputContainer.show();
+                fileInput.show();
+                urlInputContainer.hide();
+                urlInput.hide();
+                fileInput.attr('accept', type === 'audio' ? 'audio/*' : type === 'video' ? 'video/*' : 'image/*');
+            } else {
+                fileInputContainer.hide();
+                fileInput.hide();
+                urlInputContainer.show();
+                urlInput.show();
+                const placeholders = { 'youtube': 'https://youtube.com/watch?v=...', 'spotify': 'https://open.spotify.com/track/...', 'url': 'https://...' };
+                urlInput.attr('placeholder', placeholders[type] || 'https://...');
+            }
+            contentInput.slideDown(200);
+        }
+
+        function saveSmartPoint() {
+            let content = '';
+            const isMobile = window.innerWidth < 992;
+
+            // Select the appropriate input elements based on view
+            const fileInput = isMobile ? $('#mobile-smart-point-file')[0] : $('#smart-point-file')[0];
+            const urlInput = isMobile ? $('#mobile-smart-point-url') : $('#smart-point-url');
+
+            if (['audio', 'video', 'image', 'images', 'gallery'].includes(selectedSmartPointType)) {
+                if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    showCustomMessage("Kérjük, válassz ki egy fájlt!", "warning");
+                    return;
+                }
+                content = fileInput.files[0].name;
+            } else {
+                content = urlInput.val();
+                if (!content) {
+                    showCustomMessage("Kérjük, add meg az URL-t!", "warning");
+                    return;
+                }
+            }
+
+            const id = state.nextSmartpointId++;
+            const newPoint = { id: id, type: selectedSmartPointType, content: content, x_cm: null, y_cm: null, placed: false };
+            state.smartpoints.push(newPoint);
+            placingSmartpointId = id;
+
+            // Hide selectors (both desktop and mobile)
+            $('#smart-point-type-selector, #mobile-smart-point-type-selector').slideUp(200);
+            $('#smart-point-content-input, #mobile-smart-point-content-input').slideUp(200);
+            $('#smart-point-url, #mobile-smart-point-url').val('');
+            $('#smart-point-file, #mobile-smart-point-file').val('');
+
+            isAddingNewSmartpoint = false;
+            updateSmartpointButtons();
+            syncSmartpointUI();
+
+            showCustomMessage("Kattints a képre, hogy lehelyezd az Okospontot!", "info");
+            renderSmartpointsList();
+            pushToHistory();
+            debouncedDraw();
+        }
+
+        function cancelAddSmartpoint() {
+            // Hide both desktop and mobile selectors
+            $('#smart-point-type-selector, #mobile-smart-point-type-selector').slideUp(200);
+            $('#smart-point-content-input, #mobile-smart-point-content-input').slideUp(200);
+            // Clear both inputs
+            $('#smart-point-url, #mobile-smart-point-url').val('');
+            $('#smart-point-file, #mobile-smart-point-file').val('');
+            selectedSmartPointType = null;
+            isAddingNewSmartpoint = false;
+            updateSmartpointButtons();
+        }
+
+        function removeSmartpoint(id) {
+            state.smartpoints = state.smartpoints.filter(p => p.id !== id);
+            if (selectedSmartpointId === id) selectedSmartpointId = null;
+            if (placingSmartpointId === id) placingSmartpointId = null;
+            renderSmartpointsList();
+            pushToHistory();
+            debouncedDraw();
+        }
+
+        function selectSmartpoint(id) {
+            selectedSmartpointId = (selectedSmartpointId === id) ? null : id;
+            if (movingSmartpointMode && selectedSmartpointId) {
+                showCustomMessage('Okospont kiválasztva. Kattints a képre az új hely megadásához!', 'info');
+            }
+            renderSmartpointsList();
+            debouncedDraw();
+        }
+
+        function toggleSmartpointsVisibility() {
+            state.showSmartpoints = !state.showSmartpoints;
+            syncSmartpointUI();
+            debouncedDraw();
+        }
+
+        function toggleMoveSmartpointsMode() {
+            movingSmartpointMode = !movingSmartpointMode;
+            selectedSmartpointId = null;
+            syncSmartpointUI();
+            if (movingSmartpointMode) {
+                document.body.classList.add('moving-smartpoint');
+                showCustomMessage('Kattints egy Okospontra a listában, majd a képre az áthelyezéshez!', 'info');
+            } else {
+                document.body.classList.remove('moving-smartpoint');
+            }
+            renderSmartpointsList();
+        }
+
+        function syncSmartpointUI() {
+            const toggleBtn = $('#toggleSmartpointsBtn');
+            const toggleText = $('#toggleSmartpointsText');
+            if (state.smartpoints.length > 0) {
+                toggleBtn.show();
+                toggleText.text(state.showSmartpoints ? 'Okospontok elrejtése' : 'Okospontok mutatása');
+            } else {
+                toggleBtn.hide();
+            }
+
+            const moveBtn = $('#moveSmartpointsBtn');
+            const moveText = $('#moveSmartpointsText');
+            if (state.smartpoints.length > 0) {
+                moveBtn.show();
+                moveText.text(movingSmartpointMode ? 'Áthelyezés megszakítása' : 'Okospontok áthelyezése');
+            } else {
+                moveBtn.hide();
+            }
+        }
+
+        function updateSmartpointButtons() {
+            const addBtn = $('#addSmartpointBtn');
+            if (isAddingNewSmartpoint) {
+                addBtn.html('<i class="fas fa-times me-2"></i>Mégsem');
+                addBtn.removeClass('btn-accent').addClass('btn-outline-secondary');
+            } else {
+                addBtn.html('<i class="fa-solid fa-plus me-2"></i>Új Okospont hozzáadása');
+                addBtn.removeClass('btn-outline-secondary').addClass('btn-accent');
+            }
+        }
+
+        function drawSmartpoints(ctx) {
+            if (!state.showSmartpoints) return;
+
+            const radiusCm = 0.5;
+            const radiusPixels = radiusCm * PPI;
+
+            state.smartpoints.forEach((sp, index) => {
+                if (!sp.placed) return;
+
+                const x = sp.x_cm * PPI;
+                const y = sp.y_cm * PPI;
+
+                ctx.save();
+
+                // Highlight selection/placement/move
+                if (selectedSmartpointId === sp.id || placingSmartpointId === sp.id || (typeof pickedUpSmartpointId !== 'undefined' && pickedUpSmartpointId === sp.id)) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, radiusPixels * 1.5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(197, 160, 89, 0.3)';
+                    ctx.fill();
+                }
+
+                // Draw main circle
+                ctx.beginPath();
+                ctx.arc(x, y, radiusPixels, 0, Math.PI * 2);
+                ctx.fillStyle = '#C5A059';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Icon based on type
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${Math.round(radiusPixels)}px "Font Awesome 6 Free"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const typeIcons = {
+                    'youtube': "\uf167",
+                    'spotify': "\uf1bc",
+                    'audio': "\uf001",
+                    'video': "\uf03d",
+                    'image': "\uf03e",
+                    'images': "\uf302",
+                    'url': "\uf0c1"
+                };
+
+                let iconCode = typeIcons[sp.type] || "\uf129";
+                ctx.fillText(iconCode, x, y);
+
+                // ID Label (Okospont index)
+                ctx.font = `bold ${Math.round(radiusPixels / 1.5)}px Arial`;
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(index + 1, x + radiusPixels * 0.8, y - radiusPixels * 0.8);
+                ctx.fillText(index + 1, x + radiusPixels * 0.8, y - radiusPixels * 0.8);
+
+                ctx.restore();
+            });
+        }
+
+        // Helper to get logical coordinates correctly mapping CSS pixel to Logical cm*PPI space
+        function getLogicalCoords(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const canvasW = state.canvasWidthCm * PPI;
+            const canvasH = state.canvasHeightCm * PPI;
+
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const mouseX = (clientX - rect.left) * (canvasW / rect.width);
+            const mouseY = (clientY - rect.top) * (canvasH / rect.height);
+            return { x: mouseX, y: mouseY };
+        }
+
+        function setupEvents() {
+            [desktopCanvas, mobileCanvas].forEach(canvas => {
+                canvas.addEventListener('mousedown', handleCanvasDown);
+                canvas.addEventListener('mousemove', handleCanvasMove);
+                canvas.addEventListener('mouseup', handleCanvasUp);
+                canvas.addEventListener('mouseleave', handleCanvasUp); // Changed to handle mouse leaving canvas
+
+                canvas.addEventListener('touchstart', handleCanvasDown, { passive: false });
+                canvas.addEventListener('touchmove', handleCanvasMove, { passive: false });
+                canvas.addEventListener('touchend', handleCanvasUp, { passive: false });
+            });
+
+            uploader.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        state.slots[state.activeSlotIndex].originalUrl = evt.target.result;
+                        openCropper(evt.target.result);
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+                uploader.value = '';
+            });
+
+            document.getElementById('crop-save-btn').addEventListener('click', () => {
+                if (cropper) {
+                    const croppedCanvas = cropper.getCroppedCanvas({
+                        width: state.slotWidthCm * PPI * 3,
+                        height: state.slotHeightCm * PPI * 3
+                    });
+                    const slot = state.slots[state.activeSlotIndex];
+                    const newImg = new Image();
+                    newImg.onload = () => {
+                        slot.img = newImg;
+                        draw();
+                    };
+                    newImg.src = croppedCanvas.toDataURL('image/jpeg', 0.95);
+                    cropperModal.hide();
+                }
+            });
+
+            // --- Smartpoint Event Listeners (jQuery) ---
+            $('#addSmartpointBtn').on('click', function () {
+                isAddingNewSmartpoint = !isAddingNewSmartpoint;
+                if (isAddingNewSmartpoint) {
+                    $('#smart-point-type-selector').slideDown(200);
+                } else {
+                    cancelAddSmartpoint();
+                }
+                updateSmartpointButtons();
+            });
+
+            $('.smart-point-type-btn').on('click', function () {
+                const type = $(this).data('type');
+                selectSmartPointType(type);
+            });
+
+            $('#save-smart-point-btn').on('click', saveSmartPoint);
+            $('#cancel-smart-point-btn').on('click', cancelAddSmartpoint);
+
+            $('#smartpointsList').on('click', '.edit-smartpoint', function (e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                editingSmartpointId = (editingSmartpointId === id) ? null : id;
+                renderSmartpointsList();
+                updateSmartpointButtons();
+            });
+
+            $('#smartpointsList').on('click', '.remove-smartpoint', function (e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                removeSmartpoint(id);
+            });
+
+            $('#smartpointsList').on('click', '.save-smartpoint-edit', function (e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                const point = state.smartpoints.find(p => p.id === id);
+                if (point && tempSmartpointChanges[id]) {
+                    point.type = tempSmartpointChanges[id].type || point.type;
+
+                    const fileInput = $(`.content-file-input[data-id="${id}"]`)[0];
+                    const urlInput = $(`.content-url-input[data-id="${id}"]`);
+
+                    if (fileInput && fileInput.files.length > 0) {
+                        point.content = fileInput.files[0].name;
+                    } else if (urlInput.length > 0) {
+                        point.content = urlInput.val();
+                    }
+
+                    delete tempSmartpointChanges[id];
+                    editingSmartpointId = null;
+                    showCustomMessage("Okospont elmentve.", "success");
+                    renderSmartpointsList();
+                    pushToHistory();
+                    debouncedDraw();
+                }
+            });
+
+            $('#smartpointsList').on('click', '.cancel-smartpoint-edit', function (e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                delete tempSmartpointChanges[id];
+                editingSmartpointId = null;
+                renderSmartpointsList();
+                updateSmartpointButtons();
+            });
+        }
+
+
+        function handleCanvasDown(e) {
+            const coords = getLogicalCoords(e, e.target);
+            const mouseX = coords.x;
+            const mouseY = coords.y;
+
+            // 0. Check for "Placing" an existing but not-yet-positioned point from the form
+            if (placingSmartpointId !== null) {
+                const sp = state.smartpoints.find(p => p.id === placingSmartpointId);
+                if (sp) {
+                    sp.x_cm = mouseX / PPI;
+                    sp.y_cm = mouseY / PPI;
+                    sp.placed = true;
+                    placingSmartpointId = null; // Placement is done
+                    selectedSmartpointId = null; // Ensure NO selection after placement
+                    pushToHistory();
+                    renderSmartpointsList();
+                    debouncedDraw();
+                    showCustomMessage('Okospont lehelyezve.', 'success');
+                    return; // Done with this click
+                } else {
+                    placingSmartpointId = null;
+                }
+            }
+
+            // 1. Handle click-to-move (Relocation)
+            if (movingSmartpointMode) {
+                // If a point is already selected (from the list), this click moves it here and ends the mode.
+                if (selectedSmartpointId !== null) {
+                    const sp = state.smartpoints.find(p => p.id === selectedSmartpointId);
+                    if (sp) {
+                        sp.x_cm = mouseX / PPI;
+                        sp.y_cm = mouseY / PPI;
+                        sp.placed = true;
+                    }
+                    selectedSmartpointId = null;
+                    movingSmartpointMode = false; // End move mode after one successful relocation
+                    document.body.classList.remove('moving-smartpoint');
+                    syncSmartpointUI();
+                    pushToHistory();
+                    renderSmartpointsList();
+                    debouncedDraw();
+                    showCustomMessage('Okospont áthelyezve.', 'success');
+                    return;
+                }
+
+                // If no point is selected, try to select one from the canvas (if we wanted to add that, but user asked for list selection + canvas click)
+                // For now, we stick to the model in the plan: select from list -> click canvas.
+                return;
+            }
+
+            // 2. Handle simple selection when not in move mode
+            if (state.showSmartpoints) {
+                const pixelsPerCm = PPI / 2.54;
+                const tolerance = 1.0 * pixelsPerCm; // 1cm tolerance (~28px)
+                const clickedSp = state.smartpoints.find(sp => {
+                    if (!sp.placed) return false;
+                    const sx = sp.x_cm * PPI;
+                    const sy = sp.y_cm * PPI;
+                    const dist = Math.sqrt(Math.pow(mouseX - sx, 2) + Math.pow(mouseY - sy, 2));
+                    return dist < tolerance;
+                });
+                if (clickedSp) {
+                    selectSmartpoint(clickedSp.id);
+                    return;
+                }
+            }
+
+            // 3. Fallback to slot clicking
+            processClick(mouseX, mouseY);
+        }
+
+        function handleCanvasMove(e) {
+            // Interaction model changed: we no longer follow the cursor (drag-follow).
+            // This empty function prevents the "jumping" behavior requested by the user.
+        }
+
+        function handleCanvasUp(e) {
+            // This function is intentionally left empty for click-and-drop.
+            // The drop action is handled by the second mousedown event.
+            // We leave the function here in case we want to handle mouseleave to cancel a move.
+            if (e.type === 'mouseleave' || e.type === 'touchcancel') {
+                // Optional: cancel move if mouse leaves canvas. For now, we don't.
+                // cancelMove();
+            }
+        }
+
+        // Obsolete - removed in favor of handleCanvasDown/Move/Up
+
+
+        function processClick(mouseX, mouseY) {
+            const isMobile = window.innerWidth < 992;
+            const canvas = getActiveCanvas();
+
+            // 1. Block Slot clicking if in Move mode (even if no point hit)
+            if (movingSmartpointMode) {
+                // If we clicked here but handleCanvasDown didn't start a drag,
+                // it means we clicked empty space in Move mode.
+                // Just deselect and return.
+                selectedSmartpointId = null;
+                debouncedDraw();
+                return;
+            }
+
+            // 3. Fallback to Slot Clicking
+            const mLeft = state.margins.left * PPI;
+            const mRight = state.margins.right * PPI;
+            const mTop = state.margins.top * PPI;
+            const mBottom = state.margins.bottom * PPI;
+            const slotW = state.slotWidthCm * PPI;
+            const slotH = state.slotHeightCm * PPI;
+            const gapX = state.gaps.x * PPI;
+            const gapY = state.gaps.y * PPI;
+            const headerMult = isMobile ? parseFloat(document.getElementById('mobile-header-zone-mult')?.value || 1.5) : parseFloat(document.getElementById('header-zone-mult')?.value || 1.5);
+            const footerMult = isMobile ? parseFloat(document.getElementById('mobile-footer-zone-mult')?.value || 1.5) : parseFloat(document.getElementById('footer-zone-mult')?.value || 1.5);
+
+            let headerContentH_px = 0;
+            state.headerLines.forEach(l => headerContentH_px += l.size);
+            let footerContentH_px = 0;
+            state.footerLines.forEach(l => footerContentH_px += l.size);
+
+            const headerZoneH = headerContentH_px > 0 ? (headerContentH_px * headerMult * PPI) : 0;
+            const footerZoneH = footerContentH_px > 0 ? (footerContentH_px * footerMult * PPI) : 0;
+
+            const contentAreaTop = mTop + headerZoneH;
+            const cH = state.canvasHeightCm * PPI;
+            const cW = state.canvasWidthCm * PPI;
+            const contentAreaBottom = cH - mBottom - footerZoneH;
+            const contentAvailableHeight = contentAreaBottom - contentAreaTop;
+
+            const collageW = (slotW * 2) + gapX;
+            const collageH = (state.word.length * slotH) + ((state.word.length - 1) * gapY);
+
+            const startX = mLeft + (cW - mLeft - mRight - collageW) / 2;
+
+            const align = isMobile ? (document.getElementById('mobile-collage-align')?.value || 'center') : (document.getElementById('collage-align')?.value || 'center');
+            let startY = contentAreaTop;
+            if (align === 'center') startY = contentAreaTop + (contentAvailableHeight - collageH) / 2;
+            else if (align === 'bottom') startY = contentAreaBottom - collageH;
+
+            // Check click for slots
+            const clickedSlot = state.slots.find(slot => {
+                const sx = startX + (slot.col * (slotW + gapX));
+                const sy = startY + (slot.row * (slotH + gapY));
+                return mouseX >= sx && mouseX <= sx + slotW && mouseY >= sy && mouseY <= sy + slotH;
+            });
+
+            if (clickedSlot) {
+                state.activeSlotIndex = clickedSlot.id;
+                if (clickedSlot.originalUrl) openCropper(clickedSlot.originalUrl);
+                else uploader.click();
+            }
+        }
+
+        function openCropper(url) {
+            document.getElementById('cropper-image').src = url;
+            cropperModal.show();
+            setTimeout(() => {
+                initCropper();
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) backdrop.style.zIndex = '-1';
+            }, 200);
+        }
+
+        function createSvgOverlay() {
+            const slot = state.slots[state.activeSlotIndex];
+            const char = state.word[slot.row];
+            const isMobile = window.innerWidth < 992;
+            const family = isMobile ? document.getElementById('mobile-word-font-family').value : document.getElementById('word-font-family').value;
+            const isBold = isMobile ? document.getElementById('mobile-word-bold').checked : document.getElementById('word-bold').checked;
+            const isItalic = isMobile ? document.getElementById('mobile-word-italic').checked : document.getElementById('word-italic').checked;
+            const colorHex = isMobile ? document.getElementById('mobile-word-color').value : document.getElementById('word-color').value;
+            const isLeftColumn = slot.col === 0;
+            const textX = isLeftColumn ? "100%" : "0%";
+            svgOverlayElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svgOverlayElement.setAttribute("class", "svg-overlay");
+            svgOverlayElement.innerHTML = `
+    <text x="${textX}" y="0" text-anchor="middle" fill="${colorHex}" fill-opacity="0.65" stroke="rgba(0,0,0,0.5)" stroke-width="0.5"
+          style="font-family: ${family}; font-weight: ${isBold ? 'bold' : 'normal'}; font-style: ${isItalic ? 'italic' : 'normal'}; pointer-events: none !important;">
+        ${char}
+    </text>
+    `;
+            document.querySelector('.cropper-container').appendChild(svgOverlayElement);
+            updateSvgOverlayPosition();
+        }
+
+        function draw() {
+            const canvas = getActiveCanvas();
+            const ctx = getActiveContext();
+            const isMobile = window.innerWidth < 992;
+            const mLeft = state.margins.left * PPI;
+            const mRight = state.margins.right * PPI;
+            const mTop = state.margins.top * PPI;
+            const mBottom = state.margins.bottom * PPI;
+            const cW = state.canvasWidthCm * PPI;
+            const cH = state.canvasHeightCm * PPI;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = cW * dpr;
+            canvas.height = cH * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = isMobile ? document.getElementById('mobile-global-bg-color').value : document.getElementById('global-bg-color').value;
+            ctx.fillRect(0, 0, cW, cH);
+            const slotW = state.slotWidthCm * PPI;
+            const slotH = state.slotHeightCm * PPI;
+            const gapX = state.gaps.x * PPI;
+            const gapY = state.gaps.y * PPI;
+            const headerMult = safeNum(document.getElementById('header-zone-mult').value, CONFIG.DEFAULTS.ZONE_MULT, 0.1);
+            const footerMult = safeNum(document.getElementById('footer-zone-mult').value, CONFIG.DEFAULTS.ZONE_MULT, 0.1);
+            let headerContentH = 0;
+            state.headerLines.forEach(l => headerContentH += l.size);
+            const headerZoneH = headerContentH * headerMult;
+
+            let footerContentH = 0;
+            state.footerLines.forEach(l => footerContentH += l.size);
+            const footerZoneH = footerContentH * footerMult;
+            const contentAreaTop = mTop + headerZoneH;
+            const contentAreaBottom = cH - mBottom - footerZoneH;
+            const contentAvailableHeight = contentAreaBottom - contentAreaTop;
+            const collageW = (slotW * 2) + gapX;
+            const collageH = (state.word.length * slotH) + ((state.word.length - 1) * gapY);
+            const startX = mLeft + ((cW - mLeft - mRight) - collageW) / 2;
+            const align = isMobile ? document.getElementById('mobile-collage-align').value : document.getElementById('collage-align').value;
+            let startY = contentAreaTop;
+            if (align === 'center') startY = contentAreaTop + (contentAvailableHeight - collageH) / 2;
+            else if (align === 'bottom') startY = contentAreaBottom - collageH;
+            state.slots.forEach(slot => {
+                const sx = startX + (slot.col * (slotW + gapX));
+                const sy = startY + (slot.row * (slotH + gapY));
+                ctx.fillStyle = slot.bgColor;
+                ctx.fillRect(sx, sy, slotW, slotH);
+                if (slot.img) ctx.drawImage(slot.img, sx, sy, slotW, slotH);
+            });
+            if (state.headerLines.length > 0) {
+                const hAlign = document.getElementById('header-align').value;
+                const zoneTop = mTop;
+                let textStartY = zoneTop;
+                if (hAlign === 'center') textStartY = zoneTop + (headerZoneH - headerContentH) / 2;
+                else if (hAlign === 'bottom') textStartY = zoneTop + headerZoneH - headerContentH;
+                let currentY = textStartY;
+                state.headerLines.forEach(line => {
+                    let style = "";
+                    if (line.bold) style += "bold ";
+                    if (line.italic) style += "italic ";
+                    ctx.font = `${style} ${line.size}px ${line.font}`;
+                    ctx.fillStyle = hexToRgba(line.color, line.opacity / 100);
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "top";
+                    ctx.fillText(line.text, cW / 2, currentY);
+                    currentY += line.size;
+                });
+            }
+            if (state.footerLines.length > 0) {
+                const fAlign = document.getElementById('footer-align').value;
+                const zoneBottom = cH - mBottom;
+                const zoneTop = zoneBottom - footerZoneH;
+                let textStartY = zoneTop;
+                if (fAlign === 'center') textStartY = zoneTop + (footerZoneH - footerContentH) / 2;
+                else if (fAlign === 'bottom') textStartY = zoneTop + footerZoneH - footerContentH;
+                let currentY = textStartY;
+                state.footerLines.forEach(line => {
+                    let style = "";
+                    if (line.bold) style += "bold ";
+                    if (line.italic) style += "italic ";
+                    ctx.font = `${style} ${line.size}px ${line.font}`;
+                    ctx.fillStyle = hexToRgba(line.color, line.opacity / 100);
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "top";
+                    ctx.fillText(line.text, canvas.width / 2, currentY);
+                    currentY += line.size;
+                });
+            }
+            const sizePercent = state.wordSizePercent || 100;
+            const fontConfig = { family: state.wordFont, bold: state.wordBold, italic: state.wordItalic, color: state.wordColor, opacity: state.wordOpacity };
+            ctx.fillStyle = hexToRgba(fontConfig.color, fontConfig.opacity / 100);
+            ctx.textAlign = "center";
+            ctx.shadowColor = "rgba(0,0,0,0)"; ctx.shadowBlur = 0;
+            for (let i = 0; i < state.word.length; i++) {
+                const char = state.word[i];
+                const layout = calculateTextLayout(char, fontConfig, slotH, sizePercent);
+                const rowTop = startY + (i * (slotH + gapY));
+                const rowCenterX = startX + slotW + (gapX / 2);
+                const finalY = rowTop + layout.drawY;
+                ctx.font = layout.fontStr;
+                ctx.textBaseline = "alphabetic";
+                ctx.fillText(char, rowCenterX, finalY);
+            }
+            drawSmartpoints(ctx);
+        }
+
+        function updateSvgOverlayPosition() {
+            if (!cropper || !svgOverlayElement) return;
+            const cropBox = cropper.getCropBoxData();
+            svgOverlayElement.style.left = cropBox.left + "px";
+            svgOverlayElement.style.top = cropBox.top + "px";
+            svgOverlayElement.style.width = cropBox.width + "px";
+            svgOverlayElement.style.height = cropBox.height + "px";
+            svgOverlayElement.setAttribute("viewBox", `0 0 ${cropBox.width} ${cropBox.height}`);
+            const slot = state.slots[state.activeSlotIndex];
+            const char = state.word[slot.row];
+            const sizePercent = state.wordSizePercent || 100;
+            const fontConfig = { family: state.wordFont, bold: state.wordBold, italic: state.wordItalic, color: state.wordColor };
+            const layout = calculateTextLayout(char, fontConfig, cropBox.height, sizePercent);
+            const textEl = svgOverlayElement.querySelector('text');
+            textEl.setAttribute('style', `font-family: ${fontConfig.family}; font-weight: ${fontConfig.bold ? 'bold' : 'normal'}; 
+                 font-style: ${fontConfig.italic ? 'italic' : 'normal'}; font-size: ${layout.fontSize}px;`);
+            textEl.setAttribute('y', layout.drawY);
+            textEl.setAttribute('text-anchor', 'middle');
+            textEl.setAttribute('dominant-baseline', 'alphabetic');
+        }
+
+        function initCropper() {
+            const image = document.getElementById('cropper-image');
+            if (cropper) { cropper.destroy(); cropper = null; }
+            if (svgOverlayElement) { svgOverlayElement.remove(); svgOverlayElement = null; }
+            const ar = state.slotWidthCm / state.slotHeightCm;
+            cropper = new Cropper(image, {
+                aspectRatio: ar, viewMode: 1, dragMode: 'move', autoCropArea: 1,
+                ready: () => createSvgOverlay(),
+                crop: () => updateSvgOverlayPosition()
+            });
+        }
+
+        function downloadCanvas() {
+            const link = document.createElement('a');
+            link.download = `kollazs-${state.word}.jpg`;
+            link.href = getActiveCanvas().toDataURL('image/jpeg', 0.95);
+            link.click();
+        }
+
+        function exportState() {
+            const filename = `kollazs_projekt_${state.word || 'nevtelelen'}_${new Date().toISOString().slice(0, 10)}.json`;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", filename);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importState(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const loadedState = JSON.parse(e.target.result);
+                    if (!loadedState.word || !Array.isArray(loadedState.slots)) { alert("Érvénytelen projekt fájl!"); return; }
+                    pushToHistory();
+                    state = loadedState;
+                    if (typeof state.wordSizePercent === 'undefined') state.wordSizePercent = 100;
+                    if (typeof state.headerZoneMult === 'undefined') state.headerZoneMult = 3.0;
+                    if (typeof state.footerZoneMult === 'undefined') state.footerZoneMult = 3.0;
+                    if (typeof state.autoResize === 'undefined') state.autoResize = false;
+                    if (!state.headerLines) state.headerLines = [];
+                    if (!state.footerLines) state.footerLines = [];
+                    rebuildUIFromState();
+                    updateSizes('state');
+                    renderLinesUI('header');
+                    renderLinesUI('footer');
+                    let imagesToLoad = state.slots.filter(s => s.originalUrl).length;
+                    let imagesLoaded = 0;
+                    if (imagesToLoad === 0) { debouncedDraw(); }
+                    else {
+                        showLoading();
+                        state.slots.forEach(slot => {
+                            if (slot.originalUrl) {
+                                const img = new Image();
+                                img.onload = () => {
+                                    slot.img = img;
+                                    imagesLoaded++;
+                                    if (imagesLoaded === imagesToLoad) {
+                                        hideLoading();
+                                        debouncedDraw();
+                                    }
+                                };
+                                img.onerror = () => {
+                                    imagesLoaded++;
+                                    if (imagesLoaded === imagesToLoad) {
+                                        hideLoading();
+                                        debouncedDraw();
+                                    }
+                                }
+                                img.src = slot.originalUrl;
+                            }
+                        });
+                    }
+                } catch (err) { console.error(err); alert("Hiba a betöltés közben: " + err.message); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+        window.addEventListener('resize', function () { updateSizes('resize'); });
+
+        // ============ LOADING SYSTEM ============
+        function showLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.remove('hide');
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.classList.add('hide');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    // Reset progress
+                    updateLoadingProgress(0, 'Feldolgozás...');
+                }, 500);
+            }
+        }
+
+        function updateLoadingProgress(percent, text) {
+            const bar = document.getElementById('loading-progress');
+            const label = document.getElementById('loading-text');
+            if (bar) bar.style.width = percent + '%';
+            if (label && text) label.textContent = text;
+        }
+
+        // ============ SESSION RECOVERY (IndexedDB) ============
+        const DB_NAME = 'SzovegesEditorDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'editor_session';
+
+        const SessionDB = {
+            db: null,
+
+            init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME);
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve(this.db);
+                    };
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async save(data) {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.put(data, 'current_session');
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async load() {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get('current_session');
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async clear() {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.delete('current_session');
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+        };
+
+        // ============ COMPREHENSIVE SETTINGS OBJECT ============
+        function buildEditorSettings() {
+            return {
+                // Metadata
+                version: '1.0',
+                timestamp: Date.now(),
+                editorType: 'szoveges_kollazs',
+
+                // Canvas
+                canvas: {
+                    widthCm: state.canvasWidthCm,
+                    heightCm: state.canvasHeightCm,
+                    bgColor: state.globalBgColor,
+                    autoResize: state.autoResize
+                },
+
+                // Slots
+                slots: {
+                    widthCm: state.slotWidthCm,
+                    heightCm: state.slotHeightCm,
+                    lockRatio: state.lockSlotRatio,
+                    images: state.slots.map(s => ({
+                        id: s.id,
+                        row: s.row,
+                        col: s.col,
+                        originalUrl: s.originalUrl || null,
+                        bgColor: s.bgColor || '#eeeeee'
+                    }))
+                },
+
+                // Gaps
+                gaps: { x: state.gaps.x, y: state.gaps.y },
+
+                // Margins
+                margins: {
+                    top: state.margins.top,
+                    right: state.margins.right,
+                    bottom: state.margins.bottom,
+                    left: state.margins.left
+                },
+
+                // Word
+                word: {
+                    text: state.word,
+                    font: state.wordFont,
+                    color: state.wordColor,
+                    opacity: state.wordOpacity,
+                    bold: state.wordBold,
+                    italic: state.wordItalic,
+                    sizePercent: state.wordSizePercent
+                },
+
+                // Alignment
+                alignment: {
+                    collage: state.collageAlign,
+                    header: state.headerAlign,
+                    footer: state.footerAlign
+                },
+
+                // Header
+                header: {
+                    zoneMult: state.headerZoneMult,
+                    lines: JSON.parse(JSON.stringify(state.headerLines))
+                },
+
+                // Footer
+                footer: {
+                    zoneMult: state.footerZoneMult,
+                    lines: JSON.parse(JSON.stringify(state.footerLines))
+                },
+
+                // Smartpoints
+                smartpoints: state.smartpoints.map(sp => ({
+                    id: sp.id,
+                    type: sp.type,
+                    content: sp.content,
+                    x_cm: sp.x_cm,
+                    y_cm: sp.y_cm,
+                    placed: sp.placed
+                })),
+                nextSmartpointId: state.nextSmartpointId,
+                showSmartpoints: state.showSmartpoints,
+
+                // Pricing
+                pricing: {
+                    productType: state.smartpoints.length > 0 ? 'Okoskép' : 'Betűkollázs',
+                    currency: 'Ft'
+                },
+
+                // Production data (for Photoshop / NFC)
+                production: {
+                    ppi: CONFIG.PPI,
+                    smartpointsCm: state.smartpoints
+                        .filter(sp => sp.placed)
+                        .map(sp => ({
+                            id: sp.id,
+                            x_cm: parseFloat((sp.x_cm || 0).toFixed(2)),
+                            y_cm: parseFloat((sp.y_cm || 0).toFixed(2)),
+                            type: sp.type,
+                            content: sp.content
+                        }))
+                },
+
+                // Theme
+                theme: currentTheme || 'Misty Original'
+            };
+        }
+
+        // ============ AUTO-SAVE ============
+        let autoSaveTimeout = null;
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                autoSaveSession();
+            }, 2000);
+        }
+
+        async function autoSaveSession() {
+            try {
+                const hasContent = true; // Always save if state changes
+
+                if (!hasContent) return;
+
+                const sessionData = {
+                    settings: buildEditorSettings(),
+                    timestamp: Date.now()
+                };
+
+                await SessionDB.save(sessionData);
+                console.log('[Session] Auto-saved', new Date().toLocaleTimeString());
+            } catch (e) {
+                console.error('[Session] Auto-save failed:', e);
+            }
+        }
+
+        // ============ SESSION CHECK & RESTORE ============
+        async function checkAndPromptSession() {
+            try {
+                const savedData = await SessionDB.load();
+                if (savedData && savedData.settings) {
+                    const s = savedData.settings;
+                    // Check if there's meaningful content to restore
+                    const hasImages = s.slots && s.slots.images && s.slots.images.some(img => img.originalUrl);
+                    const hasSmartpoints = s.smartpoints && s.smartpoints.length > 0;
+                    const hasHeaderFooter = (s.header && s.header.lines && s.header.lines.length > 0) ||
+                        (s.footer && s.footer.lines && s.footer.lines.length > 0);
+                    const hasCustomWord = s.word && s.word.text && s.word.text !== 'LOVE';
+
+                    if (hasImages || hasSmartpoints || hasHeaderFooter || hasCustomWord) {
+                        hideLoading();
+                        const modal = new bootstrap.Modal(document.getElementById('recoveryModal'));
+                        modal.show();
+
+                        return new Promise((resolve) => {
+                            $('#restoreSession').off('click').on('click', async () => {
+                                modal.hide();
+                                showLoading();
+                                setTimeout(async () => {
+                                    await restoreSession(savedData);
+                                    resolve(true);
+                                }, 50);
+                            });
+
+                            $('#discardSession').off('click').on('click', async () => {
+                                await SessionDB.clear();
+                                resolve(false);
+                            });
+                        });
+                    }
+                }
+                return false;
+            } catch (e) {
+                console.error('[Session] Load check failed:', e);
+                return false;
+            }
+        }
+
+        async function restoreSession(data) {
+            updateLoadingProgress(10, 'Adatok betöltése...');
+            showLoading();
+            try {
+                const s = data.settings;
+
+                // Restore state values
+                updateLoadingProgress(20, 'Beállítások visszaállítása...');
+
+                state.word = s.word.text || 'LOVE';
+                state.wordFont = s.word.font || "'Arial'";
+                state.wordColor = s.word.color || '#000000';
+                state.wordOpacity = s.word.opacity !== undefined ? s.word.opacity : 100;
+                state.wordBold = s.word.bold !== undefined ? s.word.bold : true;
+                state.wordItalic = s.word.italic !== undefined ? s.word.italic : false;
+                state.wordSizePercent = s.word.sizePercent || 100;
+
+                state.canvasWidthCm = s.canvas.widthCm || 26.0;
+                state.canvasHeightCm = s.canvas.heightCm || 30.0;
+                state.globalBgColor = s.canvas.bgColor || '#ffffff';
+                state.autoResize = s.canvas.autoResize !== undefined ? s.canvas.autoResize : false;
+
+                state.slotWidthCm = s.slots.widthCm || 10.5;
+                state.slotHeightCm = s.slots.heightCm || 6.0;
+                state.lockSlotRatio = s.slots.lockRatio !== undefined ? s.slots.lockRatio : true;
+
+                state.gaps = s.gaps || { x: 0, y: 0 };
+                state.margins = s.margins || { top: 2, right: 2, bottom: 2, left: 2 };
+
+                state.collageAlign = (s.alignment && s.alignment.collage) || 'center';
+                state.headerAlign = (s.alignment && s.alignment.header) || 'center';
+                state.footerAlign = (s.alignment && s.alignment.footer) || 'center';
+
+                state.headerZoneMult = (s.header && s.header.zoneMult) || 3.0;
+                state.footerZoneMult = (s.footer && s.footer.zoneMult) || 3.0;
+                state.headerLines = (s.header && s.header.lines) || [];
+                state.footerLines = (s.footer && s.footer.lines) || [];
+
+                state.smartpoints = s.smartpoints || [];
+                state.nextSmartpointId = s.nextSmartpointId || 1;
+                state.showSmartpoints = s.showSmartpoints !== undefined ? s.showSmartpoints : true;
+
+                // Theme
+                if (s.theme) {
+                    localStorage.setItem('selectedTheme', s.theme);
+                    applyTheme(s.theme, false);
+                }
+
+                updateLoadingProgress(40, 'Képek feldolgozása...');
+
+                // Rebuild slots from settings
+                const savedImages = s.slots.images || [];
+                rebuildSlots();
+                // Restore slot metadata
+                state.slots.forEach((slot, i) => {
+                    const saved = savedImages.find(si => si.id === slot.id);
+                    if (saved) {
+                        slot.originalUrl = saved.originalUrl || null;
+                        slot.bgColor = saved.bgColor || '#eeeeee';
+                    }
+                });
+
+                // Load slot images
+                const slotsWithImages = state.slots.filter(s => s.originalUrl);
+                let imagesLoaded = 0;
+                const totalImages = slotsWithImages.length;
+
+                if (totalImages === 0) {
+                    updateLoadingProgress(90, 'Megjelenítés...');
+                    rebuildUIFromState();
+                    updateSizes('state');
+                    renderLinesUI('header');
+                    renderLinesUI('footer');
+                    debouncedDraw();
+                    hideLoading();
+                    showCustomMessage('Munkamenet sikeresen visszaállítva!', 'success');
+                    return;
+                }
+
+                await new Promise((resolve) => {
+                    slotsWithImages.forEach(slot => {
+                        const img = new Image();
+                        img.onload = () => {
+                            slot.img = img;
+                            imagesLoaded++;
+                            const pct = 40 + Math.round((imagesLoaded / totalImages) * 50);
+                            updateLoadingProgress(pct, `Képek betöltése... (${imagesLoaded}/${totalImages})`);
+                            if (imagesLoaded === totalImages) resolve();
+                        };
+                        img.onerror = () => {
+                            console.warn('[Session] Image load failed for slot', slot.id);
+                            imagesLoaded++;
+                            if (imagesLoaded === totalImages) resolve();
+                        };
+                        img.src = slot.originalUrl;
+                    });
+                });
+
+                updateLoadingProgress(95, 'Megjelenítés...');
+                rebuildUIFromState();
+                updateSizes('state');
+                renderLinesUI('header');
+                renderLinesUI('footer');
+                debouncedDraw();
+
+                updateLoadingProgress(100, 'Kész!');
+                setTimeout(() => {
+                    hideLoading();
+                    showCustomMessage('Munkamenet sikeresen visszaállítva!', 'success');
+                }, 300);
+
+            } catch (err) {
+                console.error('[Session] Restore failed:', err);
+                hideLoading();
+                showCustomMessage('Hiba a munkamenet visszaállítása közben: ' + err.message, 'error');
+            }
+        }
+
+        // ============ AUTO-SAVE HOOKS ============
+        function setupAutoSaveHooks() {
+            // 1. Global listener for any input change
+            document.body.addEventListener('input', function (e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    console.log('[AutoSave] Input changed:', e.target.id || e.target.name || e.target.tagName);
+                    scheduleAutoSave();
+                }
+            });
+
+            document.body.addEventListener('change', function (e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    console.log('[AutoSave] Input changed (change event):', e.target.id || e.target.name || e.target.tagName);
+                    scheduleAutoSave();
+                }
+            });
+
+            // 2. Listeners for specific buttons that modify state
+            const actionButtons = [
+                'quickThemeToggle',
+                'add-header-line', 'remove-header-line',
+                'add-footer-line', 'remove-footer-line',
+                'btn-collage-top', 'btn-collage-center', 'btn-collage-bottom',
+                'btn-header-top', 'btn-header-center', 'btn-header-bottom',
+                'btn-footer-top', 'btn-footer-center', 'btn-footer-bottom',
+                'bold-btn', 'italic-btn',
+                'toggleSmartpointsBtn', 'moveSmartpointsBtn', 'addSmartpointBtn',
+                'crop-save-btn'
+            ];
+
+            actionButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        console.log('[AutoSave] Button clicked:', id);
+                        scheduleAutoSave();
+                    });
+                }
+            });
+
+            // 3. Theme items
+            const themeItems = document.querySelectorAll('.theme-item');
+            themeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    console.log('[AutoSave] Theme changed');
+                    scheduleAutoSave();
+                });
+            });
+
+            // 4. Mobile specific buttons if they exist and aren't covered above
+            const mobileButtons = document.querySelectorAll('.mobile-tab, .mobile-action-btn');
+            mobileButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Mobile tabs don't necessarily change state, but good to catch
+                    // scheduleAutoSave(); 
+                });
+            });
+
+            console.log('[AutoSave] Global hooks initialized');
+        }
+
+        // ============ APP STARTUP ============
+        async function startApp() {
+            try {
+                await SessionDB.init();
+                const restored = await checkAndPromptSession();
+
+                if (restored) {
+                    // Session was restored, init tabs + events but don't reset values
+                    initTabs();
+                    initMobileTabs();
+                    syncInputs();
+                    setupEvents();
+                    setupAutoSaveHooks(); // Add hooks
+
+                    const wordVal = parseInt(document.getElementById('word-size-percent').value) || 100;
+                    updatePrecisionDisplay('word', wordVal);
+                    updatePrecisionDisplay('header-zone', parseFloat(document.getElementById('header-zone-mult').value) || 1.5);
+                    updatePrecisionDisplay('footer-zone', parseFloat(document.getElementById('footer-zone-mult').value) || 1.5);
+                } else {
+                    // Normal init
+                    init();
+                    setupAutoSaveHooks(); // Add hooks
+                    hideLoading();
+                }
+            } catch (e) {
+                console.error('[Session] Startup error:', e);
+                init();
+                setupAutoSaveHooks(); // Add hooks fallback
+                hideLoading();
+            }
+        }
+
+        window.onload = startApp;
+
+    </script>
+</body>
+
+</html>
+    <script src='custom_font_selector.js'></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                initCustomFontSelector('word-font-family', 'input-word');
+                initCustomFontSelector('mobile-word-font-family', 'mobile-input-word');
+            }, 500);
+        });
+    </script>
