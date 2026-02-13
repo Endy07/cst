@@ -1143,7 +1143,8 @@
             gap: 4px;
             margin: 10px;
             border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);    
+            justify-content: space-between;
         }
 
         .mobile-tab {
