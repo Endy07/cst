@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Print – Professzionális Vászonkép Tervező</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <link rel="stylesheet" href="theme_antig_2_J.css">
+
+    <style>
+        /* CSS migrated to theme_antig_2.css */
+        .price-card {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 991px) {
+            .price-card {
+                padding-left: 0px !important;
+                padding-right: 0px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <h3 id="loading-text">Feldolgozás...</h3>
+        <div class="progress mt-3" style="width: 200px; height: 6px; background: rgba(255,255,255,0.1);">
+            <div id="loading-progress" class="progress-bar bg-accent" role="progressbar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Session Recovery Modal -->
+    <div class="modal fade" id="recoveryModal" tabindex="-1" aria-labelledby="recoveryModalLabel" aria-hidden="true"
+        data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="recoveryModalLabel">
+                        <i class="fas fa-history text-accent me-2"></i>Folytatod a munkát?
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    Úgy tűnik, van egy korábbi mentett tervezésed. Szeretnéd betölteni és onnan folytatni, ahol
+                    abbahagytad?
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" id="discardSession" class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">Új tervezés</button>
+                    <button type="button" id="restoreSession" class="btn btn-accent px-4">Folytatás</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liquid Background -->
+    <div class="liquid-bg">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <div class="blob b3"></div>
+        <div class="blob b4"></div>
+        <div class="blob b5"></div>
+    </div>
+
+    <!-- Theme Selector Button -->
+    <button id="themeSelectorBtn" title="Témaválasztó" aria-label="Téma választó megnyitása">
+        <i class="fas fa-palette"></i>
+    </button>
+
+    <!-- Theme Panel -->
+    <div id="themePanel">
+        <div class="theme-panel-header">
+            <h3>Témaválasztó</h3>
+            <button class="theme-panel-close" id="themePanelClose">&times;</button>
+        </div>
+        <div class="theme-panel-body" id="themePanelBody">
+            <!-- Theme items rendered by JS -->
+        </div>
+        <div class="custom-color-section">
+            <div class="custom-color-title">Egyedi színek</div>
+            <div class="custom-color-inputs">
+                <input type="color" id="customColorMain" value="#FDFBFB" title="Háttér">
+                <input type="color" id="customColorSec" value="#FFFFFF" title="Blob">
+                <input type="color" id="customColorAcc" value="#C5A059" title="Kiemelő">
+            </div>
+            <div class="custom-color-labels">
+                <span>Háttér</span>
+                <span>Blob</span>
+                <span>Kiemelő</span>
+            </div>
+            <button class="btn btn-accent w-100 mt-3" id="applyCustomColors">Alkalmazás</button>
+        </div>
+    </div>
+
+    <!-- <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <span class="text-accent">
+                    <i class="fas fa-palette"></i>
+                </span>
+                SMART PRINT
+            </a>
+            <div class="ms-auto text-primary fw-bold fs-5">
+                <span id="current-price">0 Ft</span>
+            </div>
+        </div>
+    </nav> -->
+
+    <main class="layout-wrapper" class="container-fluid py-4">
+        <!-- <div class="text-center mb-5">
+            <h1 class="fw-bold mb-2 text-primary">Vászonkép Tervező</h1>
+            <p class="text-light">Hozd létre egyedülálló nyomatodat profi eszközökkel</p>
+        </div> -->
+
+        <div class="editor-container mx-3">
+
+            <div class="left-column" style="position: relative;">
+                <!-- Quick Theme Toggle -->
+                <button id="quickThemeToggle" class="btn btn-circle shadow-sm"
+                    style="position: absolute; top: 15px; right: 15px; z-index: 100; background: var(--glass-surface); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: var(--text-main); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;"
+                    title="Váltás mód" aria-label="Téma váltása">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="preview-area shadow-sm" id="drop-zone">
+                    <canvas id="main-canvas" width="600" height="400"></canvas>
+                    <div id="placeholder-text" class="text-secondary">
+                        <i class="fa-solid fa-cloud-arrow-up display-4 mb-3" style="opacity: 0.7;"></i>
+                        <p class="fw-bold mb-1">Kép feltöltése</p>
+                        <p class="small text-light">Húzd ide a fájlt, vagy kattints a feltöltéshez</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <form id="editor-form">
+
+                    <!-- Méret beállítások -->
+                    <div class="card mb-4">
+                        <!-- <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="section-title">Méret beállítások</span>
+                            <i class="fas fa-ruler-combined text-accent"></i>
+                        </div> -->
+                        <div class="card-body">
+                            <div id="print-view-section">
+                                <p class="mb-3 text-center text-primary fw-bold p-2 rounded bg-light-bg"
+                                    id="size_nemkif_" style="display:none">
+                                    Vászonkép mérete:<br><span id="display-width">60</span> × <span
+                                        id="display-height">40</span> cm
+                                </p>
+                                <p class="mb-3 text-center text-primary fw-bold p-2 rounded bg-light-bg" id="size_kif_">
+                                    Vászonkép mérete:<br><span id="mid-width">60</span> × <span
+                                        id="mid-height">40</span>
+                                    cm
+                                </p>
+
+                                <div class="row g-3" id="size_nemkif" style="display:none">
+                                    <div class="col-6">
+                                        <label for="input-width" class="form-label text-secondary">Szélesség
+                                            (cm)</label>
+                                        <input type="number" id="input-width" class="form-control" min="1" max="30000"
+                                            value="60">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="input-height" class="form-label text-secondary">Magasság
+                                            (cm)</label>
+                                        <input type="number" id="input-height" class="form-control" min="1" max="30000"
+                                            value="40">
+                                    </div>
+                                </div>
+                                <div class="row g-3" id="size_kif" style="text-align: center;">
+                                    <div class="col-6">
+                                        <label for="input-widthS" class="form-label text-secondary">Szélesség
+                                            (cm)</label>
+                                        <input type="number" id="input-widthS" class="form-control" min="1" max="30000"
+                                            value="60" size="5">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="input-heightS" class="form-label text-secondary">Magasság
+                                            (cm)</label>
+                                        <input type="number" id="input-heightS" class="form-control" min="1" max="30000"
+                                            value="40" size="5">
+                                    </div>
+                                </div>
+
+                                <div class="form-check mt-3 mb-4" style="display:none">
+                                    <input class="form-check-input" type="checkbox" value="" id="lock-aspect-ratio"
+                                        checked>
+                                    <label class="form-check-label text-primary" for="lock-aspect-ratio">
+                                        Képarány megtartása
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Előnézet beállítások -->
+                    <div class="card mb-4">
+                        <!-- <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="section-title">Előnézet beállítások</span>
+                            <i class="fas fa-eye text-accent"></i>
+                        </div> -->
+                        <div class="card-body">
+                            <button id="printViewButton" type="button"
+                                class="btn btn-outline-secondary w-100 mb-3 btn-toggle active" data-mode="standard">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">Él előnézet</span>
+                                    <span id="printViewStatus" class="badge bg-accent">BE</span>
+                                </div>
+                                <p id="printViewStatusBe" class="small text-start mt-2 mb-0 text-light">A nyomat
+                                    kiterítve látszik: Középen "a vászonkép", az oldalai pedig mellette, elhalványítva.
+                                </p>
+                                <p id="printViewStatusKi" class="small text-start mt-2 mb-0 text-light"
+                                    style="display: none">Most csak "a vászonkép" látszik szemből, ahogy a faladon lesz.
+                                </p>
+                            </button>
+
+                            <div id="edge-options-group">
+                                <div class="mb-3 text-center">
+                                    <button id="standardEdgesButton" type="button"
+                                        class="btn btn-outline-secondary w-100 mb-2 btn-toggle-secondary active"
+                                        data-edge-mode="standard">
+                                        <i class="fas fa-crop-alt me-2"></i>Kifutós Élek
+                                    </button>
+                                    <button id="eyeButton" type="button"
+                                        class="btn btn-outline-secondary mb-2 btn-toggle-secondary active mx-auto"
+                                        data-edge-mode="eye"
+                                        style="width: auto !important; display: inline-block; min-width: 200px;">
+                                        <i class="fas fa-low-vision me-2"></i>Halványítás elrejtése
+                                    </button>
+                                </div>
+                                <div class="mb-3">
+                                    <button id="colorEdgesButton" type="button"
+                                        class="btn btn-outline-secondary w-100 mb-2 btn-toggle-secondary"
+                                        data-edge-mode="color">
+                                        <i class="fas fa-fill-drip me-2"></i>Színes Élek
+                                    </button>
+                                    <div id="szineselSzinDiv" class="d-flex align-items-center mt-2"
+                                        style="display:none !important; justify-content: center;">
+                                        <input type="color" id="szele" name="szele" value="#FF0000"
+                                            class="form-control form-control-color me-2">
+                                        <label for="szele" class="text-primary">Szín választása</label>
+                                    </div>
+                                </div>
+
+                                <div class="btn-group w-100" role="group">
+                                    <button id="mirroredEdgesButton" type="button"
+                                        class="btn btn-outline-secondary w-50 btn-toggle-secondary"
+                                        data-edge-mode="mirrored1">
+                                        <i class="fas fa-sync-alt me-2"></i>Tükrözött
+                                    </button>
+                                    <button id="mirroredEdges2Button" type="button"
+                                        class="btn btn-outline-secondary w-50 btn-toggle-secondary"
+                                        data-edge-mode="mirrored2">
+                                        <i class="fas fa-copy me-2"></i>Megkettőzött
+                                    </button>
+                                </div>
+
+                                <input type="hidden" id="edgeMode" value="standard">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Okospontok -->
+                    <div class="card mb-4">
+                        <!-- <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="section-title">Okospontok</span>
+                            <i class="fas fa-plus-circle text-accent"></i>
+                        </div> -->
+                        <div class="card-body">
+                            <div class="mb-3" style="margin-bottom: 0px !important">
+                                <button type="button" id="addSmartpointBtn" class="btn btn-accent w-100 mb-3">
+                                    <i class="fa-solid fa-plus me-2"></i>Új Okospont hozzáadása
+                                </button>
+
+                                <!-- Típus választó -->
+                                <div id="smart-point-type-selector" class="mb-3" style="display: none;">
+                                    <label class="form-label text-secondary">Válaszd ki az Okospont típusát:</label>
+                                    <div class="btn-group-vertical w-100" role="group">
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="audio">
+                                            <i class="fas fa-music me-2"></i>Hangfájl feltöltése
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="video">
+                                            <i class="fas fa-video me-2"></i>Videó feltöltése
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="image">
+                                            <i class="fas fa-image me-2"></i>Kép feltöltése
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="images">
+                                            <i class="fas fa-images me-2"></i>Képek feltöltése
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="youtube">
+                                            <i class="fab fa-youtube me-2"></i>YouTube URL
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="spotify">
+                                            <i class="fab fa-spotify me-2"></i>Spotify URL
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start smart-point-type-btn"
+                                            data-type="url">
+                                            <i class="fas fa-link me-2"></i>Bármilyen URL
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Tartalom beviteli mezők -->
+                                <div id="smart-point-content-input" class="mb-3" style="display: none;">
+                                    <div id="smart-point-url-input" class="mb-2">
+                                        <label class="form-label text-secondary">URL:</label>
+                                        <input type="url" id="smart-point-url" class="form-control"
+                                            placeholder="https://...">
+                                    </div>
+                                    <div id="smart-point-file-input" class="mb-2" style="display: none;">
+                                        <label class="form-label text-secondary">Fájl feltöltése:</label>
+                                        <input type="file" id="smart-point-file" class="form-control"
+                                            accept="audio/*,video/*,image/*">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" id="save-smart-point-btn" class="btn btn-accent btn-sm">
+                                            <i class="fas fa-save me-1"></i>Mentés
+                                        </button>
+                                        <button type="button" id="cancel-smart-point-btn"
+                                            class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-times me-1"></i>Mégse
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button type="button" id="toggleSmartpointsBtn"
+                                    class="btn btn-outline-secondary w-100 mb-3" style="display:none;">
+                                    <i class="fa-solid fa-eye me-2"></i><span id="toggleSmartpointsText">Okospontok
+                                        elrejtése</span>
+                                </button>
+
+                                <!-- Áthelyezés gomb -->
+                                <button type="button" id="moveSmartpointsBtn"
+                                    class="btn btn-outline-secondary w-100 mb-3" style="display:none;">
+                                    <i class="fas fa-arrows-alt me-2"></i><span id="moveSmartpointsText">Okospontok
+                                        áthelyezése</span>
+                                </button>
+
+                                <div id="smartpointsList"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--<div class="card-body">
+                        < ! - - Undo / Redo Controls - - >
+                        <div class="d-flex gap-2 mb-3">
+                            <button id="undoBtn" class="btn btn-outline-secondary flex-grow-1" disabled
+                                aria-label="Visszavonás">
+                                <i class="fas fa-undo me-2"></i>Visszavonás
+                            </button>
+                            <button id="redoBtn" class="btn btn-outline-secondary flex-grow-1" disabled
+                                aria-label="Mégis">
+                                <i class="fas fa-redo me-2"></i>Mégis
+                            </button>
+                        </div>
+
+                        <button id="change-image-btn" class="btn btn-outline-secondary w-100 mb-3" type="button"
+                            aria-label="Kép cseréje">
+                            <i class="fa-solid fa-sync-alt me-2"></i> Kép cseréje
+                        </button>
+                    </div>-->
+
+                    <!-- Ár és megrendelés -->
+                    <div class="card mb-4 price-card">
+                        <div class="price-display">
+                            <span class="text-primary fw-bold">Végösszeg:</span>
+                            <div id="final-price" class="final-price">0 Ft</div>
+                        </div>
+                        <button type="submit" class="btn btn-accent btn-lg w-100 fw-bold py-3">
+                            <i class="fa-solid fa-cart-shopping me-2"></i> Kosárba és Tovább
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <div id="custom-message" class="shadow">
+        <p id="message-text" class="fw-bold mb-1"></p>
+        <button id="close-message-btn" class="btn btn-sm btn-outline-light mt-2">Bezárás</button>
+    </div>
+
+    <input type="file" id="image-upload" accept="image/jpeg, image/png" style="display: none;">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- A JavaScript kód változatlan marad, mert csak a design-t módosítottuk -->
+    <script>
+        // Az összes JavaScript kód változatlanul marad
+        // Csak a design-t módosítottuk, a funkcionalitás változatlan
+        // A teljes JavaScript kód a korábbi verzióból marad
+        // [A teljes JavaScript kód itt kerülne beillesztésre, de a válasz hosszúsága miatt nem ismétlem meg]
+    </script>
+
+    <script>
+        // === LIQUID GLASS THEME SYSTEM ===
+        const themes = [
+            // Light Themes (Restored & Fixed)
+            { name: 'Ivory Elegance', colors: ['#FDFBFB', '#FFFFFF', '#C5A059'], dark: false, category: 'light' },
+            { name: 'Porcelain', colors: ['#F8F6F3', '#EEEBE5', '#8B7355'], dark: false, category: 'light' },
+            { name: 'Morning Mist', colors: ['#F5F7FA', '#E8EDF5', '#5C7AEA'], dark: false, category: 'light' },
+            { name: 'Sage Whisper', colors: ['#F4F7F4', '#E8F0E8', '#6B8E6B'], dark: false, category: 'light' },
+            { name: 'Blush Rose', colors: ['#FDF6F6', '#F5EBEB', '#D4A5A5'], dark: false, category: 'light' },
+            { name: 'Vanilla Cream', colors: ['#FFFEF5', '#FFF8E7', '#D4A574'], dark: false, category: 'light' },
+            { name: 'Pearl White', colors: ['#FFFFFF', '#F0F0F0', '#9CA3AF'], dark: false, category: 'light' },
+            // --- MISTY / LIGHT SETS ---
+            { name: "Misty Original", colors: ["#FDFBFB", "#FFFFFF", "#C5A059"], dark: false, category: "light" },
+            { name: "Rose Gold", colors: ["#FFF0F5", "#FFFFFF", "#D4AF37"], dark: false, category: "light" },
+            { name: "Vintage Blush", colors: ["#F4E1E1", "#FFFAFA", "#8B5F65"], dark: false, category: "light" },
+            { name: "Soft Romance", colors: ["#FFF5F7", "#FFFFFF", "#E6C2C2"], dark: false, category: "light" },
+            { name: "Dusty Rose", colors: ["#E0D0D5", "#F5EBEB", "#5C4033"], dark: false, category: "light" },
+            { name: "Porcelain Pink", colors: ["#FFFEFE", "#FFE4E1", "#708090"], dark: false, category: "light" },
+            { name: "Misty Copper", colors: ["#FFE4E1", "#FFF", "#B87333"], dark: false, category: "light" },
+            { name: "Champagne", colors: ["#FAF0E6", "#FFF5EE", "#C5A059"], dark: false, category: "light" },
+            // --- MODERN / MINIMAL ---
+            { name: "Scandi", colors: ["#F7F7F7", "#FFFFFF", "#333333"], dark: false, category: "modern" },
+            { name: "Cream & Gold", colors: ["#F5F5DC", "#FFFFF0", "#DAA520"], dark: false, category: "modern" },
+            { name: "Arctic", colors: ["#F0F8FF", "#FFFFFF", "#4682B4"], dark: false, category: "modern" },
+            { name: "Urban", colors: ["#F0F0F0", "#FFFFFF", "#FF4500"], dark: false, category: "modern" },
+            { name: "Latte", colors: ["#EBE0D6", "#FFF8F0", "#6F4E37"], dark: false, category: "modern" },
+            { name: "Pure Gold", colors: ["#FAFAFA", "#FFFFFF", "#FFD700"], dark: false, category: "modern" },
+            { name: "Marble", colors: ["#E5E5E5", "#F9F9F9", "#000000"], dark: false, category: "modern" },
+            { name: "Sage", colors: ["#F0FFF0", "#FFFFFF", "#556B2F"], dark: false, category: "modern" },
+            { name: "Lavender", colors: ["#F3E5F5", "#FFFFFF", "#9370DB"], dark: false, category: "modern" },
+            // --- DARK / PREMIUM ---
+            { name: "Onyx", colors: ["#000000", "#111111", "#FFFFFF"], dark: true, category: "dark" },
+            { name: "Midnight", colors: ["#0B1026", "#151B3B", "#C5A059"], dark: true, category: "dark" },
+            { name: "Deep Space", colors: ["#121212", "#1E1E1E", "#BB86FC"], dark: true, category: "dark" },
+            { name: "Emerald", colors: ["#04291C", "#083D2A", "#D4AF37"], dark: true, category: "dark" },
+            { name: "Royal", colors: ["#1A0526", "#2D0A3D", "#E6C200"], dark: true, category: "dark" },
+            { name: "Cosmic", colors: ["#121212", "#1E1E1E", "#BB86FC"], dark: true, category: "dark" },
+            { name: "Chocolate", colors: ["#3E2723", "#4E342E", "#D7CCC8"], dark: true, category: "dark" },
+            { name: "Gunmetal", colors: ["#263238", "#37474F", "#00BCD4"], dark: true, category: "dark" },
+            { name: "Velvet Red", colors: ["#4A0404", "#600606", "#FFD700"], dark: true, category: "dark" },
+            { name: "Space Grey", colors: ["#1C1C1E", "#2C2C2E", "#0A84FF"], dark: true, category: "dark" },
+            { name: "Vampire", colors: ["#1A0000", "#2E0000", "#FF0000"], dark: true, category: "dark" },
+            // --- EXTRA / VIBRANT ---
+            { name: "Ocean", colors: ["#E0F7FA", "#4DD0E1", "#006064"], dark: false, category: "vibrant" },
+            { name: "Sunset", colors: ["#FFF3E0", "#FFB74D", "#E65100"], dark: false, category: "vibrant" },
+            { name: "Mint", colors: ["#E0F2F1", "#4DB6AC", "#004D40"], dark: false, category: "vibrant" },
+            { name: "Berry", colors: ["#FCE4EC", "#F06292", "#880E4F"], dark: false, category: "vibrant" },
+            { name: "Steel", colors: ["#ECEFF1", "#90A4AE", "#263238"], dark: false, category: "vibrant" },
+            { name: "Cyber", colors: ["#0d0d0d", "#1a1a1a", "#00ffcc"], dark: true, category: "vibrant" },
+            { name: "Miami", colors: ["#222", "#333", "#ff00ff"], dark: true, category: "vibrant" },
+            { name: "Forest", colors: ["#1b2e1b", "#2a422a", "#55aa55"], dark: true, category: "vibrant" },
+            { name: "Lemonade", colors: ["#FFFDE7", "#FFF59D", "#FBC02D"], dark: false, category: "vibrant" },
+            { name: "Ice", colors: ["#E3F2FD", "#90CAF9", "#1565C0"], dark: false, category: "vibrant" },
+            { name: "Ruby", colors: ["#2b0a0a", "#4a1212", "#ff3333"], dark: true, category: "vibrant" }
+        ];
+
+        let currentTheme = "Onyx";
+
+        function toggleThemePanel() {
+            document.getElementById('themePanel').classList.toggle('active');
+        }
+
+        function applyTheme(themeName) {
+            const theme = themes.find(t => t.name === themeName);
+            if (!theme) return;
+
+            currentTheme = themeName;
+            const [bg, blob, accent] = theme.colors;
+            const root = document.documentElement;
+
+            // Background colors
+            root.style.setProperty('--bg-color', bg);
+            root.style.setProperty('--blob-1', blob);
+            root.style.setProperty('--blob-2', accent);
+            root.style.setProperty('--blob-3', theme.dark ? '#333333' : '#cccccc');
+
+            // Glass/Text colors based on dark/light mode
+            if (theme.dark) {
+                root.style.setProperty('--glass-surface', 'rgba(0, 0, 0, 0.4)');
+                root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
+                root.style.setProperty('--glass-highlight', 'rgba(255, 255, 255, 0.15)');
+                root.style.setProperty('--text-main', '#f0f0f0');
+                root.style.setProperty('--text-muted', '#aaaaaa');
+                root.style.setProperty('--card-bg', 'rgba(40, 40, 40, 0.6)');
+                root.style.setProperty('--card-bg-hover', 'rgba(60, 60, 60, 0.7)');
+                root.style.setProperty('--card-bg-light', 'rgba(30, 30, 30, 0.6)');
+            } else {
+                root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.3)');
+                root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.1)');
+                root.style.setProperty('--glass-highlight', 'rgba(255, 255, 255, 0.5)');
+                root.style.setProperty('--text-main', '#1a1a1a');
+                root.style.setProperty('--text-muted', '#555555');
+                root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.6)');
+                root.style.setProperty('--card-bg-hover', 'rgba(255, 255, 255, 0.75)');
+                root.style.setProperty('--card-bg-light', 'rgba(255, 255, 255, 0.5)');
+            }
+
+            // Accent colors
+            root.style.setProperty('--accent', accent);
+            root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accent} 0%, ${adjustBrightness(accent, -20)} 100%)`);
+
+            // Legacy variable support
+            root.style.setProperty('--color-primary', theme.dark ? '#f0f0f0' : '#1a1a1a');
+            root.style.setProperty('--color-secondary', accent);
+            root.style.setProperty('--color-accent', accent);
+
+            // // Update blob colors
+            // document.querySelectorAll('.b4, .b5').forEach((blobEl, i) => {
+            //     blobEl.style.background = i === 0 ? adjustBrightness(blob, 30) : adjustBrightness(accent, -30);
+            // });
+            if (currentTheme == "Misty Original") {
+
+            } else {
+                // Update blob colors
+                // document.querySelectorAll('.b4, .b5').forEach((el, i) => {
+                //     el.style.background = i === 0 ? adjustBrightness(blob, 30) : adjustBrightness(accent, -30);
+                // });
+                // Update blob colors
+                document.querySelectorAll('.b4, .b5').forEach((el, i) => {
+                    el.style.background = i === 0 ? "#575757" : "#676767";
+                });
+            }
+
+            // Update custom color inputs
+            const colorInputs = document.querySelectorAll('.custom-color-inputs input');
+            if (colorInputs.length >= 3) {
+                colorInputs[0].value = bg;
+                colorInputs[1].value = blob;
+                colorInputs[2].value = accent;
+            }
+
+            // Mark active theme
+            document.querySelectorAll('.theme-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.theme === themeName) {
+                    item.classList.add('active');
+                }
+            });
+
+            localStorage.setItem('selectedTheme', themeName);
+
+            // Close panel
+            // setTimeout(() => document.getElementById('themePanel').classList.remove('active'), 150);
+
+            // Update Quick Toggle Icon
+            const toggleBtn = document.getElementById('quickThemeToggle');
+            if (toggleBtn) {
+                const icon = toggleBtn.querySelector('i');
+                if (icon) {
+                    icon.className = theme.dark ? 'fas fa-sun' : 'fas fa-moon';
+                    toggleBtn.title = theme.dark ? 'Váltás Világos módra' : 'Váltás Sötét módra';
+                }
+            }
+        }
+
+        function applyCustomTheme() {
+            const bg = document.getElementById('customColorMain').value;
+            const blob = document.getElementById('customColorSec').value;
+            const accent = document.getElementById('customColorAcc').value;
+
+            const root = document.documentElement;
+            const isDark = isColorDark(bg);
+
+            root.style.setProperty('--bg-color', bg);
+            root.style.setProperty('--blob-1', blob);
+            root.style.setProperty('--blob-2', accent);
+            root.style.setProperty('--blob-3', isDark ? '#333333' : '#cccccc');
+
+            if (isDark) {
+                root.style.setProperty('--glass-surface', 'rgba(0, 0, 0, 0.4)');
+                root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
+                root.style.setProperty('--text-main', '#f0f0f0');
+                root.style.setProperty('--text-muted', '#aaaaaa');
+                root.style.setProperty('--card-bg', 'rgba(40, 40, 40, 0.6)');
+            } else {
+                root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.3)');
+                root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.1)');
+                root.style.setProperty('--text-main', '#1a1a1a');
+                root.style.setProperty('--text-muted', '#555555');
+                root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.6)');
+            }
+
+            root.style.setProperty('--accent', accent);
+            root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accent} 0%, ${adjustBrightness(accent, -20)} 100%)`);
+
+            // Legacy mapping
+            root.style.setProperty('--color-primary', isDark ? '#f0f0f0' : '#1a1a1a');
+
+            currentTheme = "Custom";
+            document.querySelectorAll('.theme-item').forEach(item => item.classList.remove('active'));
+            toggleThemePanel();
+        }
+
+        function renderThemeGrid() {
+            const container = document.getElementById('themePanelBody');
+            if (!container) return;
+
+            const categories = ['light', 'modern', 'dark', 'vibrant'];
+            const categoryNames = {
+                light: '🌸 Világos / Romantikus',
+                modern: '🏛️ Modern / Minimal',
+                dark: '🌙 Sötét / Prémium',
+                vibrant: '🎨 Vibráns / Extra'
+            };
+
+            let html = '';
+            categories.forEach(cat => {
+                const catThemes = themes.filter(t => t.category === cat);
+                html += `<div class="theme-category">
+                    <div class="theme-category-title">${categoryNames[cat]}</div>
+                    <div class="theme-grid">`;
+                catThemes.forEach(t => {
+                    html += `<div class="theme-item ${t.name === currentTheme ? 'active' : ''}" data-theme="${t.name}" onclick="applyTheme('${t.name}')">
+                        <div class="theme-colors">
+                            <div class="theme-color-swatch" style="background: ${t.colors[0]}"></div>
+                            <div class="theme-color-swatch" style="background: ${t.colors[1]}"></div>
+                            <div class="theme-color-swatch" style="background: ${t.colors[2]}"></div>
+                        </div>
+                        <div class="theme-name">${t.name}</div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function adjustBrightness(hex, percent) {
+            if (!hex || hex.length < 4) return hex;
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            r = Math.min(255, Math.max(0, r + (r * percent / 100)));
+            g = Math.min(255, Math.max(0, g + (g * percent / 100)));
+            b = Math.min(255, Math.max(0, b + (b * percent / 100)));
+            return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+        }
+
+        function isColorDark(hex) {
+            if (!hex) return true;
+            hex = hex.replace('#', '');
+            if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5;
+        }
+
+        function toggleThemePanel() {
+            const panel = document.getElementById('themePanel');
+            if (panel) {
+                panel.classList.toggle('active');
+            }
+        }
+
+        function initThemeSystem() {
+            console.log('[ThemeSystem] Initializing...');
+            const btn = document.getElementById('themeSelectorBtn');
+            const panel = document.getElementById('themePanel');
+            const closeBtn = document.getElementById('themePanelClose');
+            const applyBtn = document.getElementById('applyCustomColors');
+            const toggleBtn = document.getElementById('quickThemeToggle');
+
+            console.log('[ThemeSystem] Elements:', { btn, panel, closeBtn, applyBtn, toggleBtn });
+
+            if (btn && panel) {
+                btn.onclick = (e) => {
+                    console.log('[ThemeSystem] Main Button Clicked');
+                    e.preventDefault();
+                    toggleThemePanel();
+                    console.log('[ThemeSystem] Panel classes:', panel.className);
+                };
+            } else {
+                console.error('[ThemeSystem] CRITICAL: Main Button or Panel missing!');
+            }
+
+            if (closeBtn && panel) {
+                closeBtn.onclick = () => {
+                    console.log('[ThemeSystem] Close Button Clicked');
+                    panel.classList.remove('active');
+                };
+            }
+
+            if (toggleBtn) {
+                toggleBtn.onclick = (e) => {
+                    console.log('[ThemeSystem] Quick Toggle Clicked');
+                    e.preventDefault();
+                    const newTheme = (currentTheme === 'Onyx') ? 'Misty Original' : 'Onyx';
+                    console.log('[ThemeSystem] Switching to:', newTheme);
+                    applyTheme(newTheme);
+                };
+            } else {
+                console.error('[ThemeSystem] CRITICAL: Quick Toggle Button missing!');
+            }
+
+            if (applyBtn) {
+                applyBtn.onclick = () => {
+                    console.log('[ThemeSystem] Apply Custom Colors Clicked');
+                    const main = document.getElementById('customColorMain').value;
+                    const sec = document.getElementById('customColorSec').value;
+                    const acc = document.getElementById('customColorAcc').value;
+                    const root = document.documentElement;
+                    root.style.setProperty('--bg-color', main);
+                    root.style.setProperty('--blob-1', sec);
+                    root.style.setProperty('--blob-2', acc);
+                    root.style.setProperty('--blob-3', adjustBrightness(main, -10));
+                    root.style.setProperty('--accent', acc);
+                    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${acc} 0%, ${adjustBrightness(acc, -20)} 100%)`);
+                    document.querySelectorAll('.t-bar').forEach(el => el.classList.remove('active'));
+                    renderThemeGrid(); // Refresh grid state
+                };
+            }
+
+            // Load saved theme or set Default
+            const savedTheme = localStorage.getItem('selectedTheme');
+            console.log('[ThemeSystem] Saved theme:', savedTheme);
+            if (savedTheme && themes.find(t => t.name === savedTheme)) {
+                applyTheme(savedTheme);
+            } else {
+                console.log('[ThemeSystem] No valid saved theme, defaulting to Misty Original');
+                applyTheme('Misty Original');
+            }
+
+            renderThemeGrid();
+        }
+
+        // Loading System Functions
+        function updateLoadingProgress(percent, text) {
+            const progress = document.getElementById('loading-progress');
+            const textEl = document.getElementById('loading-text');
+            if (progress) progress.style.width = percent + '%';
+            if (text && textEl) textEl.textContent = text;
+        }
+
+        function showLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.offsetHeight; // Force reflow
+                overlay.classList.remove('hide');
+                updateLoadingProgress(0, 'Feldolgozás...');
+            }
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.classList.add('hide');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    updateLoadingProgress(0, 'Feldolgozás...');
+                }, 500);
+            }
+        }
+
+        function showMessage(msg) {
+            const overlay = document.getElementById('message-overlay');
+            const text = document.getElementById('message-text');
+            if (overlay && text) {
+                text.textContent = msg;
+                overlay.style.display = 'flex'; // Ensure flex display first
+                // Force reflow
+                void overlay.offsetWidth;
+                overlay.classList.add('active'); // Then fade in
+
+                // Add click event to close immediately
+                overlay.onclick = function () {
+                    hideMessage();
+                };
+
+                // Auto-hide after 2 seconds
+                setTimeout(() => {
+                    hideMessage();
+                }, 2000);
+            } else {
+                alert(msg);
+            }
+        }
+
+        function hideMessage() {
+            const overlay = document.getElementById('message-overlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500); // Wait for transition
+            }
+        }
+
+        // Hide loading overlay on load and Init
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                hideLoading();
+            }, 500);
+        });
+
+        // Initialize Theme System safely
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initThemeSystem);
+        } else {
+            initThemeSystem();
+        }
+
+        // === END THEME SYSTEM ===
+
+        const pricing = {
+            'Vászonkép': 0.00035,
+            'Okoskép': 0.00045,
+            'Alapdíj': 500,
+            'OkosképFelár': 1500
+        };
+
+        const DPI_ASSUMPTION = 70;
+        const INCH_TO_CM = 2.54;
+        const PAGE_WIDTH_CM = 2;
+        const SMARTPOINT_RADIUS_CM = 1;
+
+        let originalImage = null;
+        let originalWidthPx = 0;
+        let originalHeightPx = 0;
+        let canvas, ctx;
+        let isImageLoaded = false;
+        let printViewActive = true;
+        let effectiveDpi = DPI_ASSUMPTION;
+        let originalImageURL = "";
+        let originalImageName = "";
+        let eyeButton = true;
+
+        // Okospont változók
+        let smartpoints = [];
+        let nextSmartpointId = 1;
+        let placingSmartpointId = null;
+        let editingSmartpointId = null;
+        let movingSmartpointId = null;
+        let selectedSmartpointId = null;
+        let showSmartpoints = true;
+        let currentSmartPointType = null;
+        let currentSmartPointContent = null;
+        let isAddingNewSmartpoint = false;
+        // Undo/Redo & Validation
+        const MAX_FILE_SIZE_MB = 10;
+        const historyStack = [];
+        const redoStack = [];
+        const MAX_HISTORY = 20;
+
+
+        let tempSmartpointChanges = {};
+
+        // === SESSION RECOVERY (IndexedDB) ===
+        const DB_NAME = 'SmartPrintDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'editor_session';
+
+        const SessionDB = {
+            db: null,
+
+            init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME);
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve(this.db);
+                    };
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async save(data) {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.put(data, 'current_session');
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async load() {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get('current_session');
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            },
+
+            async clear() {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.delete('current_session');
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+        };
+
+        async function autoSaveSession() {
+            if (!isImageLoaded) return;
+            try {
+                // Calculate Smartpoints in CM for physical production
+                const smartpointsCm = smartpoints.map(sp => {
+                    // Convert relative coordinates (assuming stored as unscaled canvas coords) back to ratio
+                    // Actually smartpoints are stored in canvas coordinates relative to original image size
+                    const xPercent = sp.x / originalWidthPx;
+                    const yPercent = sp.y / originalHeightPx;
+
+                    const widthCm = parseFloat($('#input-width').val()) || 60;
+                    const heightCm = parseFloat($('#input-height').val()) || 40;
+
+                    return {
+                        id: sp.id,
+                        x_cm: (xPercent * widthCm).toFixed(2),
+                        y_cm: (yPercent * heightCm).toFixed(2),
+                        type: sp.type,
+                        content: sp.content
+                    };
+                });
+
+                // Correctly capture dimensions based on relevant inputs
+                // Note: input-width/height are always the "main" dimensions in the state logic, 
+                // but input-widthS/heightS are used for the inner frame size in kifutós mode.
+                // We should save ALL of them to be safe.
+
+                const width = parseFloat($('#input-width').val()) || 0;
+                const height = parseFloat($('#input-height').val()) || 0;
+                const widthS = parseFloat($('#input-widthS').val()) || 0;
+                const heightS = parseFloat($('#input-heightS').val()) || 0;
+
+                console.log('[Session] Auto-saving dimensions:', { width, height, widthS, heightS });
+
+                const productType = smartpoints.length > 0 ? 'Okoskép' : 'Vászonkép';
+                const currentPrice = calculatePrice(productType, width, height);
+
+                const sessionData = {
+                    settings: {
+                        dimensions: {
+                            width: width,
+                            height: height,
+                            widthS: widthS, // Explicitly save S dimensions
+                            heightS: heightS,
+                            locked: $('#lock-aspect-ratio').is(':checked')
+                        },
+                        edge: {
+                            mode: $('#edgeMode').val(),
+                            color: $('#szele').val()
+                        },
+                        theme: localStorage.getItem('selectedTheme') || 'Onyx',
+                        prices: {
+                            calculated_price: currentPrice,
+                            currency: 'Ft'
+                        },
+                        smartpoints_data: smartpoints, // Contains type, content (URL/filename), x, y, id, placed
+                        production_data: { // For Photoshop/Production
+                            original_filename: originalImageName,
+                            smartpoints_cm: smartpointsCm,
+                            dpi_used: effectiveDpi
+                        }
+                    },
+                    image: {
+                        url: originalImageURL, // This is the Base64/Blob URL
+                        name: originalImageName,
+                        width_px: originalWidthPx,
+                        height_px: originalHeightPx
+                    },
+                    timestamp: Date.now()
+                };
+
+                await SessionDB.save(sessionData);
+                console.log('[Session] Auto-saved with production data', sessionData);
+            } catch (e) {
+                console.error('[Session] Auto-save failed:', e);
+            }
+        }
+
+        async function checkAndPromptSession() {
+            try {
+                // Inject simpler message overlay styles dynamically
+                if (!document.getElementById('message-overlay-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'message-overlay-styles';
+                    style.textContent = `
+                    #message-overlay {
+                        position: fixed;
+                        top: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px 20px;
+                        border-radius: 30px;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        z-index: 10000;
+                        display: none; /* Hidden by default */
+                        align-items: center;
+                        gap: 10px;
+                        opacity: 0;
+                        transition: opacity 0.3s ease, top 0.3s ease;
+                        font-family: sans-serif;
+                        font-size: 14px;
+                        pointer-events: none;
+                    }
+                    #message-overlay.active {
+                        display: flex;
+                        opacity: 1;
+                        top: 30px;
+                        pointer-events: auto;
+                        cursor: pointer;
+                    }
+                    #message-overlay i {
+                        color: #4CAF50;
+                        font-size: 1.1rem;
+                    }
+                `;
+                    document.head.appendChild(style);
+                }
+
+                // Restore theme
+                const savedData = await SessionDB.load();
+                if (savedData && savedData.image && savedData.image.url) {
+                    const modal = new bootstrap.Modal(document.getElementById('recoveryModal'));
+                    modal.show();
+
+                    $('#restoreSession').off('click').on('click', async () => {
+                        modal.hide();
+                        // Show loading IMMEDIATELY, before processing starts
+                        showLoading();
+
+                        // Use timeout to allow UI to render the loading screen before heavier JS runs
+                        setTimeout(async () => {
+                            await restoreSession(savedData);
+                            showMessage("Munkamenet sikeresen visszaállítva!");
+                        }, 50);
+                    });
+
+                    $('#discardSession').off('click').on('click', async () => {
+                        await SessionDB.clear();
+                    });
+                }
+            } catch (e) {
+                console.error('[Session] Load check failed:', e);
+            }
+        }
+
+        async function restoreSession(data) {
+            updateLoadingProgress(10, 'Adatok betöltése...');
+            showLoading();
+            try {
+                const s = data.settings;
+
+                // Restore metadata
+                updateLoadingProgress(30, 'Beállítások visszaállítása...');
+                smartpoints = s.smartpoints_data || [];
+                nextSmartpointId = (smartpoints.length > 0) ? Math.max(...smartpoints.map(sp => sp.id)) + 1 : 1;
+                originalImageName = data.image.name || "";
+
+                $('#input-width').val(s.dimensions.width);
+                $('#input-height').val(s.dimensions.height);
+                $('#input-widthS').val(s.dimensions.widthS);
+                $('#input-heightS').val(s.dimensions.heightS);
+                $('#lock-aspect-ratio').prop('checked', s.dimensions.locked);
+
+                $('#edgeMode').val(s.edge.mode);
+                if (s.edge.color) $('#szele').val(s.edge.color);
+
+                if (s.theme) {
+                    localStorage.setItem('selectedTheme', s.theme);
+                    applyTheme(s.theme);
+                }
+
+                updateLoadingProgress(50, 'Okospontok elhelyezése...');
+
+                // Restore Image
+                if (data.image.url) {
+                    updateLoadingProgress(60, 'Kép feldolgozása...');
+                    await new Promise((resolve, reject) => {
+                        originalImageURL = data.image.url;
+                        originalImage = new Image();
+                        originalImage.onload = function () {
+                            try {
+                                updateLoadingProgress(90, 'Megjelenítés...');
+                                isImageLoaded = true;
+                                originalWidthPx = originalImage.width;
+                                originalHeightPx = originalImage.height;
+
+                                console.log('[Session] Image loaded. Restoring dimensions:', {
+                                    width: s.dimensions.width,
+                                    height: s.dimensions.height,
+                                    widthS: s.dimensions.widthS,
+                                    heightS: s.dimensions.heightS
+                                });
+
+                                $('#main-canvas').css('display', 'block');
+                                $('#placeholder-text').hide();
+                                $('#drop-zone').addClass('has-image').css('min-height', 0);
+
+                                $('#image-control-group, #eyeButton, #print-view-section').show();
+
+                                setEdgeMode(s.edge.mode || 'standard');
+
+                                // Force values again before drawing
+                                $('#input-width').val(s.dimensions.width);
+                                $('#input-height').val(s.dimensions.height);
+                                $('#input-widthS').val(s.dimensions.widthS);
+                                $('#input-heightS').val(s.dimensions.heightS);
+
+                                // Recalculate and store aspect ratio to fix subsequent resizing
+                                const ratio = originalWidthPx / originalHeightPx;
+                                $('#editor-form').data('aspectRatio', ratio);
+                                console.log('[Session] Restore: Aspect Ratio set to:', ratio);
+
+                                renderSmartpointsList();
+                                drawCanvas();
+                                updateUI();
+                                updateUndoRedoUI();
+
+                                // Force edge mode UI update
+                                $('.btn-toggle-secondary').removeClass('active');
+                                $(`.btn-toggle-secondary[data-edge-mode="${s.edge.mode}"]`).addClass('active');
+
+                                console.log('[Session] Restore complete.');
+                                updateLoadingProgress(100, 'Kész!');
+                                setTimeout(() => {
+                                    hideLoading();
+                                    resolve();
+                                }, 200);
+                            } catch (err) {
+                                reject(err);
+                            }
+                        };
+                        originalImage.onerror = (err) => {
+                            console.error('Image load error', err);
+                            reject(err);
+                        };
+                        originalImage.src = data.image.url;
+                    });
+                } else {
+                    hideLoading();
+                }
+            } catch (e) {
+                console.error('[Session] Restore failed:', e);
+                // Ensure loading is hidden on error
+                hideLoading();
+                showMessage("Hiba a munkamenet visszaállítása közben.");
+            }
+        }
+
+        function calculatePrice(product, width, height) {
+            if (!width || !height || width <= 0 || height <= 0) return 0;
+            const area = width * height;
+            const rate = pricing[product] || 0;
+            let price = pricing.Alapdíj + (area * rate);
+            if (product === 'Okoskép') {
+                price += pricing.OkosképFelár;
+            }
+            return Math.round(price);
+        }
+
+        function calculateInitialCM(pixels, dpi = DPI_ASSUMPTION) {
+            const finalDpi = dpi > 0 ? dpi : DPI_ASSUMPTION;
+            return (pixels / finalDpi) * INCH_TO_CM;
+        }
+
+        function calculateCropSizePx() {
+            const imageWidthCm = parseFloat($('#input-width').val()) || 1;
+            const imageHeightCm = parseFloat($('#input-height').val()) || 1;
+
+            if (originalWidthPx <= 0 || imageWidthCm <= 0 || originalHeightPx <= 0 || imageHeightCm <= 0) {
+                return 50;
+            }
+
+            const ratioX = originalWidthPx / imageWidthCm;
+            const ratioY = originalHeightPx / imageHeightCm;
+            const cropSizeX = ratioX * PAGE_WIDTH_CM;
+            const cropSizeY = ratioY * PAGE_WIDTH_CM;
+            const cropSize = Math.min(cropSizeX, cropSizeY);
+            return cropSize;
+        }
+
+        function calculateSmartpointRadiusPx() {
+            const imageWidthCm = parseFloat($('#input-width').val()) || 1;
+            if (originalWidthPx <= 0 || imageWidthCm <= 0) return 20;
+            const pxPerCm = originalWidthPx / imageWidthCm;
+            return pxPerCm * SMARTPOINT_RADIUS_CM;
+        }
+
+        function showMessage(text) {
+            $('#message-text').text(text);
+            $('#custom-message').fadeIn(300);
+        }
+
+        function drawCanvas() {
+            if (!isImageLoaded || !originalImage) {
+                $('#main-canvas').hide();
+                $('#placeholder-text').show();
+                return;
+            }
+
+            const CROP_SIZE_PX = calculateCropSizePx();
+            const imgW = originalWidthPx;
+            const imgH = originalHeightPx;
+            const edgeMode = $('#edgeMode').val();
+            const t = CROP_SIZE_PX;
+
+            $('#main-canvas').show();
+            $('#placeholder-text').hide();
+
+            if (!printViewActive && (edgeMode === 'standard' || edgeMode === 'eye')) {
+                const totalW = imgW - (2 * t);
+                const totalH = imgH - (2 * t);
+                canvas.width = totalW;
+                canvas.height = totalH;
+                ctx.clearRect(0, 0, totalW, totalH);
+                ctx.drawImage(originalImage, t, t, totalW, totalH, 0, 0, totalW, totalH);
+                drawSmartpoints(-t);
+                updatePreviewAreaOrientation(totalW, totalH);
+                return;
+            }
+
+            if (!printViewActive && edgeMode !== 'standard' && edgeMode !== 'eye') {
+                const totalW = imgW;
+                const totalH = imgH;
+                canvas.width = totalW;
+                canvas.height = totalH;
+                ctx.clearRect(0, 0, totalW, totalH);
+                ctx.drawImage(originalImage, 0, 0, totalW, totalH, 0, 0, totalW, totalH);
+                drawSmartpoints();
+                updatePreviewAreaOrientation(totalW, totalH);
+                return;
+            }
+
+            if ((printViewActive && (edgeMode === 'standard' || edgeMode === 'eye')) && eyeButton) {
+                canvas.width = imgW;
+                canvas.height = imgH;
+                ctx.clearRect(0, 0, imgW, imgH);
+                ctx.drawImage(originalImage, 0, 0, imgW, imgH);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+
+                const imageWidthCm = parseFloat($("#input-width").val());
+                const originalWidthPx = imgW;
+                var pageWidth = 2;
+                const cropSize = (originalWidthPx / imageWidthCm) * pageWidth;
+
+                ctx.fillRect(0, 0, canvas.width, cropSize);
+                ctx.fillRect(0, canvas.height - cropSize, canvas.width, cropSize);
+                ctx.fillRect(0, 0, cropSize, canvas.height);
+                ctx.fillRect(canvas.width - cropSize, 0, cropSize, canvas.height);
+
+                drawSmartpoints();
+                updatePreviewAreaOrientation(imgW, imgH);
+                return;
+            }
+
+            if ((printViewActive && (edgeMode === 'standard' || edgeMode === 'eye')) && !eyeButton) {
+                canvas.width = imgW;
+                canvas.height = imgH;
+                ctx.clearRect(0, 0, imgW, imgH);
+                ctx.drawImage(originalImage, 0, 0, imgW, imgH);
+                drawSmartpoints();
+                updatePreviewAreaOrientation(imgW, imgH);
+                return;
+            }
+
+            const totalW = imgW + (2 * t);
+            const totalH = imgH + (2 * t);
+            canvas.width = totalW;
+            canvas.height = totalH;
+            ctx.clearRect(0, 0, totalW, totalH);
+
+            if (edgeMode === 'color') {
+                const color = $('#szele').val();
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, totalW, totalH);
+            } else if (printViewActive && edgeMode.startsWith('mirrored')) {
+                const drawEdgeChunk = (sx, sy, sw, sh, dx, dy, dw, dh, flipX = 1, flipY = 1) => {
+                    ctx.save();
+                    ctx.translate(dx + (dw / 2), dy + (dh / 2));
+                    ctx.scale(flipX, flipY);
+                    ctx.drawImage(originalImage, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+                    ctx.restore();
+                };
+
+                const flipX = edgeMode === 'mirrored1' ? -1 : 1;
+                const flipY = edgeMode === 'mirrored1' ? -1 : 1;
+
+                drawEdgeChunk(imgW - t, 0, t, imgH, imgW + t, t, t, imgH, flipX, 1);
+                drawEdgeChunk(0, 0, t, imgH, 0, t, t, imgH, flipX, 1);
+                drawEdgeChunk(0, imgH - t, imgW, t, t, imgH + t, imgW, t, 1, flipY);
+                drawEdgeChunk(0, 0, imgW, t, t, 0, imgW, t, 1, flipY);
+            }
+
+            ctx.drawImage(originalImage, t, t, imgW, imgH);
+            drawSmartpoints(t);
+            updatePreviewAreaOrientation(totalW, totalH);
+        }
+
+        function drawSmartpoints(offset = 0) {
+            if (!showSmartpoints || smartpoints.length === 0) return;
+
+            const radius = calculateSmartpointRadiusPx();
+
+            smartpoints.forEach((sp, index) => {
+                if (!sp.x || !sp.y) return;
+
+                const x = sp.x + offset;
+                const y = sp.y + offset;
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = sp.id === selectedSmartpointId ? 'rgba(255, 255, 0, 0.7)' : 'rgba(255, 0, 0, 0.7)';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold ' + (radius * 1.2) + 'px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((index + 1).toString(), x, y);
+            });
+        }
+
+        function updatePreviewAreaOrientation(imgW, imgH) {
+            const aspectRatio = imgW / imgH;
+            const dropZone = $('#drop-zone');
+            dropZone.removeClass('orientation-landscape orientation-portrait');
+            if (aspectRatio >= 1) {
+                dropZone.addClass('orientation-landscape');
+            } else {
+                dropZone.addClass('orientation-portrait');
+            }
+        }
+
+        // Okospont funkciók
+        function addSmartpoint() {
+            saveState(); // Save before adding
+            const id = nextSmartpointId++;
+            const smartpoint = {
+                id: id,
+                type: null,
+                content: null,
+                x: null,
+                y: null,
+                placed: false
+            };
+            smartpoints.push(smartpoint);
+            renderSmartpointsList();
+            updateToggleSmartpointsButton();
+            updateMoveSmartpointsButton();
+            updatePrice();
+            return id;
+        }
+
+        function removeSmartpoint(id) {
+            saveState(); // Save before removing
+            smartpoints = smartpoints.filter(sp => sp.id !== id);
+            if (placingSmartpointId === id) {
+                placingSmartpointId = null;
+                $('#drop-zone').removeClass('placing-smartpoint');
+            }
+            if (editingSmartpointId === id) {
+                editingSmartpointId = null;
+                delete tempSmartpointChanges[id];
+            }
+            if (movingSmartpointId === id) {
+                movingSmartpointId = null;
+                $('#drop-zone').removeClass('moving-smartpoint');
+            }
+            if (selectedSmartpointId === id) {
+                selectedSmartpointId = null;
+            }
+            renderSmartpointsList();
+            updateToggleSmartpointsButton();
+            updateMoveSmartpointsButton();
+            updatePrice();
+            drawCanvas();
+        }
+
+        function updateSmartpoint(id, updates) {
+            saveState(); // Save before updating
+            const spIndex = smartpoints.findIndex(sp => sp.id === id);
+            if (spIndex !== -1) {
+                smartpoints[spIndex] = { ...smartpoints[spIndex], ...updates };
+
+                if (editingSmartpointId !== id) {
+                    renderSmartpointsList();
+                }
+                drawCanvas();
+            }
+        }
+
+        function updateToggleSmartpointsButton() {
+            const btn = $('#toggleSmartpointsBtn');
+            if (smartpoints.length > 0) {
+                btn.show();
+                const text = smartpoints.length === 1 ? 'Okospont' : 'Okospontok';
+                const action = showSmartpoints ? 'elrejtése' : 'mutatása';
+                $('#toggleSmartpointsText').text(`${text} ${action}`);
+            } else {
+                btn.hide();
+            }
+        }
+
+        function updateMoveSmartpointsButton() {
+            const btn = $('#moveSmartpointsBtn');
+            if (smartpoints.length > 0) {
+                btn.show();
+                const text = movingSmartpointId ? 'Áthelyezés megszakítása' : 'Okospontok áthelyezése';
+                $('#moveSmartpointsText').text(text);
+            } else {
+                btn.hide();
+            }
+        }
+
+        // --- Undo / Redo System ---
+        function saveState() {
+            // Deep copy state
+            const state = {
+                smartpoints: JSON.parse(JSON.stringify(smartpoints)),
+                nextSmartpointId: nextSmartpointId,
+                width: $('#input-width').val(),
+                height: $('#input-height').val(),
+                edgeMode: $('#edgeMode').val()
+            };
+
+            historyStack.push(state);
+            if (historyStack.length > MAX_HISTORY) historyStack.shift();
+
+            // Clear redo stack on new action
+            redoStack.length = 0;
+            updateUndoRedoUI();
+
+            // Auto-save session
+            autoSaveSession();
+        }
+
+        function restoreState(state) {
+            smartpoints = JSON.parse(JSON.stringify(state.smartpoints));
+            nextSmartpointId = state.nextSmartpointId;
+            $('#input-width').val(state.width);
+            $('#input-height').val(state.height);
+            $('#edgeMode').val(state.edgeMode);
+
+            renderSmartpointsList();
+            drawCanvas();
+            updatePrice();
+        }
+
+        function undo() {
+            if (historyStack.length <= 1) return; // Keep initial state
+
+            const currentState = historyStack.pop();
+            redoStack.push(currentState);
+
+            const previousState = historyStack[historyStack.length - 1];
+            restoreState(previousState);
+            updateUndoRedoUI();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+
+            const nextState = redoStack.pop();
+            historyStack.push(nextState);
+
+            restoreState(nextState);
+            updateUndoRedoUI();
+        }
+
+        function updateUndoRedoUI() {
+            $('#undoBtn').prop('disabled', historyStack.length <= 1);
+            $('#redoBtn').prop('disabled', redoStack.length === 0);
+        }
+
+        // --- Drag and Drop System ---
+        function initDragAndDrop() {
+            const wrapper = document.querySelector('.layout-wrapper');
+            const dropZone = document.getElementById('drop-zone');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                wrapper.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            wrapper.addEventListener('dragenter', () => wrapper.classList.add('drag-active'), false);
+            wrapper.addEventListener('dragleave', (e) => {
+                if (e.relatedTarget === null || !wrapper.contains(e.relatedTarget)) {
+                    wrapper.classList.remove('drag-active');
+                }
+            }, false);
+
+            wrapper.addEventListener('drop', (e) => {
+                wrapper.classList.remove('drag-active');
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    processImageFile(files[0]);
+                }
+            }, false);
+        }
+
+        // Initialize Listeners
+        $(document).ready(function () {
+            initDragAndDrop();
+
+            $('#undoBtn').click(undo);
+            $('#redoBtn').click(redo);
+        });
+
+
+        function renderSmartpointsList() {
+            const container = $('#smartpointsList');
+
+            if (!editingSmartpointId) {
+                container.empty();
+                delete tempSmartpointChanges;
+                tempSmartpointChanges = {};
+            } else {
+                container.find('.smart-point-list-item:not(.editing)').remove();
+            }
+
+            if (smartpoints.length === 0) {
+                container.html('<p class="text-center text-secondary small">Még nincs Okospont hozzáadva</p>');
+                return;
+            }
+
+            smartpoints.forEach((sp, index) => {
+                const isEditing = editingSmartpointId === sp.id;
+                const isSelected = selectedSmartpointId === sp.id;
+
+                const typeIcons = {
+                    'audio': 'fas fa-music',
+                    'video': 'fas fa-video',
+                    'image': 'fas fa-image',
+                    'images': 'fas fa-images',
+                    'youtube': 'fab fa-youtube',
+                    'spotify': 'fab fa-spotify',
+                    'url': 'fas fa-link'
+                };
+
+                const typeNames = {
+                    'audio': 'Hangfájl',
+                    'video': 'Videó',
+                    'image': 'Kép',
+                    'images': 'Képek',
+                    'youtube': 'YouTube',
+                    'spotify': 'Spotify',
+                    'url': 'URL'
+                };
+
+                if (isEditing && container.find(`.smart-point-list-item.editing[data-id="${sp.id}"]`).length > 0) {
+                    return;
+                }
+
+                if (!isEditing) {
+                    const item = $(`
+                        <div class="smart-point-list-item ${isSelected ? 'smartpoint-selected' : ''}" data-id="${sp.id}">
+                            <div>
+                                <i class="${sp.type ? typeIcons[sp.type] : 'fas fa-circle-dot'} smart-point-type-icon"></i>
+                                <span>Okospont ${index + 1}${sp.type ? ` - ${typeNames[sp.type]}` : ''}</span>
+                                ${sp.placed ?
+                            '<small class="text-success ms-2"><i class="fas fa-check-circle"></i> Elhelyezve</small>' :
+                            '<small class="text-warning ms-2"><i class="fas fa-map-marker-alt"></i> Elhelyezésre vár</small>'
+                        }
+                            </div>
+                            <div class="smart-point-actions">
+                                <button type="button" class="btn btn-sm btn-outline-primary edit-smartpoint" data-id="${sp.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-smartpoint" data-id="${sp.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `);
+                    container.append(item);
+                } else {
+                    if (!tempSmartpointChanges[sp.id]) {
+                        tempSmartpointChanges[sp.id] = {
+                            type: sp.type,
+                            content: sp.content
+                        };
+                    }
+
+                    const currentType = tempSmartpointChanges[sp.id].type || sp.type;
+                    const currentContent = tempSmartpointChanges[sp.id].content !== undefined ? tempSmartpointChanges[sp.id].content : sp.content;
+
+                    const editor = $(`
+                        <div class="smart-point-list-item editing ${isSelected ? 'smartpoint-selected' : ''}" data-id="${sp.id}">
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="fw-bold">Okospont ${index + 1} szerkesztése</span>
+                                        ${sp.placed ?
+                            '<small class="text-success ms-2"><i class="fas fa-check-circle"></i> Elhelyezve</small>' :
+                            '<small class="text-warning ms-2"><i class="fas fa-map-marker-alt"></i> Elhelyezésre vár</small>'
+                        }
+                                    </div>
+                                    <div class="smart-point-actions">
+                                        <button type="button" class="btn btn-sm btn-success save-smartpoint-edit" data-id="${sp.id}">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary cancel-smartpoint-edit" data-id="${sp.id}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary">Típus módosítása:</label>
+                                    <div class="type-selector">
+                                        <div class="selected-type btn btn-outline-secondary w-100 text-start" 
+                                             data-bs-toggle="collapse" 
+                                             data-bs-target="#typeDropdown-${sp.id}">
+                                            <i class="${currentType ? typeIcons[currentType] : 'fas fa-question'} me-2"></i>
+                                            ${currentType ? typeNames[currentType] : 'Válassz típust...'}
+                                            <i class="fas fa-chevron-down float-end mt-1"></i>
+                                        </div>
+                                        
+                                        <div class="collapse mt-2" id="typeDropdown-${sp.id}">
+                                            <div class="btn-group-vertical w-100">
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'audio' ? 'active' : ''}" data-type="audio">
+                                                    <i class="fas fa-music me-2"></i>Hangfájl feltöltése
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'video' ? 'active' : ''}" data-type="video">
+                                                    <i class="fas fa-video me-2"></i>Videó feltöltése
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'image' ? 'active' : ''}" data-type="image">
+                                                    <i class="fas fa-image me-2"></i>Kép feltöltése
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'images' ? 'active' : ''}" data-type="images">
+                                                    <i class="fas fa-images me-2"></i>Képek feltöltése
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'youtube' ? 'active' : ''}" data-type="youtube">
+                                                    <i class="fab fa-youtube me-2"></i>YouTube URL
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'spotify' ? 'active' : ''}" data-type="spotify">
+                                                    <i class="fab fa-spotify me-2"></i>Spotify URL
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary text-start type-option ${currentType === 'url' ? 'active' : ''}" data-type="url">
+                                                    <i class="fas fa-link me-2"></i>Bármilyen URL
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="content-input-area">
+                                    ${renderContentInput(currentType, currentContent, sp.id)}
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                    container.append(editor);
+
+                    editor.find('.type-option').on('click', function () {
+                        const newType = $(this).data('type');
+                        tempSmartpointChanges[sp.id].type = newType;
+                        editor.find('.selected-type').html(`
+                            <i class="${typeIcons[newType]} me-2"></i>
+                            ${typeNames[newType]}
+                            <i class="fas fa-chevron-down float-end mt-1"></i>
+                        `);
+                        $(`#typeDropdown-${sp.id}`).collapse('hide');
+                        editor.find('.content-input-area').html(renderContentInput(newType, tempSmartpointChanges[sp.id].content, sp.id));
+                    });
+                }
+            });
+        }
+
+        function renderContentInput(type, currentContent = '', spId = '') {
+            switch (type) {
+                case 'audio':
+                case 'video':
+                case 'image':
+                case 'images':
+                    return `
+                        <div class="mb-2">
+                            <label class="form-label text-secondary">Fájl feltöltése:</label>
+                            <input type="file" class="form-control form-control-sm content-file-input" 
+                                   data-id="${spId}"
+                                   accept="${getAcceptType(type)}" 
+                                   ${type === 'images' ? 'multiple' : ''}>
+                            ${currentContent ? `
+                                <div class="mt-1">
+                                    <small class="text-success">
+                                        <i class="fas fa-check me-1"></i>Jelenlegi: ${currentContent}
+                                    </small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                case 'youtube':
+                case 'spotify':
+                case 'url':
+                    const placeholders = {
+                        'youtube': 'https://youtube.com/watch?v=...',
+                        'spotify': 'https://open.spotify.com/track/...',
+                        'url': 'https://...'
+                    };
+
+                    return `
+                        <div class="mb-2">
+                            <label class="form-label text-secondary">URL:</label>
+                            <input type="url" class="form-control form-control-sm content-url-input" 
+                                   data-id="${spId}"
+                                   placeholder="${placeholders[type] || 'https://...'}" 
+                                   value="${currentContent || ''}">
+                        </div>
+                    `;
+                default:
+                    return '<div class="text-warning small">Válassz típust a tartalom megadásához</div>';
+            }
+        }
+
+        function getAcceptType(type) {
+            switch (type) {
+                case 'audio': return 'audio/*';
+                case 'video': return 'video/*';
+                case 'image':
+                case 'images': return 'image/*';
+                default: return '*/*';
+            }
+        }
+
+        function selectSmartPointType(type) {
+            currentSmartPointType = type;
+            $('.smart-point-type-btn').removeClass('active');
+            $(`.smart-point-type-btn[data-type="${type}"]`).addClass('active');
+
+            if (type === 'audio' || type === 'video' || type === 'image' || type === 'images') {
+                $('#smart-point-file-input').show();
+                $('#smart-point-url-input').hide();
+                $('#smart-point-file').attr('accept',
+                    type === 'audio' ? 'audio/*' :
+                        type === 'video' ? 'video/*' :
+                            'image/*'
+                );
+            } else {
+                $('#smart-point-file-input').hide();
+                $('#smart-point-url-input').show();
+                const placeholders = {
+                    'youtube': 'https://youtube.com/watch?v=...',
+                    'spotify': 'https://open.spotify.com/track/...',
+                    'url': 'https://...'
+                };
+                $('#smart-point-url').attr('placeholder', placeholders[type] || 'https://...');
+            }
+            $('#smart-point-content-input').slideDown(200);
+        }
+
+        function saveSmartPoint() {
+            let content = '';
+
+            if (currentSmartPointType === 'audio' || currentSmartPointType === 'video' || currentSmartPointType === 'image' || currentSmartPointType === 'images') {
+                const fileInput = $('#smart-point-file')[0];
+                if (!fileInput.files.length) {
+                    showMessage("Kérjük, válassz ki egy fájlt!");
+                    return;
+                }
+                content = fileInput.files[0].name;
+            } else {
+                content = $('#smart-point-url').val();
+                if (!content) {
+                    showMessage("Kérjük, add meg az URL-t!");
+                    return;
+                }
+            }
+
+            currentSmartPointContent = content;
+            const id = addSmartpoint();
+            updateSmartpoint(id, {
+                type: currentSmartPointType,
+                content: currentSmartPointContent
+            });
+
+            $('#smart-point-type-selector').slideUp(200);
+            $('#smart-point-content-input').slideUp(200);
+            $('#smart-point-url').val('');
+            $('#smart-point-file').val('');
+            placingSmartpointId = id;
+            $('#drop-zone').addClass('placing-smartpoint');
+            showMessage("Kattints a képre, hogy lehelyezd az Okospontot!");
+        }
+
+        function cancelAddSmartpoint() {
+            $('#smart-point-type-selector').slideUp(200);
+            $('#smart-point-content-input').slideUp(200);
+            $('#smart-point-url').val('');
+            $('#smart-point-file').val('');
+            currentSmartPointType = null;
+            currentSmartPointContent = null;
+            isAddingNewSmartpoint = false;
+            updateAddSmartpointButton();
+        }
+
+        function updateAddSmartpointButton() {
+            const btn = $('#addSmartpointBtn');
+            if (isAddingNewSmartpoint) {
+                btn.html('<i class="fas fa-times me-2"></i>Mégsem');
+                btn.removeClass('btn-accent').addClass('btn-outline-secondary');
+            } else {
+                btn.html('<i class="fa-solid fa-plus me-2"></i>Új Okospont hozzáadása');
+                btn.removeClass('btn-outline-secondary').addClass('btn-accent');
+            }
+        }
+
+        function processImageFile(file) {
+            console.log("processImageFile");
+            showLoading();
+
+            // Fájlméret validáció (10MB)
+            if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                showMessage(`A fájl túl nagy! Maximális méret: ${MAX_FILE_SIZE_MB} MB.`);
+                hideLoading();
+                return;
+            }
+
+            if (!file || !file.type.match('image/jpeg|image/png')) {
+                showMessage("A fájl nem megfelelő kép formátumú! Kérjük, JPG vagy PNG fájlt töltsön fel.");
+                hideLoading();
+                return;
+            }
+
+            originalImageName = file.name;
+            const reader = new FileReader();
+
+            reader.onerror = function () {
+                showMessage("Hiba történt a fájl olvasása közben.");
+                hideLoading();
+            };
+
+            reader.onload = function (event) {
+                const dataUrl = event.target.result;
+                originalImageURL = event.target.result;
+                originalImage = new Image();
+                originalImage.onload = function () {
+                    isImageLoaded = true;
+                    originalWidthPx = originalImage.width;
+                    originalHeightPx = originalImage.height;
+                    const aspectRatio = originalWidthPx / originalHeightPx;
+
+                    let isDefaultDpi = true;
+
+                    EXIF.getData(file, function () {
+                        const xResolutionTag = EXIF.getTag(this, "XResolution");
+                        const yResolutionTag = EXIF.getTag(this, "YResolution");
+                        const resolutionUnit = EXIF.getTag(this, "ResolutionUnit");
+
+                        let dpiValue = 0;
+                        const resolutionToUse = xResolutionTag || yResolutionTag;
+
+                        if (resolutionToUse) {
+                            if (resolutionToUse.numerator && resolutionToUse.denominator) {
+                                dpiValue = resolutionToUse.numerator / resolutionToUse.denominator;
+                            } else {
+                                dpiValue = resolutionToUse;
+                            }
+
+                            if (dpiValue > 0) {
+                                if (resolutionUnit === 2 || !resolutionUnit) {
+                                    effectiveDpi = dpiValue;
+                                }
+                                else if (resolutionUnit === 3) {
+                                    effectiveDpi = dpiValue * INCH_TO_CM;
+                                }
+                                isDefaultDpi = false;
+                            }
+                        }
+
+                        // Save state after loading image
+                        saveState();
+
+                        if (isDefaultDpi) {
+                            console.warn(`EXIF: Felbontási adatok hiányoznak. Az alapértelmezett ${DPI_ASSUMPTION} DPI érték használata.`);
+                        }
+
+                        const initialWidthCm = calculateInitialCM(originalWidthPx, effectiveDpi);
+                        const initialHeightCm = calculateInitialCM(originalHeightPx, effectiveDpi);
+                        const initialWidthSCm = initialWidthCm - 4;
+                        const initialHeightSCm = initialHeightCm - 4;
+
+                        $('#input-width, #input-height, #edgeMode').on('change', function () {
+                            saveState();
+                        });
+
+                        $('#main-canvas').css('display', 'block');
+                        $('#placeholder-text').hide();
+                        $('#drop-zone').removeClass('drag-over').addClass('has-image').css('min-height', 0);
+
+                        $('#image-control-group').slideDown(200);
+                        $('#eyeButton').slideDown(200);
+                        $('#image-control-group').slideDown(200);
+                        $('#eyeButton').slideDown(200);
+                        setTimeout(function () {
+                            $('#eyeButton').addClass("active");
+                        }, 10);
+
+                        // Save initial state for Undo
+                        saveState();
+                        updateUndoRedoUI();
+                        $('#print-view-section').show();
+
+                        $('#display-px-width').text(originalWidthPx);
+                        $('#display-px-height').text(originalHeightPx);
+                        $('#display-dpi').text(Math.round(effectiveDpi));
+
+                        $('#editor-form').data('aspectRatio', aspectRatio);
+
+                        const currentWidth = parseFloat($('#input-width').val());
+                        const currentHeight = parseFloat($('#input-height').val());
+
+                        if ((currentWidth === 60 && currentHeight === 40) || currentWidth === 0 || currentHeight === 0) {
+                            $('#input-width').val(initialWidthCm);
+                            $('#input-height').val(initialHeightCm);
+                            $('#input-widthS').val(initialWidthSCm);
+                            $('#input-heightS').val(initialHeightSCm);
+                        }
+
+                        handleDimensionChange('input-width');
+                        printViewActive = true;
+                        setEdgeMode('standard');
+                        drawCanvas();
+                        updateUI();
+                        hideLoading();
+
+                        // Auto-save immediately after load to capture initial/calculated dimensions
+                        setTimeout(autoSaveSession, 500);
+                    });
+                };
+                originalImage.onerror = function () {
+                    showMessage("Hiba történt a kép betöltése közben.");
+                    hideLoading();
+                };
+
+                originalImage.src = dataUrl;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function setEdgeMode(newMode) {
+            $('#edgeMode').val(newMode);
+            $('.btn-toggle-secondary[data-edge-mode]').removeClass('active');
+            $(`.btn-toggle-secondary[data-edge-mode="${newMode}"]`).addClass('active');
+            if (newMode == "eye") {
+                $(`.btn-toggle-secondary[data-edge-mode="standard"]`).addClass('active');
+                $(`.btn-toggle-secondary[data-edge-mode="eye"]`).addClass('active');
+            }
+            drawCanvas();
+        }
+
+        function handleDimensionChange(changedInputId) {
+            const isLocked = $('#lock-aspect-ratio').is(':checked');
+            const aspectRatio = $('#editor-form').data('aspectRatio');
+
+            console.log('[Dimensions] Change event:', changedInputId, 'Locked:', isLocked, 'Ratio:', aspectRatio);
+
+            if (isLocked && aspectRatio) {
+                let width = parseFloat($('#input-width').val());
+                let height = parseFloat($('#input-height').val());
+                let widthS = parseFloat($('#input-widthS').val());
+                let heightS = parseFloat($('#input-heightS').val());
+
+                if (changedInputId === 'input-width' && width > 0) {
+                    height = Math.max(1, width / aspectRatio);
+                    $('#input-height').val(height);
+                    $('#input-heightS').val(height - 4);
+                    $('#input-widthS').val(width - 4);
+                } else if (changedInputId === 'input-height' && height > 0) {
+                    width = Math.max(1, height * aspectRatio);
+                    $('#input-width').val(width);
+                    $('#input-widthS').val(width - 4);
+                    $('#input-heightS').val(height - 4);
+                }
+
+                if (changedInputId === 'input-widthS' && widthS > 0) {
+                    widthS = $('#input-widthS').val();
+                    $('#input-width').val(parseInt(widthS) + 4).trigger('input');
+                } else if (changedInputId === 'input-heightS' && heightS > 0) {
+                    heightS = $('#input-heightS').val();
+                    $('#input-height').val(parseInt(heightS) + 4).trigger('input');
+                }
+            }
+
+            const minVal = 1;
+            const maxVal = 30000;
+            if (parseFloat($('#input-width').val()) < minVal) { $('#input-width').val(minVal); }
+            if (parseFloat($('#input-height').val()) < minVal) { $('#input-height').val(minVal); }
+            if (parseFloat($('#input-width').val()) > maxVal) { $('#input-width').val(maxVal); }
+            if (parseFloat($('#input-height').val()) > maxVal) { $('#input-height').val(maxVal); }
+
+            updateUI();
+            if (isImageLoaded) {
+                drawCanvas();
+            }
+        }
+
+        function updateUI() {
+            const width = Math.max(1, parseFloat($('#input-width').val()) || 0);
+            const height = Math.max(1, parseFloat($('#input-height').val()) || 0);
+            const widthS = Math.max(1, parseFloat($('#input-widthS').val()) || 0);
+            const heightS = Math.max(1, parseFloat($('#input-heightS').val()) || 0);
+            const productType = smartpoints.length > 0 ? 'Okoskép' : 'Vászonkép';
+
+            const rawPrice = calculatePrice(productType, width, height);
+            const formattedPrice = rawPrice.toLocaleString('hu-HU') + ' Ft';
+
+            $('#current-price').text(formattedPrice);
+            $('#final-price').text(formattedPrice);
+
+            const edgeMode = $('#edgeMode').val();
+
+            // Méret megjelenítésének beállítása él mód alapján
+            if (edgeMode === 'standard' || edgeMode === 'eye') {
+                $('#size_kif').show();
+                $('#size_nemkif').hide();
+                $('#size_kif_').show();
+                $('#size_nemkif_').hide();
+                $('#display-width').text(width.toFixed(2).replace(/\.00$/, ''));
+                $('#display-height').text(height.toFixed(2).replace(/\.00$/, ''));
+                $('#mid-width').text(widthS.toFixed(2).replace(/\.00$/, ''));
+                $('#mid-height').text(heightS.toFixed(2).replace(/\.00$/, ''));
+            } else {
+                $('#size_kif').hide();
+                $('#size_nemkif').show();
+                $('#size_kif_').hide();
+                $('#size_nemkif_').show();
+                $('#display-width').text(width.toFixed(2).replace(/\.00$/, ''));
+                $('#display-height').text(height.toFixed(2).replace(/\.00$/, ''));
+                $('#mid-width').text(widthS.toFixed(2).replace(/\.00$/, ''));
+                $('#mid-height').text(heightS.toFixed(2).replace(/\.00$/, ''));
+            }
+        }
+
+        function updatePrice() {
+            const width = parseFloat($('#input-width').val()) || 1;
+            const height = parseFloat($('#input-height').val()) || 1;
+            const productType = smartpoints.length > 0 ? 'Okoskép' : 'Vászonkép';
+            const price = calculatePrice(productType, width, height);
+            $('#current-price').text(price + ' Ft');
+            $('#final-price').text(price + ' Ft');
+        }
+
+        $(document).ready(function () {
+            // Canvas kontextus inicializálása
+            canvas = document.getElementById('main-canvas');
+            ctx = canvas.getContext('2d');
+
+            $('#editor-form').data('aspectRatio', 60 / 40);
+
+            // Okospont eseménykezelők
+            $('#addSmartpointBtn').on('click', function () {
+                if (!isImageLoaded) {
+                    showMessage("Kérjük, először tölts fel egy képet!");
+                    return;
+                }
+
+                if (isAddingNewSmartpoint) {
+                    cancelAddSmartpoint();
+                } else {
+                    $('#smart-point-type-selector').slideDown(200);
+                    isAddingNewSmartpoint = true;
+                    updateAddSmartpointButton();
+                }
+            });
+
+            $('.smart-point-type-btn').on('click', function () {
+                const type = $(this).data('type');
+                selectSmartPointType(type);
+            });
+
+            $('#save-smart-point-btn').on('click', function () {
+                saveSmartPoint();
+                isAddingNewSmartpoint = false;
+                updateAddSmartpointButton();
+            });
+
+            $('#cancel-smart-point-btn').on('click', function () {
+                cancelAddSmartpoint();
+            });
+
+            $(document).on('click', '.edit-smartpoint', function (e) {
+                e.stopPropagation();
+                const id = parseInt($(this).data('id'));
+                editingSmartpointId = editingSmartpointId === id ? null : id;
+                renderSmartpointsList();
+            });
+
+            $(document).on('input', '.content-url-input', function () {
+                const id = parseInt($(this).data('id'));
+                const content = $(this).val();
+                if (tempSmartpointChanges[id]) {
+                    tempSmartpointChanges[id].content = content;
+                }
+            });
+
+            $(document).on('change', '.content-file-input', function () {
+                const id = parseInt($(this).data('id'));
+                const files = this.files;
+                if (files.length > 0) {
+                    const fileNames = Array.from(files).map(f => f.name).join(', ');
+                    if (tempSmartpointChanges[id]) {
+                        tempSmartpointChanges[id].content = fileNames;
+                    }
+                    $(this).after(`<small class="text-success mt-1 d-block"><i class="fas fa-check me-1"></i>Fájl kiválasztva</small>`);
+                }
+            });
+
+            $(document).on('click', '.save-smartpoint-edit', function () {
+                const id = parseInt($(this).data('id'));
+                if (tempSmartpointChanges[id]) {
+                    updateSmartpoint(id, tempSmartpointChanges[id]);
+                    delete tempSmartpointChanges[id];
+                }
+                editingSmartpointId = null;
+                renderSmartpointsList();
+                showMessage("Okospont sikeresen frissítve!");
+            });
+
+            $(document).on('click', '.cancel-smartpoint-edit', function () {
+                const id = parseInt($(this).data('id'));
+                delete tempSmartpointChanges[id];
+                editingSmartpointId = null;
+                renderSmartpointsList();
+                showMessage("Változtatások elvetve");
+            });
+
+            $('#moveSmartpointsBtn').on('click', function () {
+                if (movingSmartpointId) {
+                    movingSmartpointId = null;
+                    selectedSmartpointId = null;
+                    $('#drop-zone').removeClass('moving-smartpoint');
+                    $('#smartpointSection').removeClass('moving-mode-active');
+                    $(this).removeClass('btn-accent');
+                    $('#moveSmartpointsText').text('Okospontok áthelyezése');
+                    showMessage("Áthelyezés megszakítva");
+                } else {
+                    if (smartpoints.length === 0) {
+                        showMessage("Nincsenek okospontok az áthelyezéshez!");
+                        return;
+                    }
+                    movingSmartpointId = true;
+                    selectedSmartpointId = null;
+                    $('#drop-zone').addClass('moving-smartpoint');
+                    $('#smartpointSection').addClass('moving-mode-active');
+                    $(this).addClass('btn-accent');
+                    $('#moveSmartpointsText').text('Áthelyezés megszakítása');
+                    showMessage("Kattints egy okospontra a listából, majd kattints oda a képen, ahová áthelyezni szeretnéd!");
+                }
+                updateMoveSmartpointsButton();
+                renderSmartpointsList();
+                drawCanvas();
+            });
+
+            $(document).on('click', '.smart-point-list-item', function () {
+                if (!movingSmartpointId) return;
+                const id = parseInt($(this).data('id'));
+                const sp = smartpoints.find(sp => sp.id === id);
+                if (sp && sp.placed) {
+                    selectedSmartpointId = id;
+                    renderSmartpointsList();
+                    drawCanvas();
+                    showMessage(`Kiválasztva: Okospont ${smartpoints.findIndex(s => s.id === id) + 1}. Most kattints a képen az új helyre!`);
+                } else if (sp && !sp.placed) {
+                    showMessage("Ez az okospont még nincs elhelyezve a képen!");
+                }
+            });
+
+            $('#toggleSmartpointsBtn').on('click', function () {
+                showSmartpoints = !showSmartpoints;
+                updateToggleSmartpointsButton();
+                drawCanvas();
+            });
+
+            $(document).on('click', '.remove-smartpoint', function () {
+                const id = parseInt($(this).data('id'));
+                removeSmartpoint(id);
+            });
+
+            $('#main-canvas').on('click', function (e) {
+                if (!isImageLoaded) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                if (placingSmartpointId) {
+                    updateSmartpoint(placingSmartpointId, { x: x, y: y, placed: true });
+                    placingSmartpointId = null;
+                    $('#drop-zone').removeClass('placing-smartpoint');
+                    showMessage("Okospont sikeresen elhelyezve!");
+                    autoSaveSession(); // Immediate save
+                } else if (movingSmartpointId && selectedSmartpointId) {
+                    updateSmartpoint(selectedSmartpointId, { x: x, y: y });
+                    selectedSmartpointId = null;
+                    movingSmartpointId = null;
+                    $('#drop-zone').removeClass('moving-smartpoint');
+                    $('#smartpointSection').removeClass('moving-mode-active');
+                    $('#moveSmartpointsBtn').removeClass('btn-accent');
+                    $('#moveSmartpointsText').text('Okospontok áthelyezése');
+                    updateMoveSmartpointsButton();
+                    renderSmartpointsList();
+                    drawCanvas();
+                    showMessage("Okospont sikeresen áthelyezve!");
+                    autoSaveSession(); // Immediate save
+                }
+            });
+
+            // Eredeti funkcionalitás - változatlan
+            $('#drop-zone').on('click', function (e) {
+                if (!isImageLoaded) {
+                    $('#image-upload').click();
+                }
+            });
+
+            $('#drop-zone').on('dragover', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isImageLoaded) {
+                    $(this).addClass('drag-over');
+                }
+            });
+
+            $('#drop-zone').on('dragleave', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('drag-over');
+            });
+
+            $('#drop-zone').on('drop', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('drag-over');
+
+                if (isImageLoaded) return;
+
+                const files = e.originalEvent.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    processImageFile(file);
+                }
+            });
+
+            $('#image-upload').on('change', function (e) {
+                if (!isImageLoaded) {
+                    const file = e.target.files[0];
+                    processImageFile(file);
+                }
+            });
+
+            $('#change-image-btn').on('click', function () {
+                $('#image-upload').click();
+            });
+
+            $('#input-width, #input-height').on('input', function () {
+                const width = parseFloat($('#input-width').val()) || 1;
+                const height = parseFloat($('#input-height').val()) || 1;
+                const widthS = width - 4;
+                const heightS = height - 4;
+                $('#input-widthS').val(Math.round(widthS));
+                $('#input-heightS').val(Math.round(heightS));
+                $('#display-width').text(Math.round(width));
+                $('#display-height').text(Math.round(height));
+                $('#mid-width').text(Math.round(widthS));
+                $('#mid-height').text(Math.round(heightS));
+                drawCanvas();
+                updatePrice();
+            });
+
+            $('#input-widthS, #input-heightS').on('input', function () {
+                const widthS = parseFloat($('#input-widthS').val()) || 1;
+                const heightS = parseFloat($('#input-heightS').val()) || 1;
+                const width = widthS + 4;
+                const height = heightS + 4;
+                $('#input-width').val(Math.round(width));
+                $('#input-height').val(Math.round(height));
+                $('#display-width').text(Math.round(width));
+                $('#display-height').text(Math.round(height));
+                $('#mid-width').text(Math.round(widthS));
+                $('#mid-height').text(Math.round(heightS));
+                drawCanvas();
+                updatePrice();
+            });
+
+            $('#printViewButton').on('click', function () {
+                printViewActive = !printViewActive;
+                $(this).toggleClass('active', printViewActive);
+                $('#printViewStatus').text(printViewActive ? 'BE' : 'KI');
+                $('#printViewStatusBe').toggle(printViewActive);
+                $('#printViewStatusKi').toggle(!printViewActive);
+                drawCanvas();
+            });
+
+            $('#szele').on('change', function () {
+                drawCanvas();
+            });
+
+            // Edge mode gombok - eredeti logika
+            $('#standardEdgesButton').on('click', function () {
+                if (!isImageLoaded) return;
+                $('#printViewButton').addClass('active').find('#printViewStatus').text('BE');
+                $("#printViewStatusBe").show();
+                $("#printViewStatusKi").hide();
+                printViewActive = true;
+                eyeButton = true;
+                setTimeout(function () {
+                    $('#eyeButton').addClass("active");
+                }, 10);
+                setEdgeMode('standard');
+                $("#size_nemkif").hide();
+                $("#size_kif").show();
+                $("#size_nemkif_").hide();
+                $("#size_kif_").show();
+                $('#eyeButton').slideDown(200);
+                $('#szineselSzinDiv').slideUp(200, function () {
+                    this.style.setProperty('display', 'none', 'important');
+                });
+                $('#printViewStatusBe').html('A nyomat kiterítve látszik: Középen "a vászonkép", az oldalai pedig mellette, elhalványítva.<br>A kész vászonképen nem lesz elhalványítva, ezt csak az előnézet kedvéért így jelezzük a képen.<br>Ha szeretnéd halványítás nélkül megnézni a kiterített előnézetet, kattints az "Halványítás elrejtése" gombra.');
+                updateUI();
+            });
+
+            $('#eyeButton').on('click', function () {
+                $('#printViewButton').addClass('active').find('#printViewStatus').text('BE');
+                $("#printViewStatusBe").show();
+                $("#printViewStatusKi").hide();
+                printViewActive = true;
+                eyeButton = !eyeButton;
+                if (eyeButton) {
+                    //$("#eyeButton").text("Halványítás elrejtése");
+                    $("#eyeButton").html('<i class="fas fa-low-vision me-2"></i>Halványítás elrejtése');
+                    /*<wa-icon name="eye"></wa-icon>
+                    <i class="fas fa-low-vision me-2">
+                        <i class="fa-solid fa-eye"></i>*/
+                    $('#eyeButton').addClass('active');
+                    setEdgeMode('eye');
+                }
+                else {
+                    //$("#eyeButton").text("Halványítás mutatása");
+                    $("#eyeButton").html('<i class="fas fa-solid fa-eye me-2"></i>Halványítás mutatása');
+                    $('#eyeButton').removeClass('active');
+                    setEdgeMode('standard');
+                }
+                updateUI();
+            });
+
+            $('#colorEdgesButton').on('click', function () {
+                if (!isImageLoaded) return;
+                $('#printViewButton').addClass('active').find('#printViewStatus').text('BE');
+                printViewActive = true;
+                eyeButton = false;
+                setEdgeMode('color');
+                $("#size_kif").hide();
+                $("#size_nemkif").show();
+                $("#size_kif_").hide();
+                $("#size_nemkif_").show();
+                $('#eyeButton').slideUp(200);
+                $('#szineselSzinDiv').slideDown(200);
+                $('#printViewStatusBe').show();
+                $('#printViewStatusKi').hide();
+                updateUI();
+                $('#printViewStatusBe').html('A nyomat kiterítve látszik: Középen "a vászonkép", a színes oldalai pedig mellette.<br>A kész vászonképen a színes oldalak a vászonkép oldalaira esnek majd, így szemből nem látszódnak.');
+            });
+
+            $('#mirroredEdgesButton').on('click', function () {
+                if (!isImageLoaded) return;
+                $('#printViewButton').addClass('active').find('#printViewStatus').text('BE');
+                printViewActive = true;
+                eyeButton = false;
+                setEdgeMode('mirrored1');
+                $("#size_kif").hide();
+                $("#size_nemkif").show();
+                $("#size_kif_").hide();
+                $("#size_nemkif_").show();
+                $('#eyeButton').slideUp(200);
+                $('#szineselSzinDiv').slideUp(200, function () {
+                    this.style.setProperty('display', 'none', 'important');
+                });
+                $('#printViewStatusBe').show();
+                $('#printViewStatusKi').hide();
+                $('#printViewStatusBe').html('A nyomat kiterítve látszik: Középen "a vászonkép", a tükrözött oldalai pedig mellette.<br>A kész vászonképen a színes oldalak a vászonkép oldalaira esnek majd, így szemből nem látszódnak.');
+                updateUI();
+            });
+
+            $('#mirroredEdges2Button').on('click', function () {
+                if (!isImageLoaded) return;
+                $('#printViewButton').addClass('active').find('#printViewStatus').text('BE');
+                printViewActive = true;
+                eyeButton = false;
+                setEdgeMode('mirrored2');
+                $("#size_kif").hide();
+                $("#size_nemkif").show();
+                $("#size_kif_").hide();
+                $("#size_nemkif_").show();
+                $('#eyeButton').slideUp(200);
+                $('#szineselSzinDiv').slideUp(200, function () {
+                    this.style.setProperty('display', 'none', 'important');
+                });
+                $('#printViewStatusBe').show();
+                $('#printViewStatusKi').hide();
+                $('#printViewStatusBe').html('A nyomat kiterítve látszik: Középen "a vászonkép", a megkettőzött oldalai pedig mellette.<br>A kész vászonképen a színes oldalak a vászonkép oldalaira esnek majd, így szemből nem látszódnak.');
+                updateUI();
+            });
+
+            $('#input-width, #input-widthS, #input-height, #input-heightS').on('input', function () {
+                handleDimensionChange(this.id);
+            });
+
+            $('#close-message-btn').on('click', function () {
+                $('#custom-message').fadeOut(200);
+            });
+
+            $('#editor-form').on('submit', function (e) {
+                e.preventDefault();
+                if (!isImageLoaded) {
+                    showMessage("Kérjük, töltsön fel egy képet a folytatáshoz!");
+                    return;
+                }
+
+                const width = parseFloat($('#input-width').val()) || 1;
+                const height = parseFloat($('#input-height').val()) || 1;
+                const productType = smartpoints.length > 0 ? 'Okoskép' : 'Vászonkép';
+                const price = calculatePrice(productType, width, height);
+
+                showMessage(`A termék sikeresen hozzáadva a kosárhoz! Ár: ${price} Ft`);
+            });
+
+            updateUI();
+            setEdgeMode($('#edgeMode').val());
+            updatePrice();
+
+            // Hook into settings changes for auto-save
+            $('#input-width, #input-height, #input-widthS, #input-heightS, #lock-aspect-ratio').on('change input', function () {
+                autoSaveSession();
+            });
+
+            $('#szele').on('change', function () { autoSaveSession(); });
+
+            // Edge mode buttons
+            $('.btn-toggle-secondary').on('click', function () {
+                // Wait for the click handler to update the state
+                setTimeout(autoSaveSession, 100);
+            });
+
+            // Smartpoint placement fix (ensure auto-save after placement)
+            $(document).on('click', '#main-canvas', function () {
+                setTimeout(autoSaveSession, 100);
+            });
+
+            // Initialize Liquid Glass Theme System
+            try { initThemeSystem(); } catch (e) { console.error("Theme Error:", e); }
+
+            // Check for saved session
+            checkAndPromptSession();
+        });
+    </script>
+</body>
+
+</html>
